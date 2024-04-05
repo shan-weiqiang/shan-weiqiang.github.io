@@ -1,0 +1,24 @@
+{% if include.toc != false %}
+  <div class="toc">
+    <strong>Table of Contents</strong>
+    <ul class="toc-list">
+      {% capture headings %}
+        {{ include.html | markdownify | scan('(<h[1-6].*?>)') }}
+      {% endcapture %}
+      {% assign ids = "" | split: "" %}
+      {% for heading in headings %}
+        {% assign matches = heading | scan: '<h[1-6].*?id="([^"]*?)"' %}
+        {% if matches.size > 0 %}
+          {% assign id = matches[0][0] %}
+        {% else %}
+          {% assign id = heading | replace: '<.*?id="([^"]*?)".*?', "#$1" %}
+        {% endif %}
+        {% assign ids = ids | push: id %}
+        {% assign level = heading | replace: '<.*?h([1-6]).*?', "$1" | plus: 0 %}
+        <li class="toc-item toc-level-{{ level }}">
+          <a href="{{ id }}">{{ heading | replace: '<.*?>', "" }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endif %}
