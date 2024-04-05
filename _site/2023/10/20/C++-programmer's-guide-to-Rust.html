@@ -1,23 +1,136 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>C++ programmer‘s guide to Rust | Shan Weiqiang’s Blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="C++ programmer‘s guide to Rust" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="个人博客" />
+<meta property="og:description" content="个人博客" />
+<link rel="canonical" href="/2023/10/20/C++-programmer's-guide-to-Rust.html" />
+<meta property="og:url" content="/2023/10/20/C++-programmer's-guide-to-Rust.html" />
+<meta property="og:site_name" content="Shan Weiqiang’s Blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-10-20T19:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="C++ programmer‘s guide to Rust" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-10-20T19:22:46+08:00","datePublished":"2023-10-20T19:22:46+08:00","description":"个人博客","headline":"C++ programmer‘s guide to Rust","mainEntityOfPage":{"@type":"WebPage","@id":"/2023/10/20/C++-programmer's-guide-to-Rust.html"},"url":"/2023/10/20/C++-programmer's-guide-to-Rust.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="Shan Weiqiang&apos;s Blog" /></head>
+<body><header class="site-header" role="banner">
 
-<div class="toc">
-    <strong>Table of Contents</strong>
-    <ul class="toc-list">
-      
-      
-      
-        
-        
-        
-        
-        <li class="toc-item toc-level-0">
-          <a href="">
-        
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Shan Weiqiang&#39;s Blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
 
-      </a>
-        </li>
-      
+        <div class="trigger"><a class="page-link" href="/about/">About</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">C++ programmer‘s guide to Rust</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2023-10-20T19:22:46+08:00" itemprop="datePublished">Oct 20, 2023
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul id="markdown-toc">
+  <li><a href="#c-programmers-guide-to-rust" id="markdown-toc-c-programmers-guide-to-rust">C++ programmer‘s guide to Rust</a></li>
+  <li><a href="#3-common-programming-concepts" id="markdown-toc-3-common-programming-concepts">3. Common Programming Concepts</a>    <ul>
+      <li><a href="#31-variables-and-mutability" id="markdown-toc-31-variables-and-mutability">3.1 Variables and Mutability</a></li>
+      <li><a href="#32-data-types" id="markdown-toc-32-data-types">3.2 Data Types</a></li>
+      <li><a href="#33-functions" id="markdown-toc-33-functions">3.3 Functions</a></li>
+      <li><a href="#35-control-flow" id="markdown-toc-35-control-flow">3.5 Control Flow</a></li>
     </ul>
-  </div>
+  </li>
+  <li><a href="#4--understanding-ownership" id="markdown-toc-4--understanding-ownership">4.  <strong>Understanding Ownership</strong></a>    <ul>
+      <li><a href="#41-what-is-ownership" id="markdown-toc-41-what-is-ownership">4.1 <strong>What Is Ownership?</strong></a></li>
+      <li><a href="#42-references-and-borrowing" id="markdown-toc-42-references-and-borrowing">4.2 <strong>References and Borrowing</strong></a></li>
+      <li><a href="#43-the-slice-type" id="markdown-toc-43-the-slice-type">4.3 <strong>The Slice Type</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#5-using-structs-to-structure-related-data" id="markdown-toc-5-using-structs-to-structure-related-data">5. <strong>Using Structs to Structure Related Data</strong></a>    <ul>
+      <li><a href="#52-an-example-program-using-structs" id="markdown-toc-52-an-example-program-using-structs">5.2 <strong>An Example Program Using Structs</strong></a></li>
+      <li><a href="#53-method-syntax" id="markdown-toc-53-method-syntax">5.3 Method Syntax</a></li>
+    </ul>
+  </li>
+  <li><a href="#6-enums-and-pattern-matching" id="markdown-toc-6-enums-and-pattern-matching">6. <strong>Enums and Pattern Matching</strong></a>    <ul>
+      <li><a href="#61-defining-an-enum" id="markdown-toc-61-defining-an-enum">6.1 <strong>Defining an Enum</strong></a></li>
+      <li><a href="#62-thematchcontrol-flow-construct" id="markdown-toc-62-thematchcontrol-flow-construct">6.2 <strong>The <code class="language-plaintext highlighter-rouge">match</code> Control Flow Construct</strong></a></li>
+      <li><a href="#63-concise-control-flow-withif-let" id="markdown-toc-63-concise-control-flow-withif-let">6.3 <strong>Concise Control Flow with <code class="language-plaintext highlighter-rouge">if let</code></strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#7-managing-growing-projects-with-packages-crates-and-modules" id="markdown-toc-7-managing-growing-projects-with-packages-crates-and-modules">7. <strong>Managing Growing Projects with Packages, Crates, and Modules</strong></a></li>
+  <li><a href="#8-common-collections" id="markdown-toc-8-common-collections">8. <strong>Common Collections</strong></a>    <ul>
+      <li><a href="#81-storing-lists-of-values-with-vectors" id="markdown-toc-81-storing-lists-of-values-with-vectors">8.1 <strong>Storing Lists of Values with Vectors</strong></a></li>
+      <li><a href="#82-storing-utf-8-encoded-text-with-strings" id="markdown-toc-82-storing-utf-8-encoded-text-with-strings">8.2 <strong>Storing UTF-8 Encoded Text with Strings</strong></a></li>
+      <li><a href="#83-storing-keys-with-associated-values-in-hash-maps" id="markdown-toc-83-storing-keys-with-associated-values-in-hash-maps">8.3 <strong>Storing Keys with Associated Values in Hash Maps</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#9-error-handling" id="markdown-toc-9-error-handling">9. <strong>Error Handling</strong></a>    <ul>
+      <li><a href="#91-unrecoverable-errors-withpanic" id="markdown-toc-91-unrecoverable-errors-withpanic">9.1 <strong>Unrecoverable Errors with <code class="language-plaintext highlighter-rouge">panic!</code></strong></a></li>
+      <li><a href="#92-recoverable-errors-withresult" id="markdown-toc-92-recoverable-errors-withresult">9.2 <strong>Recoverable Errors with <code class="language-plaintext highlighter-rouge">Result</code></strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#10-generic-types-traits-and-lifetimes" id="markdown-toc-10-generic-types-traits-and-lifetimes">10. <strong>Generic Types, Traits, and Lifetimes</strong></a>    <ul>
+      <li><a href="#101-generic-data-types" id="markdown-toc-101-generic-data-types">10.1 <strong>Generic Data Types</strong></a></li>
+      <li><a href="#102-traits-defining-shared-behavior" id="markdown-toc-102-traits-defining-shared-behavior">10.2 <strong>Traits: Defining Shared Behavior</strong></a></li>
+      <li><a href="#103-validating-references-with-lifetimes" id="markdown-toc-103-validating-references-with-lifetimes">10.3 <strong>Validating References with Lifetimes</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#11-writing-automated-tests" id="markdown-toc-11-writing-automated-tests">11. <strong>Writing Automated Tests</strong></a>    <ul>
+      <li><a href="#111-how-to-write-tests" id="markdown-toc-111-how-to-write-tests">11.1 <strong>How to Write Tests</strong></a></li>
+      <li><a href="#113-test-organization" id="markdown-toc-113-test-organization">11.3 <strong>Test Organization</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#13-functional-language-features-iterators-and-closures" id="markdown-toc-13-functional-language-features-iterators-and-closures">13. <strong>Functional Language Features: Iterators and Closures</strong></a>    <ul>
+      <li><a href="#131-closures-anonymous-functions-that-capture-their-environment" id="markdown-toc-131-closures-anonymous-functions-that-capture-their-environment">13.1 <strong>Closures: Anonymous Functions that Capture Their Environment</strong></a></li>
+      <li><a href="#132-processing-a-series-of-items-with-iterators" id="markdown-toc-132-processing-a-series-of-items-with-iterators">13.2 <strong>Processing a Series of Items with Iterators</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#14-more-about-cargo-and-cratesio" id="markdown-toc-14-more-about-cargo-and-cratesio">14. <strong>More About Cargo and Crates.io</strong></a>    <ul>
+      <li><a href="#143-cargo-workspaces" id="markdown-toc-143-cargo-workspaces">14.3 <strong>Cargo Workspaces</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#15-smart-pointers" id="markdown-toc-15-smart-pointers">15. <strong>Smart Pointers</strong></a>    <ul>
+      <li><a href="#151-usingboxtto-point-to-data-on-the-heap" id="markdown-toc-151-usingboxtto-point-to-data-on-the-heap">15.1 <strong>Using <code class="language-plaintext highlighter-rouge">Box&lt;T&gt;</code> to Point to Data on the Heap</strong></a></li>
+      <li><a href="#152-treating-smart-pointers-like-regular-references-with-thedereftrait" id="markdown-toc-152-treating-smart-pointers-like-regular-references-with-thedereftrait">15.2 <strong>Treating Smart Pointers Like Regular References with the <code class="language-plaintext highlighter-rouge">Deref</code> Trait</strong></a></li>
+      <li><a href="#153-running-code-on-cleanup-with-thedroptrait" id="markdown-toc-153-running-code-on-cleanup-with-thedroptrait">15.3 <strong>Running Code on Cleanup with the <code class="language-plaintext highlighter-rouge">Drop</code> Trait</strong></a></li>
+      <li><a href="#154-rct-the-reference-counted-smart-pointerhttpsdocrust-langorgbookch15-04-rchtmlrct-the-reference-counted-smart-pointer" id="markdown-toc-154-rct-the-reference-counted-smart-pointerhttpsdocrust-langorgbookch15-04-rchtmlrct-the-reference-counted-smart-pointer">15.4 <strong><code class="language-plaintext highlighter-rouge">[Rc&lt;T&gt;</code>, the Reference Counted Smart Pointer](https://doc.rust-lang.org/book/ch15-04-rc.html#rct-the-reference-counted-smart-pointer)</strong></a></li>
+      <li><a href="#155-refcelltand-the-interior-mutability-patternhttpsdocrust-langorgbookch15-05-interior-mutabilityhtmlrefcellt-and-the-interior-mutability-pattern" id="markdown-toc-155-refcelltand-the-interior-mutability-patternhttpsdocrust-langorgbookch15-05-interior-mutabilityhtmlrefcellt-and-the-interior-mutability-pattern">15.5 <strong><code class="language-plaintext highlighter-rouge">[RefCell&lt;T&gt;</code> and the Interior Mutability Pattern](https://doc.rust-lang.org/book/ch15-05-interior-mutability.html#refcellt-and-the-interior-mutability-pattern)</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#16-fearless-concurrency" id="markdown-toc-16-fearless-concurrency">16. <strong>Fearless Concurrency</strong></a>    <ul>
+      <li><a href="#161-using-threads-to-run-code-simultaneously" id="markdown-toc-161-using-threads-to-run-code-simultaneously">16.1 <strong>Using Threads to Run Code Simultaneously</strong></a></li>
+      <li><a href="#162-using-message-passing-to-transfer-data-between-threads" id="markdown-toc-162-using-message-passing-to-transfer-data-between-threads">16.2 <strong>Using Message Passing to Transfer Data Between Threads</strong></a></li>
+      <li><a href="#163-shared-state-concurrency" id="markdown-toc-163-shared-state-concurrency">16.3 <strong>Shared-State Concurrency</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#17-object-oriented-programming-features-of-rust" id="markdown-toc-17-object-oriented-programming-features-of-rust">17. <strong>Object-Oriented Programming Features of Rust</strong></a>    <ul>
+      <li><a href="#172-using-trait-objects-that-allow-for-values-of-different-types" id="markdown-toc-172-using-trait-objects-that-allow-for-values-of-different-types">17.2 <strong>Using Trait Objects That Allow for Values of Different Types</strong></a></li>
+    </ul>
+  </li>
+  <li><a href="#19-advanced-features" id="markdown-toc-19-advanced-features">19. <strong>Advanced Features</strong></a>    <ul>
+      <li><a href="#192-unsafe-rust" id="markdown-toc-192-unsafe-rust">19.2 <strong>Unsafe Rust</strong></a></li>
+      <li><a href="#192-advanced-traits" id="markdown-toc-192-advanced-traits">19.2 <strong>Advanced Traits</strong></a></li>
+      <li><a href="#193-advanced-types" id="markdown-toc-193-advanced-types">19.3 <strong>Advanced Types</strong></a></li>
+      <li><a href="#194-advanced-functions-and-closures" id="markdown-toc-194-advanced-functions-and-closures">19.4 <strong>Advanced Functions and Closures</strong></a></li>
+    </ul>
+  </li>
+</ul>
 
 <h1 id="c-programmers-guide-to-rust">C++ programmer‘s guide to Rust</h1>
 
@@ -762,7 +875,7 @@
 
 <p>Exmaple, for following file structure:</p>
 
-<p><img src="C++%20programmer%E2%80%98s%20guide%20to%20Rust%20117d74291933404ab47707db3bac63d6/Screenshot_2023-08-19_at_09.19.03.png" alt="Screenshot 2023-08-19 at 09.19.03.png" /></p>
+<p><img src="/assets/images/Screenshot_2023-08-19_at_09.19.03.jpg" alt="Screenshot 2023-08-19 at 09.19.03.png" /></p>
 
 <p>File <em>module/src/animal.rs</em></p>
 
@@ -2651,3 +2764,35 @@
     <span class="nd">println!</span><span class="p">(</span><span class="s">"{}"</span><span class="p">,</span> <span class="n">b</span><span class="p">);</span>
 <span class="p">}</span>
 </code></pre></div></div>
+
+  </div><a class="u-url" href="/2023/10/20/C++-programmer's-guide-to-Rust.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">Shan Weiqiang&#39;s Blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Shan Weiqiang&#39;s Blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>个人博客</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
