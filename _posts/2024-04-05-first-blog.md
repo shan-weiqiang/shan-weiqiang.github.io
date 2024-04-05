@@ -3,7 +3,7 @@ layout: post
 title:  "SOME/IP!"
 date:   2024-04-05 19:22:46 +0800
 categories: jekyll update
-tags: SOME
+tag: SOME
 category: AUTOSAR
 ---
 
