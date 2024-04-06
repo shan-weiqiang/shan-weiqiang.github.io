@@ -29,11 +29,11 @@ github_username:  shan-weiqiang
 theme: minima
 plugins:
   - jekyll-feed
-  - jekyll-archives
 
-# header_pages:
-#   - archives.markdown
-#   - about.markdown
+header_pages:
+  - about.markdown
+  - archive.markdown
+  - tags.markdown
 
 # Exclude from processing.
 # The following items will not be processed, by default.
@@ -55,12 +55,4 @@ plugins:
 #   - vendor/gems/
 #   - vendor/ruby/
 
-jekyll-archives:
-  enabled:
-    - categories
-    - tags
-  layout: archive
-  permalinks:
-    category: '/categories/:name/'
-    tag: '/tags/:name/'
 
