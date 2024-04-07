@@ -4,9 +4,10 @@ title: About
 permalink: /about/
 ---
 
-Middleware Software Engineer：
+I am a middleware software engineer in automobile industry. My main work is on the implementation of AUTOSAR AP, including BSW and toolchain：
 - AUTOSAR AP(Model, Code generation...)
 - SOME/IP
 - Deterministic Runtime
-- Toolchian development
-- ...
+- Toolchain development
+
+This website aims to share knowledge about programming languages, AUTOSAR, linux system programming, etc.. 
