@@ -5,12 +5,12 @@ date:   2023-10-20 19:22:46 +0800
 tags: [Rust]
 ---
 
-* toc
-{:toc}
-
 # C++ programmer‘s guide to Rust
 
-This is my reading note of *[The Book](https://doc.rust-lang.org/book/title-page.html)* of Rust. To learn Rust it’s best to compare it with one language that I am experienced with. For me it’s C++. Following are some key differences between Rust and C++, organized the same as the book’s chapter:
+This is my reading note of *[The Book](https://doc.rust-lang.org/book/title-page.html)* of Rust. To learn Rust it’s best to compare it with one language that I am experienced with. For me it’s C++. Following are some key differences between Rust and C++, organized the same as the book’s chapter.
+
+* toc
+{:toc}
 
 # 3. Common Programming Concepts
 
