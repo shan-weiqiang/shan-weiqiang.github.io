@@ -10,6 +10,8 @@ This article tries to explain how metaclass work in Python and the process of cr
 * toc
 {:toc}
 
+# Reference
+
 I reference following articles and some of the content derives from them, please read them first and credit goes for the writers too:
 
 [Understanding Python metaclasses - … and Python objects in general](https://blog.ionelmc.ro/2015/02/09/understanding-python-metaclasses/#prior-articles)
@@ -26,7 +28,7 @@ Basic concepts will not be explained here, I go directly into the instance and c
 
 The creation process of Python class instance can be summarized in following diagram:
 
-![PythonObjectCreation.drawio.png](Python%20Metaclass%20feb26e3cc8c1420ba45ff3d0092febe1/PythonObjectCreation.drawio.png)
+![PythonObjectCreation.drawio.png](/assets/images/PythonObjectCreation.drawio.png)
 
 1. When instance of a class is created, `__call__` of the class’s metaclass is called, with the class object as the first parameter `self` and all other user defined positional and keyword arguments
 2. Inside `__call__` method, class’s `__new__` method will be called to return the created instance object
@@ -36,7 +38,7 @@ The creation process of Python class instance can be summarized in following dia
 
 The creation process of Python class is more complex and can be summarized in following diagram:
 
-![PythonObjectCreation.drawio-2.png](Python%20Metaclass%20feb26e3cc8c1420ba45ff3d0092febe1/PythonObjectCreation.drawio-2.png)
+![PythonObjectCreation.drawio-2.png](/assets/images/PythonObjectCreation.drawio-2.png)
 
 1. First the Python runtime will call `__prepare__` of metaclass to return a namespace dict
 2.  `__call__` of the class’s meta-metaclass is called, passing following arguments
