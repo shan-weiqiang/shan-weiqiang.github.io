@@ -233,7 +233,7 @@
 
 <h2 id="为什么析构函数可以放在someclassimp定义的前面">为什么析构函数可以放在SomeClassImp定义的前面</h2>
 
-<p>因为s<code class="language-plaintext highlighter-rouge">td::unique_ptr</code>是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
+<p>因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
 
 <h1 id="用stdunique_ptr而不是stdshared_ptr">用<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>而不是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code></h1>
 
@@ -245,7 +245,7 @@
 <span class="p">...</span>
 </code></pre></div></div>
 
-<p>那为什么不使用<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>，而是使用s<code class="language-plaintext highlighter-rouge">td::unique_ptr</code>呢？ 有如下的原因：</p>
+<p>那为什么不使用<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>，而是使用<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>呢？ 有如下的原因：</p>
 
 <ul>
   <li>pimpl的设计默认定义了模糊指针指向的对象应该唯一的属于当前对象，<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>完美实现了这一点</li>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2024-04-08T17:34:06+08:00</updated><id>/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">C++ Parameter Binding</title><link href="/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="/feed.xml" rel="self" type="application/atom+xml" /><link href="/" rel="alternate" type="text/html" /><updated>2024-04-08T17:48:46+08:00</updated><id>/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">C++ Parameter Binding</title><link href="/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
   <li><a href="#绑定矩阵binding-matrix" id="markdown-toc-绑定矩阵binding-matrix">绑定矩阵（binding matrix）</a></li>
   <li><a href="#示例代码" id="markdown-toc-示例代码">示例代码</a></li>
 </ul>
@@ -1113,7 +1113,7 @@
 
 <h2 id="为什么析构函数可以放在someclassimp定义的前面">为什么析构函数可以放在SomeClassImp定义的前面</h2>
 
-<p>因为s<code class="language-plaintext highlighter-rouge">td::unique_ptr</code>是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
+<p>因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
 
 <h1 id="用stdunique_ptr而不是stdshared_ptr">用<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>而不是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code></h1>
 
@@ -1125,7 +1125,7 @@
 <span class="p">...</span>
 </code></pre></div></div>
 
-<p>那为什么不使用<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>，而是使用s<code class="language-plaintext highlighter-rouge">td::unique_ptr</code>呢？ 有如下的原因：</p>
+<p>那为什么不使用<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>，而是使用<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>呢？ 有如下的原因：</p>
 
 <ul>
   <li>pimpl的设计默认定义了模糊指针指向的对象应该唯一的属于当前对象，<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>完美实现了这一点</li>
@@ -1705,12 +1705,9 @@
   <span class="c1">/// 注意：在CRTP基类bark方法中用到的Derived方法必须在Drived类中实现</span>
   <span class="n">d</span><span class="p">.</span><span class="n">bark</span><span class="p">();</span>
 <span class="p">}</span>
-</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /></entry><entry><title type="html">C++ programmer‘s guide to Rust</title><link href="/2023/08/12/C++-programmer's-guide-to-Rust.html" rel="alternate" type="text/html" title="C++ programmer‘s guide to Rust" /><published>2023-08-12T19:22:46+08:00</published><updated>2023-08-12T19:22:46+08:00</updated><id>/2023/08/12/C++-programmer&apos;s-guide-to-Rust</id><content type="html" xml:base="/2023/08/12/C++-programmer&apos;s-guide-to-Rust.html"><![CDATA[<h1 id="c-programmers-guide-to-rust">C++ programmer‘s guide to Rust</h1>
-
-<p>This is my reading note of <em><a href="https://doc.rust-lang.org/book/title-page.html">The Book</a></em> of Rust. To learn Rust it’s best to compare it with one language that I am experienced with. For me it’s C++. Following are some key differences between Rust and C++, organized the same as the book’s chapter.</p>
+</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /></entry><entry><title type="html">C++ programmer‘s guide to Rust</title><link href="/2023/08/12/C++-programmer's-guide-to-Rust.html" rel="alternate" type="text/html" title="C++ programmer‘s guide to Rust" /><published>2023-08-12T19:22:46+08:00</published><updated>2023-08-12T19:22:46+08:00</updated><id>/2023/08/12/C++-programmer&apos;s-guide-to-Rust</id><content type="html" xml:base="/2023/08/12/C++-programmer&apos;s-guide-to-Rust.html"><![CDATA[<p>This is my reading note of <em><a href="https://doc.rust-lang.org/book/title-page.html">The Book</a></em> of Rust. To learn Rust it’s best to compare it with one language that I am experienced with. For me it’s C++. Following are some key differences between Rust and C++, organized the same as the book’s chapter.</p>
 
 <ul id="markdown-toc">
-  <li><a href="#c-programmers-guide-to-rust" id="markdown-toc-c-programmers-guide-to-rust">C++ programmer‘s guide to Rust</a></li>
   <li><a href="#3-common-programming-concepts" id="markdown-toc-3-common-programming-concepts">3. Common Programming Concepts</a>    <ul>
       <li><a href="#31-variables-and-mutability" id="markdown-toc-31-variables-and-mutability">3.1 Variables and Mutability</a></li>
       <li><a href="#32-data-types" id="markdown-toc-32-data-types">3.2 Data Types</a></li>
@@ -4421,13 +4418,16 @@
     <span class="k">let</span> <span class="n">b</span> <span class="o">=</span> <span class="nf">a</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
     <span class="nd">println!</span><span class="p">(</span><span class="s">"{}"</span><span class="p">,</span> <span class="n">b</span><span class="p">);</span>
 <span class="p">}</span>
-</code></pre></div></div>]]></content><author><name></name></author><category term="Rust" /><summary type="html"><![CDATA[C++ programmer‘s guide to Rust]]></summary></entry><entry><title type="html">Python metaclass</title><link href="/2023/06/24/Python-metaclass.html" rel="alternate" type="text/html" title="Python metaclass" /><published>2023-06-24T19:22:46+08:00</published><updated>2023-06-24T19:22:46+08:00</updated><id>/2023/06/24/Python-metaclass</id><content type="html" xml:base="/2023/06/24/Python-metaclass.html"><![CDATA[<p>This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.</p>
+</code></pre></div></div>]]></content><author><name></name></author><category term="Rust" /><summary type="html"><![CDATA[This is my reading note of The Book of Rust. To learn Rust it’s best to compare it with one language that I am experienced with. For me it’s C++. Following are some key differences between Rust and C++, organized the same as the book’s chapter.]]></summary></entry><entry><title type="html">Python metaclass</title><link href="/2023/06/24/Python-metaclass.html" rel="alternate" type="text/html" title="Python metaclass" /><published>2023-06-24T19:22:46+08:00</published><updated>2023-06-24T19:22:46+08:00</updated><id>/2023/06/24/Python-metaclass</id><content type="html" xml:base="/2023/06/24/Python-metaclass.html"><![CDATA[<p>This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.</p>
 
 <ul id="markdown-toc">
+  <li><a href="#reference" id="markdown-toc-reference">Reference</a></li>
   <li><a href="#instance-creation" id="markdown-toc-instance-creation">Instance creation</a></li>
   <li><a href="#class-creation" id="markdown-toc-class-creation">Class creation</a></li>
   <li><a href="#full-example" id="markdown-toc-full-example">Full example</a></li>
 </ul>
+
+<h1 id="reference">Reference</h1>
 
 <p>I reference following articles and some of the content derives from them, please read them first and credit goes for the writers too:</p>
 
@@ -4445,7 +4445,7 @@
 
 <p>The creation process of Python class instance can be summarized in following diagram:</p>
 
-<p><img src="Python%20Metaclass%20feb26e3cc8c1420ba45ff3d0092febe1/PythonObjectCreation.drawio.png" alt="PythonObjectCreation.drawio.png" /></p>
+<p><img src="/assets/images/PythonObjectCreation.drawio.png" alt="PythonObjectCreation.drawio.png" /></p>
 
 <ol>
   <li>When instance of a class is created, <code class="language-plaintext highlighter-rouge">__call__</code> of the class’s metaclass is called, with the class object as the first parameter <code class="language-plaintext highlighter-rouge">self</code> and all other user defined positional and keyword arguments</li>
@@ -4457,7 +4457,7 @@
 
 <p>The creation process of Python class is more complex and can be summarized in following diagram:</p>
 
-<p><img src="Python%20Metaclass%20feb26e3cc8c1420ba45ff3d0092febe1/PythonObjectCreation.drawio-2.png" alt="PythonObjectCreation.drawio-2.png" /></p>
+<p><img src="/assets/images/PythonObjectCreation.drawio-2.png" alt="PythonObjectCreation.drawio-2.png" /></p>
 
 <ol>
   <li>First the Python runtime will call <code class="language-plaintext highlighter-rouge">__prepare__</code> of metaclass to return a namespace dict</li>

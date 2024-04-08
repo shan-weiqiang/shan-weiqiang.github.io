@@ -184,7 +184,7 @@ void SomeClass::do_some_thing()
 
 ## 为什么析构函数可以放在SomeClassImp定义的前面
 
-因为s`td::unique_ptr`是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便`SomeClassImp`定义在`SomeClass`析构的后面，仍然能够正常编译。
+因为`std::unique_ptr`是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便`SomeClassImp`定义在`SomeClass`析构的后面，仍然能够正常编译。
 
 # 用`std::unique_ptr`而不是`std::shared_ptr`
 
@@ -197,7 +197,7 @@ template<typename _Tp>
 ...
 ```
 
-那为什么不使用`std::shared_ptr`，而是使用s`td::unique_ptr`呢？ 有如下的原因：
+那为什么不使用`std::shared_ptr`，而是使用`std::unique_ptr`呢？ 有如下的原因：
 
 - pimpl的设计默认定义了模糊指针指向的对象应该唯一的属于当前对象，`std::unique_ptr`完美实现了这一点
 - `std::unique_ptr`有更好的运行时性能：不需要control block，没有引用计数等原子操作

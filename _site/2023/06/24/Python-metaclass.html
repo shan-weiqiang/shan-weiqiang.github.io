@@ -50,10 +50,13 @@
     <p>This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.</p>
 
 <ul id="markdown-toc">
+  <li><a href="#reference" id="markdown-toc-reference">Reference</a></li>
   <li><a href="#instance-creation" id="markdown-toc-instance-creation">Instance creation</a></li>
   <li><a href="#class-creation" id="markdown-toc-class-creation">Class creation</a></li>
   <li><a href="#full-example" id="markdown-toc-full-example">Full example</a></li>
 </ul>
+
+<h1 id="reference">Reference</h1>
 
 <p>I reference following articles and some of the content derives from them, please read them first and credit goes for the writers too:</p>
 
@@ -71,7 +74,7 @@
 
 <p>The creation process of Python class instance can be summarized in following diagram:</p>
 
-<p><img src="Python%20Metaclass%20feb26e3cc8c1420ba45ff3d0092febe1/PythonObjectCreation.drawio.png" alt="PythonObjectCreation.drawio.png" /></p>
+<p><img src="/assets/images/PythonObjectCreation.drawio.png" alt="PythonObjectCreation.drawio.png" /></p>
 
 <ol>
   <li>When instance of a class is created, <code class="language-plaintext highlighter-rouge">__call__</code> of the class’s metaclass is called, with the class object as the first parameter <code class="language-plaintext highlighter-rouge">self</code> and all other user defined positional and keyword arguments</li>
@@ -83,7 +86,7 @@
 
 <p>The creation process of Python class is more complex and can be summarized in following diagram:</p>
 
-<p><img src="Python%20Metaclass%20feb26e3cc8c1420ba45ff3d0092febe1/PythonObjectCreation.drawio-2.png" alt="PythonObjectCreation.drawio-2.png" /></p>
+<p><img src="/assets/images/PythonObjectCreation.drawio-2.png" alt="PythonObjectCreation.drawio-2.png" /></p>
 
 <ol>
   <li>First the Python runtime will call <code class="language-plaintext highlighter-rouge">__prepare__</code> of metaclass to return a namespace dict</li>
