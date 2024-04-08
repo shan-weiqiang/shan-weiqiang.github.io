@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "C++ programmer‘s guide to Rust"
-date:   2023-10-20 19:22:46 +0800
+date:   2023-08-12 19:22:46 +0800
 tags: [Rust]
 ---
 
