@@ -11,3 +11,8 @@ I am a middleware software engineer in automobile industry. My main work is on t
 - Toolchain development
 
 This website aims to share knowledge about programming languages, AUTOSAR, linux system programming, etc.. 
+
+Me and my son at home:
+
+![docker_cli.drawio.png](/assets/images/me_and_son.jpg)
+
