@@ -1,4 +1,500 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-04-08T19:30:06+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">C++ Parameter Binding</title><link href="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-04-08T21:11:47+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">SOME/IP Service Discovery解读</title><link href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP Service Discovery解读" /><published>2024-04-08T19:22:46+08:00</published><updated>2024-04-08T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a>是AUTOSAR规范中定义的用于SOME/IP协议运行时服务发现的协议。它运行于SOME/IP协议之上，可以认为是基于SOME/IP协议的应用层协议。</p>
+
+<blockquote>
+  <p>AUTOSAR模型中也定义了SOME/IP纯静态的发现机制，是通过服务实例到Machine的映射完成的。可以参见<a href="https://www.autosar.org/fileadmin/standards/R22-11/AP/AUTOSAR_TPS_ManifestSpecification.pdf">Specification Manifest</a>第11.3.1.3章节。当使用纯静态的发现机制后，SOME/IP SD可以不使用。</p>
+
+</blockquote>
+
+<p>本文不是关于SOME/IP SD的翻译，也不是漫谈，而是按照原文章节对各个章节中的难以理解的部分进行解读。限于个人理解，如有错误，请以原文为准。</p>
+
+<ul id="markdown-toc">
+  <li><a href="#1-introduction-and-overview" id="markdown-toc-1-introduction-and-overview">1 Introduction and overview</a>    <ul>
+      <li><a href="#13-dependencies" id="markdown-toc-13-dependencies">1.3 Dependencies</a>        <ul>
+          <li><a href="#131-dependencies-to-other-protocol-layers" id="markdown-toc-131-dependencies-to-other-protocol-layers">1.3.1 Dependencies to other protocol layers</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#5-protocol-specification" id="markdown-toc-5-protocol-specification">5 Protocol specification</a>    <ul>
+      <li><a href="#51-someip-service-discovery-someip-sd" id="markdown-toc-51-someip-service-discovery-someip-sd">5.1 SOME/IP Service Discovery (SOME/IP-SD)</a>        <ul>
+          <li><a href="#511-general" id="markdown-toc-511-general">5.1.1 General</a></li>
+          <li><a href="#512-someip-sd-message-format" id="markdown-toc-512-someip-sd-message-format">5.1.2 SOME/IP-SD Message Format</a>            <ul>
+              <li><a href="#5121-general-requirements" id="markdown-toc-5121-general-requirements">5.1.2.1 General Requirements</a></li>
+              <li><a href="#5122-someip-sd-header" id="markdown-toc-5122-someip-sd-header">5.1.2.2 SOME/IP-SD Header</a></li>
+              <li><a href="#5123-entry-format" id="markdown-toc-5123-entry-format">5.1.2.3 Entry Format</a></li>
+              <li><a href="#5124-options-format" id="markdown-toc-5124-options-format">5.1.2.4 Options Format</a></li>
+              <li><a href="#5125-service-entries" id="markdown-toc-5125-service-entries">5.1.2.5 Service Entries</a>                <ul>
+                  <li><a href="#51251-find-service-entry" id="markdown-toc-51251-find-service-entry">5.1.2.5.1 Find Service Entry</a></li>
+                  <li><a href="#51252-offer-service-entry" id="markdown-toc-51252-offer-service-entry">5.1.2.5.2 Offer Service Entry</a></li>
+                  <li><a href="#51253-stop-offer-service-entry" id="markdown-toc-51253-stop-offer-service-entry">5.1.2.5.3 Stop Offer Service Entry</a></li>
+                </ul>
+              </li>
+              <li><a href="#5126-endpoint-handling-for-services-and-events" id="markdown-toc-5126-endpoint-handling-for-services-and-events">5.1.2.6 Endpoint Handling for Services and Events</a></li>
+            </ul>
+          </li>
+          <li><a href="#513-service-discovery-messages" id="markdown-toc-513-service-discovery-messages">5.1.3 Service Discovery Messages</a>            <ul>
+              <li><a href="#5131-eventgroup-entry" id="markdown-toc-5131-eventgroup-entry">5.1.3.1 Eventgroup Entry</a></li>
+            </ul>
+          </li>
+          <li><a href="#514-service-discovery-communication-behavior" id="markdown-toc-514-service-discovery-communication-behavior">5.1.4 Service Discovery Communication Behavior</a>            <ul>
+              <li><a href="#5141-startup-behavior" id="markdown-toc-5141-startup-behavior">5.1.4.1 Startup Behavior</a></li>
+              <li><a href="#5144-state-machines" id="markdown-toc-5144-state-machines">5.1.4.4 State Machines</a></li>
+            </ul>
+          </li>
+          <li><a href="#516-publishsubscribe-with-someip-and-someip-sd" id="markdown-toc-516-publishsubscribe-with-someip-and-someip-sd">5.1.6 Publish/Subscribe with SOME/IP and SOME/IP-SD</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="1-introduction-and-overview">1 Introduction and overview</h1>
+
+<h2 id="13-dependencies">1.3 Dependencies</h2>
+
+<h3 id="131-dependencies-to-other-protocol-layers">1.3.1 Dependencies to other protocol layers</h3>
+
+<p>SOME/IP-SD基于SOME/IP协议，且底层的传输层协议使用UDP</p>
+
+<h1 id="5-protocol-specification">5 Protocol specification</h1>
+
+<h2 id="51-someip-service-discovery-someip-sd">5.1 SOME/IP Service Discovery (SOME/IP-SD)</h2>
+
+<h3 id="511-general">5.1.1 General</h3>
+
+<p>SOME/IP-SD完成三个方面的功能：</p>
+
+<ul>
+  <li>确定服务实例的位置</li>
+  <li>确定服务实例的状态</li>
+  <li>发布/订阅处理</li>
+</ul>
+
+<p>服务实例的位置一般都是由静态的配置文件定义的，运行时只需要解析相关配置文件即可；确定服务实例的状态才是服务发现的重要步骤。</p>
+
+<h3 id="512-someip-sd-message-format">5.1.2 SOME/IP-SD Message Format</h3>
+
+<p>了解了SOME/IP-SD的消息结构，也就理解了SOME/IP-SD的服务发现协议。也就是理解如下各个字段的含义。可以看出SOME/IP-SD是一个普通SOME/IP消息的payload，也就是说SD是基于SOME/IP协议进行的。可以将SOME/IP-SD协议理解为基于SOME/IP协议之上的一个应用层协议。</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled.png" alt="Untitled" /></p>
+
+<h4 id="5121-general-requirements">5.1.2.1 General Requirements</h4>
+
+<p>首先SOME/IP-SD的消息只是一个特殊的SOME/IP消息，格式需要符合SOME/IP消息头的布局，与普通SOME/IP消息的区别在与其内容：</p>
+
+<ul>
+  <li>Service-ID是固定值0xFFFF</li>
+  <li>Method-ID是固定值0x8100</li>
+  <li>Client-ID是固定值0x0000：一个host上只存在一个SOME/IP-SD 实例</li>
+</ul>
+
+<p>其他字段，例如版本信息，消息类型，返回码等都是固定值。</p>
+
+<h4 id="5122-someip-sd-header">5.1.2.2 SOME/IP-SD Header</h4>
+
+<p>SOME/IP-SD整个是SOME/IP消息的payload，这个payload有自己的协议规范，这里介绍它的头部信息。</p>
+
+<ul>
+  <li>前8 bits成为flags，其中第一个bit为1表示Reboot；当host启动后开始发送的所有SOME/IP-SD消息都将这个bit设为1，表示host正在启动；当session ID自增超过16 bits的最大值，重新从1开始自增时，将这个bit设置为0，表示host启动完成</li>
+  <li>对于发送方：这个重启bit和session的counter是针对每一个多播和单播</li>
+  <li>针对接收方：这个重启bit和session counter是针对每一个[srcIP, srcPort, dstIP, dstPort]通信链接</li>
+</ul>
+
+<p>SOME/IP-SD通过如下条件判断消息的发送方是否重启：</p>
+
+<ul>
+  <li>if old.reboot==0 and new.reboot==1</li>
+  <li>if old.reboot==1 and new.reboot==1 and old.session_id&gt;=new.session_id</li>
+</ul>
+
+<h4 id="5123-entry-format">5.1.2.3 Entry Format</h4>
+
+<p>Entry类型：</p>
+
+<hr />
+
+<p>这一部分是服务发现的实际内容信息：</p>
+
+<ul>
+  <li>一个SOME/IP-SD消息可以包含多个服务实例的信息(Entry)</li>
+  <li>实际发现内容分为两类：
+    <ul>
+      <li>服务发现类型：包含当前host提供的Service ID， Instance ID， 版本信息等</li>
+    </ul>
+
+    <p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%201.png" alt="Untitled" /></p>
+
+    <blockquote>
+      <p>注意这里包含Instance ID信息，但是是作为SOME/IP的payload，不是SOME/IP头部的一部分</p>
+
+      <ul>
+        <li>EventGroup类型：除了包含服务发现类型以外，最后包含了EventGroupID信息</li>
+      </ul>
+    </blockquote>
+
+    <p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%202.png" alt="Untitled" /></p>
+  </li>
+</ul>
+
+<p>这两种Entry的内容很多都是重复的，有些就是字面意思，不再解释，其他分别解释如下：</p>
+
+<p>Type:</p>
+
+<hr />
+
+<p>这两类信息消息类型的第一个部分都是Type，这是每条Entry都包含的信息，表示了当前条目是需要发现的、对外提供的、还是停止提供的。对于Service Entry有如下选项：</p>
+
+<ul>
+  <li>FindService (0x00)</li>
+  <li>OfferService (0x01)</li>
+  <li>StopOfferService (0x01)</li>
+</ul>
+
+<p>对于EventGroupEntry，有如下选项：</p>
+
+<ul>
+  <li>SubscribeEventGroup (0x06)</li>
+  <li>StopSubscribeEventgroup (0x06)</li>
+  <li>SubscribeEventGroupAck (0x07)</li>
+  <li>SubscribeEventgroupNack (0x07)</li>
+</ul>
+
+<blockquote>
+  <p>ID来源于文档，但是待确认。AUTOSAR官方文档有很多笔误</p>
+
+</blockquote>
+
+<p>Option位置：</p>
+
+<hr />
+
+<p>每个条目有了以上这些信息后，就需要知道他们更进一步的信息了，比如IP地址，Port端口，传输层协议等，这些最终需要传达的信息。SOME/IP-SD中这些信息是通过Options来包含的。每个条目有两段，每段有连续的多个Options组成，原因如下：</p>
+
+<ul>
+  <li>第一段中的options是所有SOME/IP-SD共用的options</li>
+  <li>第二段是当前SOME/IP-SD独有的options</li>
+</ul>
+
+<p>在每个Entry的头部消息中有如下字段引导至第一段options和第二段options：[Index 1st options, Index 2nd options, number of 1st options, number of 2nd options]， 这样做的目的是最快的找到option所在的位置.</p>
+
+<h4 id="5124-options-format">5.1.2.4 Options Format</h4>
+
+<p>通过以上层层递进，现在已经到达最终的目的地了：具体的option内容信息。它也有自己的格式规范，每一个option都必须以如下格式开头：</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%203.png" alt="Untitled" /></p>
+
+<p>Configuration Option（Type 0x01）</p>
+
+<hr />
+
+<p>简单理解为一组键：值对，且符合<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-txt-record/">DNS TXT</a>和<a href="http://www.dns-sd.org/">DNS SD</a>记录格式</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%204.png" alt="Untitled" /></p>
+
+<p>Load Balancing Option（Type 0x02）</p>
+
+<hr />
+
+<p>这个选项在OfferService 时有用，目的是为每一个instance提供优先级，proxy端可以根据这个选项提供的信息选择instance；信息格式参考<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-srv-record/">DNS SRV</a>。这里如果一个proxy想发现一个服务ID下所有的实例，Service Instance 设置为 0xFFFF，当这个proxy得到所有的实例后，应当使用优先级最高的那个实例来构建proxy实例</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%205.png" alt="Untitled" /></p>
+
+<p>IPv4 Endpoint Option（Type 0x04）</p>
+
+<hr />
+
+<p>IPv4选项用于指定当前Entry的IPv4地址信息，包括IP地址，传输层协议，Port端口号。注意这是一个skeleton和proxy都可能需要的选项：</p>
+
+<ul>
+  <li>对于skeleton，在OfferService Entry中提供instance的源地址信息
+    <ul>
+      <li>一个instance可以在TCP和UDP上分别占用一个Port口，且至少有一个。也就是说，一个服务实例可以同时在TCP和UDP传输协议上提供服务</li>
+      <li>instance内部的元素，例如event，method必须指定是在TCP还是在UDP上通信，也就是说，服务内具体的event，method的通信都是唯一确定的</li>
+      <li>一个host上相同Service的不同instance必须使用不同的TCP和UDP的Port；不同的Service的instance可以使用同一个TCP和UDP的Port</li>
+    </ul>
+  </li>
+  <li>对于proxy，在SubscribeEventGroup Entry中使用这个选项来传递proxy实例已经准备好的，用于接收events的IPv4链接信息
+    <ul>
+      <li>client端可以有0~2个单播EndPoint，如果是2个，则TCP和UDP各一个</li>
+      <li>client端还有至多1个组播接收地址</li>
+    </ul>
+  </li>
+</ul>
+
+<blockquote>
+  <p>当proxy对外提供准备好接收的EventGroup信息时，所有通信资源例如socket等都已准备完毕</p>
+
+</blockquote>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%206.png" alt="Untitled" /></p>
+
+<p>IPv4 Multicast Option（Type 0x14）</p>
+
+<hr />
+
+<p>该选项可以被skeleton或者proxy端组播发送：</p>
+
+<ul>
+  <li>skeleton组播发送自己提供instance的组播地址，端口号</li>
+  <li>proxy组播发送自己接收服务的组播地址，端口号</li>
+</ul>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%207.png" alt="Untitled" /></p>
+
+<p>关于组播，只能在Entry类型为 SubscribeEventgroup，StopSubscribeEventgroup，SubscribeEventgroupAck中被使用，引用一次或者零次：</p>
+
+<ul>
+  <li>当被SubscribeEventgroup引用，表示client端接收组播events的地址</li>
+  <li>当被StopSubscribeEventgroup引用，表示client端停止接收组播events的地址</li>
+  <li>当被SubscribeEventgroupAck引用，表示server端发送组播events的地址</li>
+</ul>
+
+<blockquote>
+  <p>要理解组播在EventGroup的角色，首先要理解是EventGroup分为三种：单播EventGroup，即所有events都是通过一个单播通信链接（EndPoint pair）发送；组播EventGroup，即所有events都被发送到一个组播EndPoint上，注意这是从server的角度来说的，如果server端通过单播提供服务，但是client端在SubscribeEventGroup时提供了组播的地址，server也会通过该组播地址发送给改client；自适应EventGroup，即其中的events的发送方式是根据运行时订阅状态在组播和单播之间切换的，这点在后面会详细解释。所以，无论是SubscribeEventgroup，还是SubscribeEventgroupAck引用的组播地址，都是server或者client指明自己发送或者接收这个EventGroup的EndPoint</p>
+
+</blockquote>
+
+<h4 id="5125-service-entries">5.1.2.5 Service Entries</h4>
+
+<h5 id="51251-find-service-entry">5.1.2.5.1 Find Service Entry</h5>
+
+<ul>
+  <li>在FindServiceEntry中可以选择发现所有当前服务ID下的实例，也可以具体制定实例ID</li>
+  <li>同样也可以发现所有版本的服务，和具体指定某个版本信息</li>
+</ul>
+
+<blockquote>
+  <p>FindService Entry中不包含通信EndPoint的option；如果包含了，接收方应当忽略这些信息</p>
+
+</blockquote>
+
+<h5 id="51252-offer-service-entry">5.1.2.5.2 Offer Service Entry</h5>
+
+<p>与FindServiceEntry不同，OfferServiceEntry需要：</p>
+
+<ul>
+  <li>写明服务ID，实例ID，版本信息</li>
+  <li>如果支持IPv4/IPv6传输层协议，则必须在option中包含具体的通信EndPoint信息</li>
+</ul>
+
+<h5 id="51253-stop-offer-service-entry">5.1.2.5.3 Stop Offer Service Entry</h5>
+
+<p>除了Entry的Type和TTL等信息不同外，与StartOfferService所包含的信息相同</p>
+
+<p>各种Type的Entry的option使用矩阵表格：</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%208.png" alt="Untitled" /></p>
+
+<blockquote>
+  <p>SubscribeEventgroup和StopSubscribeEventgroup至少需要指定一个Unicast或者Multicast EndPoint</p>
+
+</blockquote>
+
+<h4 id="5126-endpoint-handling-for-services-and-events">5.1.2.6 Endpoint Handling for Services and Events</h4>
+
+<p>这里有一组很重要的概念需要解释和澄清：</p>
+
+<ul>
+  <li>一个Service Instance的OfferService Entry信息中可以包含至多两个，至少一个通信EndPoint信息
+    <ul>
+      <li>如果是两个则必须一个是TCP，一个是UDP</li>
+    </ul>
+  </li>
+  <li>Service中不同的event，method可以使用这两个EndPoint中的一个作为底层通信通道，但是只能选择其中一个
+    <ul>
+      <li>一个event和method不能同时在两个EndPoint发送</li>
+    </ul>
+  </li>
+  <li>每个event，method等的通信EndPoint信息都是静态配置的，例如在json配置文件中</li>
+</ul>
+
+<p>一个完整的服务发现和订阅流程图：</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%209.png" alt="Untitled" /></p>
+
+<p>这个流程中有如下需要说明：</p>
+
+<ul>
+  <li>OfferService必须使用单播地址，无论是TCP还是UDP</li>
+  <li>如果服务以TCP方式提供，client端在收到OfferService的SOME/IP-SD信息后负责发起TCP链接</li>
+  <li>在SubscribeEventGroup时，client端会把上一步创建的TCP链接信息以及UDP信息发给server</li>
+  <li>server主动发送第一个初始events消息</li>
+  <li>如果是组播EventGroup或者是自适应EventGroup，server也会通过SubscribeEventgroupAck返回通过组播发送的events的组播地址，client端要尽快开启监听这个端口，避免错过这些通过组播发送的events</li>
+</ul>
+
+<blockquote>
+  <p>TCP的event可以在SubscribeEventGroup发送前就已经开始发送；且Initial Event必须从server到client以Unicast的通信发送</p>
+
+</blockquote>
+
+<h3 id="513-service-discovery-messages">5.1.3 Service Discovery Messages</h3>
+
+<ul>
+  <li>所有SD的消息，无论单播还是组播，都需要发送到SD_PORT</li>
+  <li>所有组播的SD消息，都需要使用SD_MULTICAST_IP</li>
+</ul>
+
+<h4 id="5131-eventgroup-entry">5.1.3.1 Eventgroup Entry</h4>
+
+<p>Subscribe Eventgroup Entry</p>
+
+<hr />
+
+<p>它可以引用client端的EndPoint，用于指定client端接收events的通信端口信息：</p>
+
+<ul>
+  <li>可以引用至多两个单播地址，至多一个组播地址</li>
+  <li>如果是单播地址，要么是IPv4，要么是IPv6</li>
+  <li>单播地址TCP和UDP可以分别有一个EndPoint</li>
+  <li>组播地址要么是IPv4，或者IPv6</li>
+</ul>
+
+<blockquote>
+  <p>SubscribeEventGroup中单播和组播是二选一的关系；单播可以有UDP和TCP两个EndPoint</p>
+
+</blockquote>
+
+<p>Subscribe Eventgroup Ack Entry</p>
+
+<hr />
+
+<p>如果组播EventGroup或者自适应EventGroup, 在这个Ack中应该引用一个组播地址：</p>
+
+<ul>
+  <li>该组播地址可以是IPv4或者IPv6，且只能有一个</li>
+</ul>
+
+<blockquote>
+  <p>单播EventGroup，发送和接收地址是client和server握手决定的；对于组播EventGroup或自适应EventGroup，如果是server仅支持组播发送，则通过SubscribeEventGroupAck通知client，如果是client仅支持组播接收则通过SubscribeEventGroup通知server</p>
+
+</blockquote>
+
+<blockquote>
+  <p>如果server发送Initial Events，则SubscribeEventGroup必须指定一个单播地址，因为Initial Events必须以单播形式发送。如果client以组播形式订阅EventGroup，server怎么以单播形式向client发送？这一段解释原文编排错误，需要后续考证</p>
+
+</blockquote>
+
+<h3 id="514-service-discovery-communication-behavior">5.1.4 Service Discovery Communication Behavior</h3>
+
+<p>SOME/IP-SD应尽量将Entry放在一个SOME/IP 消息中：</p>
+
+<ul>
+  <li>不同服务instance的Entry可以放在一个SD消息中</li>
+  <li>相同服务instance的不同Entry可以放在一个SD消息中</li>
+</ul>
+
+<h4 id="5141-startup-behavior">5.1.4.1 Startup Behavior</h4>
+
+<p>无论是server的instance还是client端的实例，在启动阶段都需要经过如下三个阶段：</p>
+
+<ul>
+  <li>Initial Wait Phase
+    <ul>
+      <li>client端进入该状态的条件是：UDP广播端口资源已经就绪且应用调用了FindService</li>
+      <li>server端进入该状态的条件是：UDP广播端口资源已经就绪且对外提供服务的条件已经具备</li>
+    </ul>
+  </li>
+  <li>Repetition Phase</li>
+  <li>Main Phase</li>
+</ul>
+
+<blockquote>
+  <p>虽然阶段名称相同，但是server端和client端在每个阶段的动作是不同的；在具体实现中状态机不仅会有这三个阶段，还会有其他状态</p>
+
+</blockquote>
+
+<h4 id="5144-state-machines">5.1.4.4 State Machines</h4>
+
+<p>server的状态机</p>
+
+<hr />
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2010.png" alt="Untitled" /></p>
+
+<p>说明如下：</p>
+
+<ul>
+  <li>状态机进入Initial Wait Phase阶段后需要在INITIAL_DELAY_MIN和INITIAL_DELAY_MAX区间随机的等待一段时间，等待完成后直接进入下一个阶段</li>
+  <li>在Repetition Phase阶段，从REPETITION_BASE_DELAY间隔值开始，每发送一次，间隔时间扩大一倍，直到发送次数达到REPETITION_MAX次，进入下一个阶段</li>
+  <li>在Maint Phase，按照CYCLIC_ANNOUNCE_DELAY周期性的间隔发送</li>
+  <li>在Repetition Phase和Main Phase阶段，如果收到FindService请求，等待一个在RequestResponseMaxDelay和RequestResponseMinDelay的随机值后发送一次</li>
+</ul>
+
+<blockquote>
+  <p>server侧的服务发现信息一直是周期性发送的</p>
+
+</blockquote>
+
+<p>client端的状态机</p>
+
+<hr />
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2011.png" alt="Untitled" /></p>
+
+<p>说明如下：</p>
+
+<ul>
+  <li>同样有三个阶段，但是与sever端不同，FindService不会一直发送，而是通过收到的OfferService中的TTL来更新当前已发现的服务的有效性</li>
+  <li>如果有效性失效，或者需要发现新的服务，才会调用FindService</li>
+  <li>调用FindService的，而不是默认等待下一个OfferService的原因是，在server端一旦受到FindService就会触发一次OfferService的发送，而不是要等到下一个发送周期</li>
+</ul>
+
+<blockquote>
+  <p>SOME/IP-SD的服务发现是一种需要一直刷新来保持发现信息有效性的协议，这个刷新是由server端的OfferService来负责主动发送的</p>
+
+</blockquote>
+
+<h3 id="516-publishsubscribe-with-someip-and-someip-sd">5.1.6 Publish/Subscribe with SOME/IP and SOME/IP-SD</h3>
+
+<ul>
+  <li>如果client端订阅了多个EventGroup，这些EventGroup包含了相同的events，那么这些events不会被重复发送，但是这个要求不适用于Initial Events，即第一次初始发送</li>
+</ul>
+
+<p>SOME/IP SD发布订阅流程图如下：</p>
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2012.png" alt="Untitled" /></p>
+
+<p>单播EventGroup server端状态机</p>
+
+<hr />
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2013.png" alt="Untitled" /></p>
+
+<p>组播EventGroup server端状态机</p>
+
+<hr />
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2014.png" alt="Untitled" /></p>
+
+<ul>
+  <li>单播和组播状态机最重要的区别是组播需要维护订阅数量，当订阅数为零时停止发送</li>
+</ul>
+
+<p>自适应单播/组播EventGroup</p>
+
+<hr />
+
+<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2015.png" alt="Untitled" /></p>
+
+<p>对于配置为UDP协议的event，SOME/IP支持在到达单播使用上限时自动在单播和组播之间切换；切换逻辑通过MULTICAST_THRESHOLD来控制，具体的切换逻辑用伪代码表示为：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">n</span> <span class="o">=</span> <span class="n">MULTICAST_THRESHOLD</span>
+<span class="n">subCnt</span> <span class="o">=</span> <span class="n">subscribe</span> <span class="n">counter</span>
+<span class="n">unicastLimit</span> <span class="o">=</span> <span class="nb">max</span> <span class="n">number</span> <span class="n">of</span> <span class="n">subscribtion</span> <span class="n">to</span> <span class="n">switch</span> <span class="k">from</span> <span class="n">unicast</span> <span class="n">to</span> <span class="n">multicast</span>
+<span class="n">when</span> <span class="n">new</span> <span class="n">subCnt</span><span class="p">:</span>
+	<span class="k">if</span> <span class="n">n</span> <span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+		<span class="n">unicast</span> <span class="ow">or</span> <span class="n">multicast</span> <span class="n">depends</span> <span class="n">on</span> <span class="n">client</span> <span class="n">Subscribe</span> <span class="n">info</span>
+	<span class="k">elif</span> <span class="n">n</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
+		<span class="n">multicast</span> <span class="n">only</span> <span class="n">to</span> <span class="n">server</span> <span class="n">multicast</span> <span class="n">EndPoint</span>
+	<span class="k">elif</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">subCnt</span> <span class="o">&gt;=</span> <span class="n">unicastLimit</span><span class="p">:</span>
+		<span class="n">switch</span> <span class="n">to</span> <span class="n">server</span> <span class="n">multicast</span> <span class="n">EndPoint</span>
+	<span class="k">elif</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">subCnt</span> <span class="o">&lt;</span> <span class="n">unicastLimit</span><span class="p">:</span>
+		<span class="n">unicast</span> <span class="ow">or</span> <span class="n">multicast</span> <span class="n">depends</span> <span class="n">on</span> <span class="n">client</span> <span class="n">Subscribe</span> <span class="n">info</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>SOME/IP-SD服务发现提供在没有静态配置的情况下在运行时发现所需要的服务以及其EndPoint信息；但是它可以被纯静态的配置替代，比如可以使用配置文件静态的将所有的通信配置，EndPoint信息定义好，只需要在运行时解析配置文件获取相关通信配置即可，这些都不是SOME/IP-SD协议的一部分。</p>
+</blockquote>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[SOME/IP SD是AUTOSAR规范中定义的用于SOME/IP协议运行时服务发现的协议。它运行于SOME/IP协议之上，可以认为是基于SOME/IP协议的应用层协议。]]></summary></entry><entry><title type="html">C++ Parameter Binding</title><link href="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
   <li><a href="#绑定矩阵binding-matrix" id="markdown-toc-绑定矩阵binding-matrix">绑定矩阵（binding matrix）</a></li>
   <li><a href="#示例代码" id="markdown-toc-示例代码">示例代码</a></li>
 </ul>
@@ -5229,440 +5725,4 @@ Execution time: 4.70800000007543e-06
 <div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Timer</span> <span class="n">instance</span> <span class="n">called</span>
 <span class="n">Tome</span>
 <span class="n">Execution</span> <span class="n">time</span><span class="p">:</span> <span class="mf">2.958000000000821e-06</span>
-</code></pre></div></div>]]></content><author><name></name></author><category term="python" /><summary type="html"><![CDATA[Decorators can make code more concise and elegant. Function and class can both be decorators. When class used as decorators, the class can be either a callable or a descriptor. When function used as decorators, decorators can accept additional arguments. Decorators are syntatic sugars.]]></summary></entry><entry><title type="html">C++ template name lookup</title><link href="http://localhost:4000/2023/05/01/C++-template-name-lookup.html" rel="alternate" type="text/html" title="C++ template name lookup" /><published>2023-05-01T19:22:46+08:00</published><updated>2023-05-01T19:22:46+08:00</updated><id>http://localhost:4000/2023/05/01/C++-template-name-lookup</id><content type="html" xml:base="http://localhost:4000/2023/05/01/C++-template-name-lookup.html"><![CDATA[<p>When defining template class or function template, knowing how these template parameters are instantiated during compiling time is important to correctly use them. This article tries to explain(but with no full coverage) the order behind the name look up. The template parameter name look up is complex. This article only cover the commonly used cases. For a full understanding of the issue, please refer to official documentation or C++ ISO standard.</p>
-
-<ul id="markdown-toc">
-  <li><a href="#types-of-template-parameters" id="markdown-toc-types-of-template-parameters">Types of template parameters</a>    <ul>
-      <li><a href="#non-type-template-parameters" id="markdown-toc-non-type-template-parameters">non-type template parameters</a></li>
-      <li><a href="#type-template-parameter" id="markdown-toc-type-template-parameter">type template parameter</a>        <ul>
-          <li><a href="#template-parameters-without-name" id="markdown-toc-template-parameters-without-name">template parameters without name</a></li>
-        </ul>
-      </li>
-      <li><a href="#template-template-parameter" id="markdown-toc-template-template-parameter">template template parameter</a></li>
-    </ul>
-  </li>
-  <li><a href="#the-base-rule-two-phase-name-lookup" id="markdown-toc-the-base-rule-two-phase-name-lookup">The base rule: “Two Phase Name Lookup”</a></li>
-  <li><a href="#rules-for-non-template-dependent-names" id="markdown-toc-rules-for-non-template-dependent-names">Rules for non template dependent names</a></li>
-  <li><a href="#rules-for-template-dependent-names" id="markdown-toc-rules-for-template-dependent-names">Rules for template dependent names</a>    <ul>
-      <li><a href="#the-normal-case" id="markdown-toc-the-normal-case">The normal case</a></li>
-      <li><a href="#different-behaviour-when-using-non-adl-and-adl" id="markdown-toc-different-behaviour-when-using-non-adl-and-adl">Different behaviour when using non-ADL and ADL</a>        <ul>
-          <li><a href="#why-template-definition-context-when-non-adl" id="markdown-toc-why-template-definition-context-when-non-adl">Why template definition context when non-ADL?</a></li>
-          <li><a href="#why-template-instantiation-context-when-adl" id="markdown-toc-why-template-instantiation-context-when-adl">Why template instantiation context when ADL?</a></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li><a href="#current-instantiation" id="markdown-toc-current-instantiation">Current instantiation</a>    <ul>
-      <li><a href="#typename-for-template-dependent-types" id="markdown-toc-typename-for-template-dependent-types"><code class="language-plaintext highlighter-rouge">typename</code> for template dependent types</a></li>
-      <li><a href="#template-for-template-dependent-templates" id="markdown-toc-template-for-template-dependent-templates"><code class="language-plaintext highlighter-rouge">template</code> for template dependent templates</a></li>
-    </ul>
-  </li>
-</ul>
-
-<h1 id="types-of-template-parameters">Types of template parameters</h1>
-
-<p>Each parameter in <em>parameter-list</em> may be:</p>
-
-<ul>
-  <li>a non-type template parameter;</li>
-  <li>a type template parameter;</li>
-  <li>a template template parameter.</li>
-</ul>
-
-<h2 id="non-type-template-parameters">non-type template parameters</h2>
-
-<ul>
-  <li>
-    <p>template parameter can be non-type</p>
-
-    <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">template</span><span class="o">&lt;</span><span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">pci</span><span class="p">&gt;</span>
-  <span class="k">struct</span> <span class="nc">X</span> <span class="p">{};</span>
-     
-  <span class="kt">int</span> <span class="n">ai</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
-  <span class="n">X</span><span class="o">&lt;</span><span class="n">ai</span><span class="o">&gt;</span> <span class="n">xi</span><span class="p">;</span> <span class="c1">// OK: array to pointer conversion and cv-qualification conversion</span>
-</code></pre></div>    </div>
-  </li>
-</ul>
-
-<h2 id="type-template-parameter">type template parameter</h2>
-
-<h3 id="template-parameters-without-name">template parameters without name</h3>
-
-<ul>
-  <li>template parameter name is optional!!</li>
-</ul>
-
-<h2 id="template-template-parameter">template template parameter</h2>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
-<span class="k">class</span> <span class="nc">my_array</span> <span class="p">{};</span>
- 
-<span class="c1">// two type template parameters and one template template parameter:</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">K</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">V</span><span class="p">,</span> <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">&gt;</span> <span class="k">typename</span> <span class="nc">C</span> <span class="o">=</span> <span class="n">my_array</span><span class="p">&gt;</span>
-<span class="k">class</span> <span class="nc">Map</span>
-<span class="p">{</span>
-    <span class="n">C</span><span class="o">&lt;</span><span class="n">K</span><span class="o">&gt;</span> <span class="n">key</span><span class="p">;</span>
-    <span class="n">C</span><span class="o">&lt;</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">value</span><span class="p">;</span>
-<span class="p">};</span>
-</code></pre></div></div>
-
-<h1 id="the-base-rule-two-phase-name-lookup">The base rule: “Two Phase Name Lookup”</h1>
-
-<p>When the compiler parses the template relevant code, it resolves the names in the template in two stages:</p>
-
-<ul>
-  <li>First at the template definition</li>
-  <li>Second at the instantiation of the template</li>
-</ul>
-
-<p>Here is an example of this basic rule:</p>
-
-<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#1</code> :</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
-  <span class="kt">void</span> <span class="n">f</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span> <span class="o">&lt;&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="sc">'\n'</span><span class="p">;</span> <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">DerivedStruct</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
-  <span class="kt">void</span> <span class="n">h</span><span class="p">()</span> <span class="p">{</span>
-
-    <span class="c1">//  Nok, because f() is non-template dependent, so name lookup happens</span>
-    <span class="c1">//  at phase one, but during this time there is no f() defined,</span>
-    <span class="c1">//  because SomeStruct has not been instantiated yet</span>
-    <span class="c1">// f();</span>
-
-    <span class="c1">//  Ok, because 'this' is template dependent, f() lookup happens at</span>
-    <span class="c1">//  phase two, at this time SomeStruct has been instantiated and f() is</span>
-    <span class="c1">//  available</span>
-    <span class="k">this</span><span class="o">-&gt;</span><span class="n">f</span><span class="p">();</span>
-  <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-  <span class="n">DerivedStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">().</span><span class="n">h</span><span class="p">();</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>As in above example, there are differences when name look up and definition binding for <code class="language-plaintext highlighter-rouge">f()</code> and <code class="language-plaintext highlighter-rouge">this-&gt;f()</code>.  That is because they belong to two different name types:</p>
-
-<ul>
-  <li>Dependent names: or template dependent names. These are names that can be different for different template parameter types(type template parameter) or parameter values(non-type template parameter). In this example, <code class="language-plaintext highlighter-rouge">this-&gt;f()</code> is template dependent, because, <code class="language-plaintext highlighter-rouge">this</code> can be <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;int&gt;</code> or it can be <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;double&gt;</code></li>
-  <li>Non-dependent names: or non template dependent names. These are names that is always the same between different instantiations. In this example <code class="language-plaintext highlighter-rouge">f()</code> is non template dependent name, because whether is <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;int&gt;</code> or <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;double&gt;</code> , the call for <code class="language-plaintext highlighter-rouge">f()</code> is the same. It has nothing to do with parameter <code class="language-plaintext highlighter-rouge">T</code></li>
-</ul>
-
-<h1 id="rules-for-non-template-dependent-names">Rules for non template dependent names</h1>
-
-<p>Non template dependent names are determined at stage one, namely, template definition.</p>
-
-<p>Here is an example to demonstrate this behaviour:</p>
-
-<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#2</code>:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
-  <span class="c1">// Since f is non template dependent, it will be looked up and bound here</span>
-  <span class="c1">// But at this time FooStruct has not been defined(only declaration), the</span>
-  <span class="c1">// compiler does not know how much memory f will take, so it gives incomplete</span>
-  <span class="c1">// type error</span>
-  <span class="n">FooStruct</span> <span class="n">f</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-  <span class="c1">// Even though at the time of instantiation, the FooStruct is fully defined</span>
-  <span class="c1">// SomeStruct does not compile because name look up and bound of member f</span>
-  <span class="c1">// happens at template definition time</span>
-  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>Another example of non template dependent name look up behaviour:</p>
-
-<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#3</code> :</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double type recieved</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
-  <span class="c1">// Here f is already looked up and bound with f(double data)</span>
-  <span class="kt">void</span> <span class="n">some_method</span><span class="p">()</span> <span class="p">{</span> <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span> <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="c1">// Even there is a more matched version of f(int data), it will not be called</span>
-<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Int type recieved</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-
-  <span class="c1">// This will call f(int data), because it is more compatible</span>
-  <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
-  <span class="c1">// This will call f(double data), because even there is more compatible</span>
-  <span class="c1">// version, the f is looked up and bound before f(int data) is available</span>
-  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">().</span><span class="n">some_method</span><span class="p">();</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<ul>
-  <li>In above example, the <code class="language-plaintext highlighter-rouge">f(int data)</code> is not visible to <code class="language-plaintext highlighter-rouge">SomeStruct</code></li>
-</ul>
-
-<h1 id="rules-for-template-dependent-names">Rules for template dependent names</h1>
-
-<h2 id="the-normal-case">The normal case</h2>
-
-<p>The behaviour is clear when compared with following example with <code class="language-plaintext highlighter-rouge">EXAMPLE_#2</code></p>
-
-<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#4</code> , which makes the <code class="language-plaintext highlighter-rouge">f</code> template dependent in <code class="language-plaintext highlighter-rouge">EXAMPLE_#2</code>. Now the code compiles:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
-  <span class="c1">// Since f is template dependent, it will be looked up and bound not at here</span>
-  <span class="c1">// but at the instantiation; Even though here FooStruct is not defined yet</span>
-  <span class="c1">// it does not effect the compile</span>
-  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">f</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-  <span class="c1">// Here the FooStruct is fully defined, code compiles</span>
-  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<h2 id="different-behaviour-when-using-non-adl-and-adl">Different behaviour when using non-ADL and ADL</h2>
-
-<p>Firstly a basic understanding of <code class="language-plaintext highlighter-rouge">non-ADL</code> and <code class="language-plaintext highlighter-rouge">ADL</code> should be required, please refer to <a href="https://en.cppreference.com/w/cpp/language/adl">Argument-dependent lookup - cppreference.com</a> for detailed info. For an extremely simplified explanation of what <code class="language-plaintext highlighter-rouge">ADL</code> does is that:</p>
-
-<ul>
-  <li>When look up a function name, not only in current namespace, but also the namespace of the arguments are added to the look up scope</li>
-  <li>For fundamental types, no additional argument namespace is added</li>
-</ul>
-
-<p>Here is an example to demonstrate this behaviour:</p>
-
-<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#5</code></p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double passed in</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
-  <span class="c1">// Since f is template dependent, it will be looked up and bound not at here</span>
-  <span class="c1">// but at the instantiation; Even though here FooStruct is not defined yet</span>
-  <span class="c1">// it does not effect the compile</span>
-  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">f</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
-  <span class="n">FooStruct</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">T</span> <span class="n">t</span><span class="p">;</span>
-    <span class="c1">// Here f(..) name look up depends on type of T:</span>
-    <span class="c1">// 1. If non-ADL look up, for example T is of fundamental types(int,</span>
-    <span class="c1">// double..) the look up scope ends here, it's look up is based on template</span>
-    <span class="c1">// definition context; Functions declared after this template definition are</span>
-    <span class="c1">// not visible.</span>
-    <span class="c1">// 2. If ADL look up, for example T is of user defined types, the look up</span>
-    <span class="c1">// scope will include the namespace where T resides. The look up scope is</span>
-    <span class="c1">// based on template definition context or template instantiate context,</span>
-    <span class="c1">// which means that functions declared before the instantiation is also</span>
-    <span class="c1">// visible.</span>
-    <span class="n">f</span><span class="p">(</span><span class="n">t</span><span class="p">);</span>
-  <span class="p">}</span>
-<span class="p">};</span>
-<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Int passed in</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-
-<span class="k">struct</span> <span class="nc">UserType</span> <span class="p">{};</span>
-
-<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="n">UserType</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"UserType passed in</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
-  <span class="c1">// Here whether it's int or double, void f(int data) is not visible to  f(t)</span>
-  <span class="c1">// in FooStruct constructor. It's a non-ADL look up.</span>
-  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
-  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">();</span>
-  <span class="c1">// Here since UserType is user defined, it's ADL look up. The look up scope is</span>
-  <span class="c1">// template definition scope or instantiation scope, which means void</span>
-  <span class="c1">// f(UserType data) is visible.</span>
-  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="n">UserType</span><span class="o">&gt;</span><span class="p">();</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>Output:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Double</span> <span class="n">passed</span> <span class="n">in</span>
-<span class="n">Double</span> <span class="n">passed</span> <span class="n">in</span>
-<span class="n">UserType</span> <span class="n">passed</span> <span class="n">in</span>
-</code></pre></div></div>
-
-<p>This behaviour can be summarized in one sentence:</p>
-
-<blockquote>
-  <p>For template dependent names, adding a new function declaration after template definition does not make it visible, except via ADL(from cppreference.com)</p>
-
-</blockquote>
-
-<h3 id="why-template-definition-context-when-non-adl">Why template definition context when non-ADL?</h3>
-
-<p>The reason is to not violate the <code class="language-plaintext highlighter-rouge">ODR</code>(One Definition Rule).</p>
-
-<p>To demonstrate this, let’s make the template a header library.  File <code class="language-plaintext highlighter-rouge">SomeStruct.h</code> :</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// SomeStruct.h</span>
-<span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="kr">inline</span> <span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">){};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
-  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">f</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
-  <span class="n">FooStruct</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">T</span> <span class="n">t</span><span class="p">;</span>
-    <span class="n">f</span><span class="p">(</span><span class="n">t</span><span class="p">);</span>
-  <span class="p">}</span>
-<span class="p">};</span>
-</code></pre></div></div>
-
-<p>Now we have two translation unit that both use the <code class="language-plaintext highlighter-rouge">SomeStruct.h</code> library, respectively <code class="language-plaintext highlighter-rouge">TU_a.cpp</code> and <code class="language-plaintext highlighter-rouge">TU_b.cpp</code> . And they have namespace <code class="language-plaintext highlighter-rouge">A</code> and namespace <code class="language-plaintext highlighter-rouge">B</code> respectively.</p>
-
-<p>File <code class="language-plaintext highlighter-rouge">TU_a.cpp</code>:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"SomeStruct.h"</span><span class="cp">
-#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span><span class="k">namespace</span> <span class="n">A</span> <span class="p">{</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double passed in, at namespace A</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-<span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">a</span><span class="p">();</span>
-<span class="p">}</span> <span class="c1">// namespace A</span>
-</code></pre></div></div>
-
-<p>File <code class="language-plaintext highlighter-rouge">TU_b.cpp</code> :</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"SomeStruct.h"</span><span class="cp">
-#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span><span class="k">namespace</span> <span class="n">B</span> <span class="p">{</span>
-<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double passed in, at namespace B</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-<span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">();</span>
-<span class="p">}</span> <span class="c1">// namespace B</span>
-</code></pre></div></div>
-
-<p>Let’s analysis what will happen if we compile and link the two translation unit:</p>
-
-<ul>
-  <li>Since <code class="language-plaintext highlighter-rouge">T</code> is <code class="language-plaintext highlighter-rouge">double</code> , it’s a non-ADL name look up. Let’s see what will happen if we use template instantiation context for name look up:
-    <ul>
-      <li><code class="language-plaintext highlighter-rouge">TU_a.cpp</code> will use <code class="language-plaintext highlighter-rouge">A::f</code></li>
-      <li><code class="language-plaintext highlighter-rouge">TU_b.cpp</code> will use <code class="language-plaintext highlighter-rouge">B::f</code>
-        <ul>
-          <li>Both <code class="language-plaintext highlighter-rouge">TU_a.cpp</code> and <code class="language-plaintext highlighter-rouge">TU_b.cpp</code> instantiate the same data type <code class="language-plaintext highlighter-rouge">SomeStruct&lt;double&gt;</code>, but they have multi definition of <code class="language-plaintext highlighter-rouge">f</code> , which clearly violates the <code class="language-plaintext highlighter-rouge">ODR</code></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li>So instead of using template instantiation context when non-ADL name look up, compiler use template definition context for name look up, which leads to:
-    <ul>
-      <li><code class="language-plaintext highlighter-rouge">inline void f(double data){};</code> is use for both <code class="language-plaintext highlighter-rouge">TU_a.cpp</code> and <code class="language-plaintext highlighter-rouge">TU_b.cpp</code></li>
-    </ul>
-  </li>
-</ul>
-
-<h3 id="why-template-instantiation-context-when-adl">Why template instantiation context when ADL?</h3>
-
-<p>The key point is:</p>
-
-<ul>
-  <li>When using ADL look up, the type is user defined, such as <code class="language-plaintext highlighter-rouge">SomeStruct&lt;UserType_A&gt;</code> or <code class="language-plaintext highlighter-rouge">SomeStruct&lt;UserType_B&gt;</code> , the types which are instantiated can not be the same</li>
-  <li>But with fundamental types, above assertion is not true. Some different translation unit can instantiate the same type, such as <code class="language-plaintext highlighter-rouge">SomeStruct&lt;double&gt;</code> in the example. To keep the <code class="language-plaintext highlighter-rouge">ODR</code> rule, it has to use the template definition context for name look up, not template instantiation context.</li>
-</ul>
-
-<h1 id="current-instantiation">Current instantiation</h1>
-
-<p>Names that belong to <em>current instantiation</em> means that their look up and binding can be done based on current instantiation of the template, no further instantiation is required to compete look up and binding. Following is an example to demonstrate this:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
-  <span class="c1">// FooStruct&lt;T&gt; is current instantiation because when instantiate this</span>
-  <span class="c1">// template FooStruct&lt;T&gt; is itself, no additional instantiation is required to</span>
-  <span class="c1">// determine FooStruct&lt;T&gt;</span>
-  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
-  <span class="c1">//   FooStruct&lt;T*&gt; is NOT current instantiation because when instantiate this</span>
-  <span class="c1">//   template FooStruct&lt;T&gt;, another instantiation which is FooStruct&lt;T*&gt; is</span>
-  <span class="c1">//   required.Note: here is an compiling error</span>
-  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span> <span class="o">*&gt;</span> <span class="n">ptr_ptr</span><span class="p">;</span>
-
-  <span class="c1">// Current instantiation, no further instantiations are required</span>
-  <span class="n">T</span> <span class="n">c</span><span class="p">;</span>
-  <span class="n">T</span> <span class="o">*</span><span class="n">c_ptr</span><span class="p">;</span>
-<span class="p">};</span>
-</code></pre></div></div>
-
-<h2 id="typename-for-template-dependent-types"><code class="language-plaintext highlighter-rouge">typename</code> for template dependent types</h2>
-
-<p>A name that is not a member of current instantiation and is dependent on template argument is not considered a type, except using <code class="language-plaintext highlighter-rouge">typename</code> keyword:</p>
-
-<p>Here is an example to demonstrate this:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">BarStruct</span> <span class="p">{</span>
-  <span class="k">typedef</span> <span class="n">T</span> <span class="o">*</span><span class="n">ptr_type</span><span class="p">;</span>
-  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">U</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">NestedStruct</span> <span class="p">{</span>
-    <span class="n">NestedStruct</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-  <span class="p">};</span>
-<span class="p">};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
-
-  <span class="c1">// Here ptr_type is not a current instantiation and a member of FooStruct,</span>
-  <span class="c1">// typename has to be used to indicate that it's a type</span>
-  <span class="k">typename</span> <span class="n">BarStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">ptr_type</span> <span class="n">ni</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span> <span class="n">FooStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">;</span> <span class="p">}</span>
-</code></pre></div></div>
-
-<h2 id="template-for-template-dependent-templates"><code class="language-plaintext highlighter-rouge">template</code> for template dependent templates</h2>
-
-<p>A name is not considered a template if the name is not a member of current instantiation and depend on template argument, except using <code class="language-plaintext highlighter-rouge">template</code> keyword:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">BarStruct</span> <span class="p">{</span>
-  <span class="k">typedef</span> <span class="n">T</span> <span class="o">*</span><span class="n">ptr_type</span><span class="p">;</span>
-  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">U</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">NestedStruct</span> <span class="p">{</span>
-    <span class="n">NestedStruct</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
-  <span class="p">};</span>
-<span class="p">};</span>
-
-<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
-
-  <span class="c1">// Here NestedStruct&lt;T&gt; is at the same time template and type name; typename</span>
-  <span class="c1">// and template keywords must be used</span>
-  <span class="k">typename</span> <span class="n">BarStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="k">template</span> <span class="n">NestedStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">com</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span> <span class="n">FooStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">;</span> <span class="p">}</span>
-</code></pre></div></div>
-
-<p>Output:</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Hello</span>
-</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[When defining template class or function template, knowing how these template parameters are instantiated during compiling time is important to correctly use them. This article tries to explain(but with no full coverage) the order behind the name look up. The template parameter name look up is complex. This article only cover the commonly used cases. For a full understanding of the issue, please refer to official documentation or C++ ISO standard.]]></summary></entry></feed>
+</code></pre></div></div>]]></content><author><name></name></author><category term="python" /><summary type="html"><![CDATA[Decorators can make code more concise and elegant. Function and class can both be decorators. When class used as decorators, the class can be either a callable or a descriptor. When function used as decorators, decorators can accept additional arguments. Decorators are syntatic sugars.]]></summary></entry></feed>
