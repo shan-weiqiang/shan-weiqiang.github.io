@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-04-08T21:11:47+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">SOME/IP Service Discovery解读</title><link href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP Service Discovery解读" /><published>2024-04-08T19:22:46+08:00</published><updated>2024-04-08T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a>是AUTOSAR规范中定义的用于SOME/IP协议运行时服务发现的协议。它运行于SOME/IP协议之上，可以认为是基于SOME/IP协议的应用层协议。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-04-09T20:14:26+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">SOME/IP Service Discovery解读</title><link href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP Service Discovery解读" /><published>2024-04-08T19:22:46+08:00</published><updated>2024-04-08T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a>是AUTOSAR规范中定义的用于SOME/IP协议运行时服务发现的协议。它运行于SOME/IP协议之上，可以认为是基于SOME/IP协议的应用层协议。</p>
 
 <blockquote>
   <p>AUTOSAR模型中也定义了SOME/IP纯静态的发现机制，是通过服务实例到Machine的映射完成的。可以参见<a href="https://www.autosar.org/fileadmin/standards/R22-11/AP/AUTOSAR_TPS_ManifestSpecification.pdf">Specification Manifest</a>第11.3.1.3章节。当使用纯静态的发现机制后，SOME/IP SD可以不使用。</p>
@@ -76,7 +76,7 @@
 
 <p>了解了SOME/IP-SD的消息结构，也就理解了SOME/IP-SD的服务发现协议。也就是理解如下各个字段的含义。可以看出SOME/IP-SD是一个普通SOME/IP消息的payload，也就是说SD是基于SOME/IP协议进行的。可以将SOME/IP-SD协议理解为基于SOME/IP协议之上的一个应用层协议。</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_sd_pdu.jpg" alt="Untitled" /></p>
 
 <h4 id="5121-general-requirements">5.1.2.1 General Requirements</h4>
 
@@ -122,7 +122,7 @@
       <li>服务发现类型：包含当前host提供的Service ID， Instance ID， 版本信息等</li>
     </ul>
 
-    <p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%201.png" alt="Untitled" /></p>
+    <p><img src="/assets/images/some_ip_service_enty_type.jpg" alt="Untitled" /></p>
 
     <blockquote>
       <p>注意这里包含Instance ID信息，但是是作为SOME/IP的payload，不是SOME/IP头部的一部分</p>
@@ -132,7 +132,7 @@
       </ul>
     </blockquote>
 
-    <p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%202.png" alt="Untitled" /></p>
+    <p><img src="/assets/images/some_ip_event_group_entry_type.jpg" alt="Untitled" /></p>
   </li>
 </ul>
 
@@ -181,7 +181,7 @@
 
 <p>通过以上层层递进，现在已经到达最终的目的地了：具体的option内容信息。它也有自己的格式规范，每一个option都必须以如下格式开头：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%203.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_option_header.jpg" alt="Untitled" /></p>
 
 <p>Configuration Option（Type 0x01）</p>
 
@@ -189,7 +189,7 @@
 
 <p>简单理解为一组键：值对，且符合<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-txt-record/">DNS TXT</a>和<a href="http://www.dns-sd.org/">DNS SD</a>记录格式</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%204.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_configuration_option.jpg" alt="Untitled" /></p>
 
 <p>Load Balancing Option（Type 0x02）</p>
 
@@ -197,7 +197,7 @@
 
 <p>这个选项在OfferService 时有用，目的是为每一个instance提供优先级，proxy端可以根据这个选项提供的信息选择instance；信息格式参考<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-srv-record/">DNS SRV</a>。这里如果一个proxy想发现一个服务ID下所有的实例，Service Instance 设置为 0xFFFF，当这个proxy得到所有的实例后，应当使用优先级最高的那个实例来构建proxy实例</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%205.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_load_balancing_option.jpg" alt="Untitled" /></p>
 
 <p>IPv4 Endpoint Option（Type 0x04）</p>
 
@@ -226,7 +226,7 @@
 
 </blockquote>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%206.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_endpoint_option.jpg" alt="Untitled" /></p>
 
 <p>IPv4 Multicast Option（Type 0x14）</p>
 
@@ -239,7 +239,7 @@
   <li>proxy组播发送自己接收服务的组播地址，端口号</li>
 </ul>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%207.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
 
 <p>关于组播，只能在Entry类型为 SubscribeEventgroup，StopSubscribeEventgroup，SubscribeEventgroupAck中被使用，引用一次或者零次：</p>
 
@@ -283,7 +283,7 @@
 
 <p>各种Type的Entry的option使用矩阵表格：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%208.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_sd_allowed_entry.jpg" alt="Untitled" /></p>
 
 <blockquote>
   <p>SubscribeEventgroup和StopSubscribeEventgroup至少需要指定一个Unicast或者Multicast EndPoint</p>
@@ -310,7 +310,7 @@
 
 <p>一个完整的服务发现和订阅流程图：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%209.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_sd_flow.jpg" alt="Untitled" /></p>
 
 <p>这个流程中有如下需要说明：</p>
 
@@ -409,7 +409,7 @@
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2010.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_server_statemachine.jpg" alt="Untitled" /></p>
 
 <p>说明如下：</p>
 
@@ -429,7 +429,7 @@
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2011.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_client_statemachine.jpg" alt="Untitled" /></p>
 
 <p>说明如下：</p>
 
@@ -452,19 +452,19 @@
 
 <p>SOME/IP SD发布订阅流程图如下：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2012.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_pub_sub_flow.jpg" alt="Untitled" /></p>
 
 <p>单播EventGroup server端状态机</p>
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2013.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_state_unicast.jpg" alt="Untitled" /></p>
 
 <p>组播EventGroup server端状态机</p>
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2014.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
 
 <ul>
   <li>单播和组播状态机最重要的区别是组播需要维护订阅数量，当订阅数为零时停止发送</li>
@@ -474,7 +474,7 @@
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2015.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_state_adaptive.jpg" alt="Untitled" /></p>
 
 <p>对于配置为UDP协议的event，SOME/IP支持在到达单播使用上限时自动在单播和组播之间切换；切换逻辑通过MULTICAST_THRESHOLD来控制，具体的切换逻辑用伪代码表示为：</p>
 

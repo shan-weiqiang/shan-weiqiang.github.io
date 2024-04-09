@@ -125,7 +125,7 @@
 
 <p>了解了SOME/IP-SD的消息结构，也就理解了SOME/IP-SD的服务发现协议。也就是理解如下各个字段的含义。可以看出SOME/IP-SD是一个普通SOME/IP消息的payload，也就是说SD是基于SOME/IP协议进行的。可以将SOME/IP-SD协议理解为基于SOME/IP协议之上的一个应用层协议。</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_sd_pdu.jpg" alt="Untitled" /></p>
 
 <h4 id="5121-general-requirements">5.1.2.1 General Requirements</h4>
 
@@ -171,7 +171,7 @@
       <li>服务发现类型：包含当前host提供的Service ID， Instance ID， 版本信息等</li>
     </ul>
 
-    <p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%201.png" alt="Untitled" /></p>
+    <p><img src="/assets/images/some_ip_service_enty_type.jpg" alt="Untitled" /></p>
 
     <blockquote>
       <p>注意这里包含Instance ID信息，但是是作为SOME/IP的payload，不是SOME/IP头部的一部分</p>
@@ -181,7 +181,7 @@
       </ul>
     </blockquote>
 
-    <p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%202.png" alt="Untitled" /></p>
+    <p><img src="/assets/images/some_ip_event_group_entry_type.jpg" alt="Untitled" /></p>
   </li>
 </ul>
 
@@ -230,7 +230,7 @@
 
 <p>通过以上层层递进，现在已经到达最终的目的地了：具体的option内容信息。它也有自己的格式规范，每一个option都必须以如下格式开头：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%203.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_option_header.jpg" alt="Untitled" /></p>
 
 <p>Configuration Option（Type 0x01）</p>
 
@@ -238,7 +238,7 @@
 
 <p>简单理解为一组键：值对，且符合<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-txt-record/">DNS TXT</a>和<a href="http://www.dns-sd.org/">DNS SD</a>记录格式</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%204.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_configuration_option.jpg" alt="Untitled" /></p>
 
 <p>Load Balancing Option（Type 0x02）</p>
 
@@ -246,7 +246,7 @@
 
 <p>这个选项在OfferService 时有用，目的是为每一个instance提供优先级，proxy端可以根据这个选项提供的信息选择instance；信息格式参考<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-srv-record/">DNS SRV</a>。这里如果一个proxy想发现一个服务ID下所有的实例，Service Instance 设置为 0xFFFF，当这个proxy得到所有的实例后，应当使用优先级最高的那个实例来构建proxy实例</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%205.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_load_balancing_option.jpg" alt="Untitled" /></p>
 
 <p>IPv4 Endpoint Option（Type 0x04）</p>
 
@@ -275,7 +275,7 @@
 
 </blockquote>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%206.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_endpoint_option.jpg" alt="Untitled" /></p>
 
 <p>IPv4 Multicast Option（Type 0x14）</p>
 
@@ -288,7 +288,7 @@
   <li>proxy组播发送自己接收服务的组播地址，端口号</li>
 </ul>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%207.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
 
 <p>关于组播，只能在Entry类型为 SubscribeEventgroup，StopSubscribeEventgroup，SubscribeEventgroupAck中被使用，引用一次或者零次：</p>
 
@@ -332,7 +332,7 @@
 
 <p>各种Type的Entry的option使用矩阵表格：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%208.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_sd_allowed_entry.jpg" alt="Untitled" /></p>
 
 <blockquote>
   <p>SubscribeEventgroup和StopSubscribeEventgroup至少需要指定一个Unicast或者Multicast EndPoint</p>
@@ -359,7 +359,7 @@
 
 <p>一个完整的服务发现和订阅流程图：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%209.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_sd_flow.jpg" alt="Untitled" /></p>
 
 <p>这个流程中有如下需要说明：</p>
 
@@ -458,7 +458,7 @@
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2010.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_server_statemachine.jpg" alt="Untitled" /></p>
 
 <p>说明如下：</p>
 
@@ -478,7 +478,7 @@
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2011.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_client_statemachine.jpg" alt="Untitled" /></p>
 
 <p>说明如下：</p>
 
@@ -501,19 +501,19 @@
 
 <p>SOME/IP SD发布订阅流程图如下：</p>
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2012.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_pub_sub_flow.jpg" alt="Untitled" /></p>
 
 <p>单播EventGroup server端状态机</p>
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2013.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_state_unicast.jpg" alt="Untitled" /></p>
 
 <p>组播EventGroup server端状态机</p>
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2014.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
 
 <ul>
   <li>单播和组播状态机最重要的区别是组播需要维护订阅数量，当订阅数为零时停止发送</li>
@@ -523,7 +523,7 @@
 
 <hr />
 
-<p><img src="SOME%20IP%20Service%20Discovery%20Protocol%20Specification%20dfadffeca0c7489bb753bfd44d2b0eec/Untitled%2015.png" alt="Untitled" /></p>
+<p><img src="/assets/images/some_ip_state_adaptive.jpg" alt="Untitled" /></p>
 
 <p>对于配置为UDP协议的event，SOME/IP支持在到达单播使用上限时自动在单播和组播之间切换；切换逻辑通过MULTICAST_THRESHOLD来控制，具体的切换逻辑用伪代码表示为：</p>
 
