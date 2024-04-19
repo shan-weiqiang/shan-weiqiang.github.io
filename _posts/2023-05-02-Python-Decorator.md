@@ -333,7 +333,7 @@ execution time: 2.2212043404579163e-06, caculated by timer: Tom
 
 # Class as decorators
 
-Read [Descriptors](https://www.notion.so/Descriptors-9fec6d57d70f415e95716ab09dc52fb2?pvs=21) to fully understand class decorators
+Read [Descriptors](https://shan-weiqiang.github.io/2023/04/22/Python-Descriptor.html) to fully understand class decorators
 
 A decorator function has two characteristics:
 
