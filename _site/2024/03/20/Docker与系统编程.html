@@ -348,15 +348,15 @@
 <p>说明如下：</p>
 
 <ol>
-  <li>当运行Docker CLI程序，例如docker run， docker attach等，这些程序会跟Docker Daemon通信；Docker CLI与Docker Daemon是客户/服务的工作模式</li>
+  <li>当运行Docker CLI程序，例如<code class="language-plaintext highlighter-rouge">docker run</code>， <code class="language-plaintext highlighter-rouge">docker attach</code>等，这些程序会跟Docker Daemon通信；Docker CLI与Docker Daemon是客户/服务的工作模式</li>
   <li>Docker CLI与Docker Daemon的通信可以使用本机的unix domain socket，也可以是远程的网络连接，比如TCP等</li>
   <li>真正的容器操作，例如创建运行容器、attach容器、关闭容器等操作都是由Docker Daemon完成的，所以Docker Daemon是整个Docker系统的核心组件</li>
-  <li>当使用docker run -d选项运行一个镜像时，Docker CLI与Docker Daemon之间的连接被关闭，Docker CLI程序执行完毕，但是运行的容器跟这个选项没有任何关系，用户随时可以使用docker attach命令来重新与Docker Daemon建立连接</li>
-  <li>Docker Daemon与创建的容器进程（运行在与host独立的namespace中）之间的通信可以是pipe，也可以是tty。Docker Daemon通过这些通信手段来控制容器进程的标准输入</li>
-  <li>当使用docker run -t，选项时，会为容器进程分配一个tty，注意这个tty是host内核中的tty，但是工作在容器进程这个独立与host 的namespace中</li>
-  <li>如果不使用-t，则会直接使用pipe与容器进程通信</li>
-  <li>如果使用docker run -i，则是告诉Docker Daemon保持容器进程的标准输入为打开状态，即不关闭tty或者pipe的写入端</li>
-  <li>如果不使用-i，则Docker Daemon会关闭tty或者pipe的写入端，如此容器进程的程序会在标准输入读到EOF</li>
+  <li>当使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-d</code>选项运行一个镜像时，Docker CLI与Docker Daemon之间的连接被关闭，Docker CLI程序执行完毕，但是运行的容器跟这个选项没有任何关系，用户随时可以使用<code class="language-plaintext highlighter-rouge">docker attach</code>命令来重新与Docker Daemon建立连接</li>
+  <li>Docker Daemon与创建的容器进程（运行在与Host独立的namespace中）之间的通信可以是<code class="language-plaintext highlighter-rouge">pipe</code>，也可以是<code class="language-plaintext highlighter-rouge">tty</code>。Docker Daemon通过这些通信手段来控制容器进程的标准输入</li>
+  <li>当使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-t</code>，选项时，会为容器进程分配一个<code class="language-plaintext highlighter-rouge">tty</code>，注意这个<code class="language-plaintext highlighter-rouge">tty</code>是Host内核中的<code class="language-plaintext highlighter-rouge">tty</code>，但是工作在容器进程这个独立与Host 的namespace中</li>
+  <li>如果不使用<code class="language-plaintext highlighter-rouge">-t</code>，则会直接使用<code class="language-plaintext highlighter-rouge">pipe</code>与容器进程通信</li>
+  <li>如果使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-i</code>，则是告诉Docker Daemon保持容器进程的标准输入为打开状态，即不关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端</li>
+  <li>如果不使用<code class="language-plaintext highlighter-rouge">-i</code>，则Docker Daemon会关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端，如此容器进程的程序会在标准输入读到<code class="language-plaintext highlighter-rouge">EOF</code></li>
 </ol>
 
   </div><a class="u-url" href="/2024/03/20/Docker%E4%B8%8E%E7%B3%BB%E7%BB%9F%E7%BC%96%E7%A8%8B.html" hidden></a>

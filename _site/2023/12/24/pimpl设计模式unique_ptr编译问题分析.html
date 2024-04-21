@@ -126,7 +126,7 @@
 
 <h1 id="问题原因">问题原因</h1>
 
-<p>直接原因是在编译编译单元<code class="language-plaintext highlighter-rouge">app.cpp</code>时，因为用户没有自定义析构函数，所以编译器会自动在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元生成默认析构函数，而在析构成员s<code class="language-plaintext highlighter-rouge">td::unique_ptr</code>时报错，因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>析构函数需要知道模板参数类型的类型，而不能是incomplete type，而此时在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元，<code class="language-plaintext highlighter-rouge">SomeClassImp</code>为incomplete type，所以报错。</p>
+<p>直接原因是在编译编译单元<code class="language-plaintext highlighter-rouge">app.cpp</code>时，因为用户没有自定义析构函数，所以编译器会自动在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元生成默认析构函数，而在析构成员<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>时报错，因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>析构函数需要知道模板参数类型的类型，而不能是incomplete type，而此时在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元，<code class="language-plaintext highlighter-rouge">SomeClassImp</code>为incomplete type，所以报错。</p>
 
 <h2 id="stdunique_ptr源码分析"><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>源码分析</h2>
 
@@ -233,7 +233,9 @@
 
 <h2 id="为什么析构函数可以放在someclassimp定义的前面">为什么析构函数可以放在SomeClassImp定义的前面</h2>
 
-<p>因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
+<p>因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>是模板，根据模板的<a href="https://shan-weiqiang.github.io/2023/05/01/C++-template-name-lookup.html">二次查找规则</a>，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
+
+<p>另外参见Stackoverflow上的问题：<a href="https://stackoverflow.com/questions/77709516/in-pimpl-design-using-stdunique-ptr-if-dtor-is-put-in-implementation-file-bef">In pimpl design using std::unique_ptr, if dtor is put in implementation file BEFORE Impl type definition, why is it compiling ok?</a></p>
 
 <h1 id="用stdunique_ptr而不是stdshared_ptr">用<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>而不是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code></h1>
 

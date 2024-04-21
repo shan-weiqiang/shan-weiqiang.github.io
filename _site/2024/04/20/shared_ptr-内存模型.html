@@ -3,21 +3,21 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>shared_ptr 删除器 | Shan Weiqiang’s blog</title>
+<title>smart ptr内存模型 | Shan Weiqiang’s blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="shared_ptr 删除器" />
+<meta property="og:title" content="smart ptr内存模型" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。" />
-<meta property="og:description" content="shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。" />
-<link rel="canonical" href="http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html" />
-<meta property="og:url" content="http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html" />
+<meta name="description" content="shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。" />
+<meta property="og:description" content="shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。" />
+<link rel="canonical" href="http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html" />
+<meta property="og:url" content="http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html" />
 <meta property="og:site_name" content="Shan Weiqiang’s blog" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-04-20T12:22:46+08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="shared_ptr 删除器" />
+<meta property="twitter:title" content="smart ptr内存模型" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-20T12:22:46+08:00","datePublished":"2024-04-20T12:22:46+08:00","description":"shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。","headline":"shared_ptr 删除器","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html"},"url":"http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-20T12:22:46+08:00","datePublished":"2024-04-20T12:22:46+08:00","description":"shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。","headline":"smart ptr内存模型","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"},"url":"http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -40,25 +40,29 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">shared_ptr 删除器</h1>
+    <h1 class="post-title p-name" itemprop="name headline">smart ptr内存模型</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2024-04-20T12:22:46+08:00" itemprop="datePublished">Apr 20, 2024
       </time></p>
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器默认为<code class="language-plaintext highlighter-rouge">delete</code>操作符，但是由于<code class="language-plaintext highlighter-rouge">shared_ptr</code>指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。</p>
+    <p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器默认为<code class="language-plaintext highlighter-rouge">delete</code>操作符，但是由于<code class="language-plaintext highlighter-rouge">shared_ptr</code>指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。</p>
 
 <ul id="markdown-toc">
   <li><a href="#参考文章" id="markdown-toc-参考文章">参考文章</a></li>
-  <li><a href="#智能指针内存布局" id="markdown-toc-智能指针内存布局">智能指针内存布局</a>    <ul>
-      <li><a href="#智能指针的删除器" id="markdown-toc-智能指针的删除器">智能指针的删除器</a></li>
+  <li><a href="#shared指针行为" id="markdown-toc-shared指针行为">shared指针行为</a>    <ul>
+      <li><a href="#shared_ptr内存布局" id="markdown-toc-shared_ptr内存布局">shared_ptr内存布局</a></li>
       <li><a href="#指针位置相同类型不同" id="markdown-toc-指针位置相同类型不同">指针位置相同，类型不同</a></li>
       <li><a href="#aliasing-constructor" id="markdown-toc-aliasing-constructor">aliasing constructor</a></li>
       <li><a href="#get的返回值类型" id="markdown-toc-get的返回值类型"><code class="language-plaintext highlighter-rouge">get()</code>的返回值类型</a></li>
+      <li><a href="#cast操作" id="markdown-toc-cast操作">Cast操作</a></li>
     </ul>
   </li>
-  <li><a href="#智能指针的cast操作" id="markdown-toc-智能指针的cast操作">智能指针的Cast操作</a></li>
+  <li><a href="#unique指针行为" id="markdown-toc-unique指针行为">unique指针行为</a>    <ul>
+      <li><a href="#unique_ptr内存布局" id="markdown-toc-unique_ptr内存布局">unique_ptr内存布局</a></li>
+    </ul>
+  </li>
 </ul>
 
 <h1 id="参考文章">参考文章</h1>
@@ -72,13 +76,13 @@
   <li><a href="https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast">https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast</a></li>
 </ol>
 
-<h1 id="智能指针内存布局">智能指针内存布局</h1>
+<h1 id="shared指针行为">shared指针行为</h1>
 
-<p>了解只能指针的内存布局，理解一些行为就很容易了。如下图是智能指针的内存layout：</p>
+<h2 id="shared_ptr内存布局">shared_ptr内存布局</h2>
+
+<p>如下图是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>指针的内存layout：</p>
 
 <p><img src="/assets/images/control.png" alt="Alt text" /></p>
-
-<h2 id="智能指针的删除器">智能指针的删除器</h2>
 
 <p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器是通过构造函数的方式传入的，不是<code class="language-plaintext highlighter-rouge">shared_ptr</code>智能指针类型的一部分。所以不同删除器的管理相同类型的智能指针可以放在同一个容器中(因为管理对象有相同的类型)。如果不提供删除器，则使用默认的<code class="language-plaintext highlighter-rouge">delete</code>操作符删除对象。</p>
 
@@ -276,7 +280,7 @@ A destructor
   <li>智能指针的共享所有权与其存储的具体的指向的类型与地址，是独立的，虽然大部分情况下它们是一样的</li>
 </ul>
 
-<h1 id="智能指针的cast操作">智能指针的Cast操作</h1>
+<h2 id="cast操作">Cast操作</h2>
 
 <p>有了上面的理解基础，即智能指针的共享对象和其存储的具体对象类型和地址是独立的，就很自然的会碰到如下情况：</p>
 
@@ -321,8 +325,16 @@ A destructor
 
 </code></pre></div></div>
 
+<h1 id="unique指针行为">unique指针行为</h1>
 
-  </div><a class="u-url" href="/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html" hidden></a>
+<h2 id="unique_ptr内存布局">unique_ptr内存布局</h2>
+
+<p><img src="/assets/images/memory.png" alt="Alt text" /></p>
+
+<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在另外一篇文章详细分析。</p>
+
+
+  </div><a class="u-url" href="/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html" hidden></a>
 </article>
 
       </div>

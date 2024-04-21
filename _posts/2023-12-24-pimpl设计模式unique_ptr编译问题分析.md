@@ -72,7 +72,7 @@ int main()
 
 # 问题原因
 
-直接原因是在编译编译单元`app.cpp`时，因为用户没有自定义析构函数，所以编译器会自动在`app.cpp`编译单元生成默认析构函数，而在析构成员s`td::unique_ptr`时报错，因为`std::unique_ptr`析构函数需要知道模板参数类型的类型，而不能是incomplete type，而此时在`app.cpp`编译单元，`SomeClassImp`为incomplete type，所以报错。
+直接原因是在编译编译单元`app.cpp`时，因为用户没有自定义析构函数，所以编译器会自动在`app.cpp`编译单元生成默认析构函数，而在析构成员`std::unique_ptr`时报错，因为`std::unique_ptr`析构函数需要知道模板参数类型的类型，而不能是incomplete type，而此时在`app.cpp`编译单元，`SomeClassImp`为incomplete type，所以报错。
 
 ## `std::unique_ptr`源码分析
 
@@ -184,7 +184,9 @@ void SomeClass::do_some_thing()
 
 ## 为什么析构函数可以放在SomeClassImp定义的前面
 
-因为`std::unique_ptr`是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便`SomeClassImp`定义在`SomeClass`析构的后面，仍然能够正常编译。
+因为`std::unique_ptr`是模板，根据模板的[二次查找规则](https://shan-weiqiang.github.io/2023/05/01/C++-template-name-lookup.html)，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便`SomeClassImp`定义在`SomeClass`析构的后面，仍然能够正常编译。
+
+另外参见Stackoverflow上的问题：[In pimpl design using std::unique_ptr, if dtor is put in implementation file BEFORE Impl type definition, why is it compiling ok?](https://stackoverflow.com/questions/77709516/in-pimpl-design-using-stdunique-ptr-if-dtor-is-put-in-implementation-file-bef)
 
 # 用`std::unique_ptr`而不是`std::shared_ptr`
 

@@ -1,15 +1,19 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-04-20T15:58:24+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">shared_ptr 删除器</title><link href="http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html" rel="alternate" type="text/html" title="shared_ptr 删除器" /><published>2024-04-20T12:22:46+08:00</published><updated>2024-04-20T12:22:46+08:00</updated><id>http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8</id><content type="html" xml:base="http://localhost:4000/2024/04/20/shared_ptr-%E5%88%A0%E9%99%A4%E5%99%A8.html"><![CDATA[<p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器默认为<code class="language-plaintext highlighter-rouge">delete</code>操作符，但是由于<code class="language-plaintext highlighter-rouge">shared_ptr</code>指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-04-21T11:51:36+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">smart ptr内存模型</title><link href="http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html" rel="alternate" type="text/html" title="smart ptr内存模型" /><published>2024-04-20T12:22:46+08:00</published><updated>2024-04-20T12:22:46+08:00</updated><id>http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B</id><content type="html" xml:base="http://localhost:4000/2024/04/20/shared_ptr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"><![CDATA[<p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器默认为<code class="language-plaintext highlighter-rouge">delete</code>操作符，但是由于<code class="language-plaintext highlighter-rouge">shared_ptr</code>指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。</p>
 
 <ul id="markdown-toc">
   <li><a href="#参考文章" id="markdown-toc-参考文章">参考文章</a></li>
-  <li><a href="#智能指针内存布局" id="markdown-toc-智能指针内存布局">智能指针内存布局</a>    <ul>
-      <li><a href="#智能指针的删除器" id="markdown-toc-智能指针的删除器">智能指针的删除器</a></li>
+  <li><a href="#shared指针行为" id="markdown-toc-shared指针行为">shared指针行为</a>    <ul>
+      <li><a href="#shared_ptr内存布局" id="markdown-toc-shared_ptr内存布局">shared_ptr内存布局</a></li>
       <li><a href="#指针位置相同类型不同" id="markdown-toc-指针位置相同类型不同">指针位置相同，类型不同</a></li>
       <li><a href="#aliasing-constructor" id="markdown-toc-aliasing-constructor">aliasing constructor</a></li>
       <li><a href="#get的返回值类型" id="markdown-toc-get的返回值类型"><code class="language-plaintext highlighter-rouge">get()</code>的返回值类型</a></li>
+      <li><a href="#cast操作" id="markdown-toc-cast操作">Cast操作</a></li>
     </ul>
   </li>
-  <li><a href="#智能指针的cast操作" id="markdown-toc-智能指针的cast操作">智能指针的Cast操作</a></li>
+  <li><a href="#unique指针行为" id="markdown-toc-unique指针行为">unique指针行为</a>    <ul>
+      <li><a href="#unique_ptr内存布局" id="markdown-toc-unique_ptr内存布局">unique_ptr内存布局</a></li>
+    </ul>
+  </li>
 </ul>
 
 <h1 id="参考文章">参考文章</h1>
@@ -23,13 +27,13 @@
   <li><a href="https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast">https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast</a></li>
 </ol>
 
-<h1 id="智能指针内存布局">智能指针内存布局</h1>
+<h1 id="shared指针行为">shared指针行为</h1>
 
-<p>了解只能指针的内存布局，理解一些行为就很容易了。如下图是智能指针的内存layout：</p>
+<h2 id="shared_ptr内存布局">shared_ptr内存布局</h2>
+
+<p>如下图是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>指针的内存layout：</p>
 
 <p><img src="/assets/images/control.png" alt="Alt text" /></p>
-
-<h2 id="智能指针的删除器">智能指针的删除器</h2>
 
 <p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器是通过构造函数的方式传入的，不是<code class="language-plaintext highlighter-rouge">shared_ptr</code>智能指针类型的一部分。所以不同删除器的管理相同类型的智能指针可以放在同一个容器中(因为管理对象有相同的类型)。如果不提供删除器，则使用默认的<code class="language-plaintext highlighter-rouge">delete</code>操作符删除对象。</p>
 
@@ -227,7 +231,7 @@ A destructor
   <li>智能指针的共享所有权与其存储的具体的指向的类型与地址，是独立的，虽然大部分情况下它们是一样的</li>
 </ul>
 
-<h1 id="智能指针的cast操作">智能指针的Cast操作</h1>
+<h2 id="cast操作">Cast操作</h2>
 
 <p>有了上面的理解基础，即智能指针的共享对象和其存储的具体对象类型和地址是独立的，就很自然的会碰到如下情况：</p>
 
@@ -270,7 +274,15 @@ A destructor
     <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">{</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="p">};</span>
 <span class="p">}</span>
 
-</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。]]></summary></entry><entry><title type="html">SOME/IP 解读</title><link href="http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP 解读" /><published>2024-04-19T19:22:46+08:00</published><updated>2024-04-19T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPProtocol.pdf">SOME/IP</a> 协议是AUTOSAR AP和CP标准中包含的面向服务的通信协议。在AP上，SOME/IP 基于网络传输层的TCP和UDP协议，属于OSI模型的应用层协议。本文不是原文的翻译，而是按照章节对重要的，且难以理解的部分进行解释，希望能帮助到有需要的读者。</p>
+</code></pre></div></div>
+
+<h1 id="unique指针行为">unique指针行为</h1>
+
+<h2 id="unique_ptr内存布局">unique_ptr内存布局</h2>
+
+<p><img src="/assets/images/memory.png" alt="Alt text" /></p>
+
+<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在另外一篇文章详细分析。</p>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。]]></summary></entry><entry><title type="html">SOME/IP 解读</title><link href="http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP 解读" /><published>2024-04-19T19:22:46+08:00</published><updated>2024-04-19T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPProtocol.pdf">SOME/IP</a> 协议是AUTOSAR AP和CP标准中包含的面向服务的通信协议。在AP上，SOME/IP 基于网络传输层的TCP和UDP协议，属于OSI模型的应用层协议。本文不是原文的翻译，而是按照章节对重要的，且难以理解的部分进行解释，希望能帮助到有需要的读者。</p>
 
 <blockquote>
   <p>SOME/IP在AUTOSAR中是通信的基础，在Manifest模型中，非常多的模型定义都跟SOME/IP相关；理解SOME/IP对理解AUTOSAR模型系统很重要</p>
@@ -1634,15 +1646,15 @@ A destructor
 <p>说明如下：</p>
 
 <ol>
-  <li>当运行Docker CLI程序，例如docker run， docker attach等，这些程序会跟Docker Daemon通信；Docker CLI与Docker Daemon是客户/服务的工作模式</li>
+  <li>当运行Docker CLI程序，例如<code class="language-plaintext highlighter-rouge">docker run</code>， <code class="language-plaintext highlighter-rouge">docker attach</code>等，这些程序会跟Docker Daemon通信；Docker CLI与Docker Daemon是客户/服务的工作模式</li>
   <li>Docker CLI与Docker Daemon的通信可以使用本机的unix domain socket，也可以是远程的网络连接，比如TCP等</li>
   <li>真正的容器操作，例如创建运行容器、attach容器、关闭容器等操作都是由Docker Daemon完成的，所以Docker Daemon是整个Docker系统的核心组件</li>
-  <li>当使用docker run -d选项运行一个镜像时，Docker CLI与Docker Daemon之间的连接被关闭，Docker CLI程序执行完毕，但是运行的容器跟这个选项没有任何关系，用户随时可以使用docker attach命令来重新与Docker Daemon建立连接</li>
-  <li>Docker Daemon与创建的容器进程（运行在与host独立的namespace中）之间的通信可以是pipe，也可以是tty。Docker Daemon通过这些通信手段来控制容器进程的标准输入</li>
-  <li>当使用docker run -t，选项时，会为容器进程分配一个tty，注意这个tty是host内核中的tty，但是工作在容器进程这个独立与host 的namespace中</li>
-  <li>如果不使用-t，则会直接使用pipe与容器进程通信</li>
-  <li>如果使用docker run -i，则是告诉Docker Daemon保持容器进程的标准输入为打开状态，即不关闭tty或者pipe的写入端</li>
-  <li>如果不使用-i，则Docker Daemon会关闭tty或者pipe的写入端，如此容器进程的程序会在标准输入读到EOF</li>
+  <li>当使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-d</code>选项运行一个镜像时，Docker CLI与Docker Daemon之间的连接被关闭，Docker CLI程序执行完毕，但是运行的容器跟这个选项没有任何关系，用户随时可以使用<code class="language-plaintext highlighter-rouge">docker attach</code>命令来重新与Docker Daemon建立连接</li>
+  <li>Docker Daemon与创建的容器进程（运行在与Host独立的namespace中）之间的通信可以是<code class="language-plaintext highlighter-rouge">pipe</code>，也可以是<code class="language-plaintext highlighter-rouge">tty</code>。Docker Daemon通过这些通信手段来控制容器进程的标准输入</li>
+  <li>当使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-t</code>，选项时，会为容器进程分配一个<code class="language-plaintext highlighter-rouge">tty</code>，注意这个<code class="language-plaintext highlighter-rouge">tty</code>是Host内核中的<code class="language-plaintext highlighter-rouge">tty</code>，但是工作在容器进程这个独立与Host 的namespace中</li>
+  <li>如果不使用<code class="language-plaintext highlighter-rouge">-t</code>，则会直接使用<code class="language-plaintext highlighter-rouge">pipe</code>与容器进程通信</li>
+  <li>如果使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-i</code>，则是告诉Docker Daemon保持容器进程的标准输入为打开状态，即不关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端</li>
+  <li>如果不使用<code class="language-plaintext highlighter-rouge">-i</code>，则Docker Daemon会关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端，如此容器进程的程序会在标准输入读到<code class="language-plaintext highlighter-rouge">EOF</code></li>
 </ol>]]></content><author><name></name></author><category term="system_programming" /></entry><entry><title type="html">C++可调用对象</title><link href="http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1.html" rel="alternate" type="text/html" title="C++可调用对象" /><published>2024-01-21T19:22:46+08:00</published><updated>2024-01-21T19:22:46+08:00</updated><id>http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1</id><content type="html" xml:base="http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1.html"><![CDATA[<p>本文试图在作者的知识范围内解释清楚C++中<code class="language-plaintext highlighter-rouge">Callable</code>这个概念。通常<code class="language-plaintext highlighter-rouge">Callable</code>总是跟<code class="language-plaintext highlighter-rouge">函数</code>直接等价，但是同时也包括其他可调用对象，例如<code class="language-plaintext highlighter-rouge">std::function</code>、<code class="language-plaintext highlighter-rouge">std::bind</code>、lamda表达式、成员函数、可调用对象(实现<code class="language-plaintext highlighter-rouge">()</code>操作符的类)等。以下内容<code class="language-plaintext highlighter-rouge">函数</code>特指全局定义的函数。</p>
 
 <ul id="markdown-toc">
@@ -2056,7 +2068,7 @@ A destructor
 
 <h1 id="问题原因">问题原因</h1>
 
-<p>直接原因是在编译编译单元<code class="language-plaintext highlighter-rouge">app.cpp</code>时，因为用户没有自定义析构函数，所以编译器会自动在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元生成默认析构函数，而在析构成员s<code class="language-plaintext highlighter-rouge">td::unique_ptr</code>时报错，因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>析构函数需要知道模板参数类型的类型，而不能是incomplete type，而此时在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元，<code class="language-plaintext highlighter-rouge">SomeClassImp</code>为incomplete type，所以报错。</p>
+<p>直接原因是在编译编译单元<code class="language-plaintext highlighter-rouge">app.cpp</code>时，因为用户没有自定义析构函数，所以编译器会自动在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元生成默认析构函数，而在析构成员<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>时报错，因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>析构函数需要知道模板参数类型的类型，而不能是incomplete type，而此时在<code class="language-plaintext highlighter-rouge">app.cpp</code>编译单元，<code class="language-plaintext highlighter-rouge">SomeClassImp</code>为incomplete type，所以报错。</p>
 
 <h2 id="stdunique_ptr源码分析"><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>源码分析</h2>
 
@@ -2163,7 +2175,9 @@ A destructor
 
 <h2 id="为什么析构函数可以放在someclassimp定义的前面">为什么析构函数可以放在SomeClassImp定义的前面</h2>
 
-<p>因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>是模板，根据模板的二次查找规则，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
+<p>因为<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>是模板，根据模板的<a href="https://shan-weiqiang.github.io/2023/05/01/C++-template-name-lookup.html">二次查找规则</a>，当其析构函数被实例化时，整个编译单元的定义信息已经知道，所以即便<code class="language-plaintext highlighter-rouge">SomeClassImp</code>定义在<code class="language-plaintext highlighter-rouge">SomeClass</code>析构的后面，仍然能够正常编译。</p>
+
+<p>另外参见Stackoverflow上的问题：<a href="https://stackoverflow.com/questions/77709516/in-pimpl-design-using-stdunique-ptr-if-dtor-is-put-in-implementation-file-bef">In pimpl design using std::unique_ptr, if dtor is put in implementation file BEFORE Impl type definition, why is it compiling ok?</a></p>
 
 <h1 id="用stdunique_ptr而不是stdshared_ptr">用<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>而不是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code></h1>
 

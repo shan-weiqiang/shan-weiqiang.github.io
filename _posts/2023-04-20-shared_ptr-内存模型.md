@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  "shared_ptr 删除器"
+title:  "smart ptr内存模型"
 date:   2024-04-20 12:22:46 +0800
 tags: [C++]
 ---
 
 
-`shared_ptr`的删除器默认为`delete`操作符，但是由于`shared_ptr`指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。
+`shared_ptr`的删除器默认为`delete`操作符，但是由于`shared_ptr`指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。
 
 * toc
 {:toc}
@@ -21,13 +21,14 @@ tags: [C++]
 4. [https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast](https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast)
 
 
-# 智能指针内存布局
 
-了解智能指针的内存布局，理解一些行为就很容易了。如下图是智能指针的内存layout：
+# shared指针行为
+
+## shared_ptr内存布局
+
+如下图是`std::shared_ptr`指针的内存layout：
 
 ![Alt text](/assets/images/control.png)
-
-## 智能指针的删除器
 
 `shared_ptr`的删除器是通过构造函数的方式传入的，不是`shared_ptr`智能指针类型的一部分。所以不同删除器的管理相同类型的智能指针可以放在同一个容器中(因为管理对象有相同的类型)。如果不提供删除器，则使用默认的`delete`操作符删除对象。
 
@@ -228,7 +229,7 @@ A destructor
 - `shared_ptr<A>`的`get()`返回值类型是`A`的指针类型，不一定是Control Block指向的地址
 - 智能指针的共享所有权与其存储的具体的指向的类型与地址，是独立的，虽然大部分情况下它们是一样的
 
-# 智能指针的Cast操作
+## Cast操作
 
 有了上面的理解基础，即智能指针的共享对象和其存储的具体对象类型和地址是独立的，就很自然的会碰到如下情况：
 
@@ -272,4 +273,14 @@ std::shared_ptr<T> reinterpret_pointer_cast(const std::shared_ptr<U>& r) noexcep
 }
 
 ```
+
+# unique指针行为
+
+## unique_ptr内存布局
+
+![Alt text](/assets/images/memory.png)
+
+`std::unique_ptr`指针的删除器是其类型的一部分，这与`std::shared_ptr`是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和`std::shared_ptr`有很多区别，将在另外一篇文章详细分析。
+
+
  
