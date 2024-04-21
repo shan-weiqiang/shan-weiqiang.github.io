@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++ 静态多态与Mixin"
+title:  "CRTP与Mixin"
 date:   2023-10-13 19:22:46 +0800
 tags: [C++]
 ---
