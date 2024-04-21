@@ -8,6 +8,12 @@ tags: [C++]
 
 本文不是介绍pimpl设计模式，而是关于在使用`std::unique_ptr`实现pimpl设计模式时出现的编译问题及原因，以及与`std::shared_ptr`实现pimpl的区别。
 
+相关文章：
+
+1. [smartPtr内存模型](https://shan-weiqiang.github.io/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html)
+2. [smartPtr构造&析构行为
+](https://shan-weiqiang.github.io/2024/04/21/smartPtr-%E6%9E%84%E9%80%A0-%E6%9E%90%E6%9E%84%E8%A1%8C%E4%B8%BA%E5%8C%BA%E5%88%AB.html)
+
 * toc
 {:toc}
 
