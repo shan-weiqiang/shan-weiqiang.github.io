@@ -1,16 +1,15 @@
 ---
 layout: post
-title:  "pimpl设计模式unique_ptr编译问题分析"
+title:  "pimpl设计模式unique_ptr incomplete type问题"
 date:   2023-12-24 19:22:46 +0800
 tags: [C++]
 ---
 
-* toc
-{:toc}
-
-# pimpl设计模式unique_ptr的编译问题
 
 本文不是介绍pimpl设计模式，而是关于在使用`std::unique_ptr`实现pimpl设计模式时出现的编译问题及原因，以及与`std::shared_ptr`实现pimpl的区别。
+
+* toc
+{:toc}
 
 # 问题描述
 
