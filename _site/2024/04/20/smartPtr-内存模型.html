@@ -331,7 +331,7 @@ A destructor
 
 <p><img src="/assets/images/memory.png" alt="Alt text" /></p>
 
-<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在<a href=""></a>详细分析。</p>
+<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在<a href="https://shan-weiqiang.github.io/2024/04/21/smartPtr-%E6%9E%84%E9%80%A0-%E6%9E%90%E6%9E%84%E8%A1%8C%E4%B8%BA.html">smartPtr构造&amp;析构行为</a>详细分析。</p>
 
 
   </div><a class="u-url" href="/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html" hidden></a>
