@@ -6,14 +6,14 @@ tags: [C++]
 ---
 
 
-This post tries to enumerate the pitfalls that might happen in the use of `conditional_variable`. First I will explain scenarios in the use of `conditional_variable`; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging `conditional_variable`.
+This post tries to enumerate the pitfalls that might happen in the use of `condition_variable`. First I will explain scenarios in the use of `condition_variable`; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging `condition_variable`.
 
 * toc
 {:toc}
 
 # Thread flow
 
-To understand `conditional_variable`, we assume following premises:
+To understand `condition_variable`, we assume following premises:
 
 - There is only one notifying thread
 - There is only one waiting thread
@@ -24,7 +24,7 @@ You might think these premises are too much and what's the point of analysing it
 
 ## Waiting thread
 
-`conditional_variable` is implemented on `futex` in Linux, I will not go deeper about it at here, it's too big a topic, more info can be found [here](https://man7.org/linux/man-pages/man2/futex.2.html). All we need to know in this blog is following:
+`condition_variable` is implemented on `futex` in Linux, I will not go deeper about it at here, it's too big a topic, more info can be found [here](https://man7.org/linux/man-pages/man2/futex.2.html). All we need to know in this blog is following:
 
 - Iniside the `wait` function call, the mutex associated with it will be unlocked before blocking
 - The unlock of the mutex and the changing to block state is done atomically
@@ -114,7 +114,7 @@ The waiting thread changes the *condition* and call `notify_one/notify_all` whil
 
 # Golden rules
 
-1. Always use `conditional_variable` with a *condition*, otherwise there is no way to check whether it's a spurious wake up or not
+1. Always use `condition_variable` with a *condition*, otherwise there is no way to check whether it's a spurious wake up or not
 2. Use the same lock to protect:
    1. Anything that might change the *condition*, even when the *condition* itself is atomic. As the analysis above, the atomic nature of the *condition* does not change the analysing results.
    2. Anytime checking the *condition*
@@ -122,7 +122,7 @@ The waiting thread changes the *condition* and call `notify_one/notify_all` whil
 
 # Real world example
 
-Following is an implementation of thread pool, it basically shows every respect of the usage of `conditional_variable`:
+Following is an implementation of thread pool, it basically shows every respect of the usage of `condition_variable`:
 
 ```cpp
 #include <cstddef>
