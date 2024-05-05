@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="condition_variable fully explained" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="This post tries to enumerate the pitfalls that might happen in the use of conditional_variable. First I will explain scenarios in the use of conditional_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging conditional_variable." />
-<meta property="og:description" content="This post tries to enumerate the pitfalls that might happen in the use of conditional_variable. First I will explain scenarios in the use of conditional_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging conditional_variable." />
+<meta name="description" content="This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable." />
+<meta property="og:description" content="This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable." />
 <link rel="canonical" href="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html" />
 <meta property="og:url" content="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html" />
 <meta property="og:site_name" content="Shan Weiqiang’s blog" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="condition_variable fully explained" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-27T19:22:46+08:00","datePublished":"2024-04-27T19:22:46+08:00","description":"This post tries to enumerate the pitfalls that might happen in the use of conditional_variable. First I will explain scenarios in the use of conditional_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging conditional_variable.","headline":"condition_variable fully explained","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"},"url":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-27T19:22:46+08:00","datePublished":"2024-04-27T19:22:46+08:00","description":"This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable.","headline":"condition_variable fully explained","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"},"url":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -47,7 +47,7 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p>This post tries to enumerate the pitfalls that might happen in the use of <code class="language-plaintext highlighter-rouge">conditional_variable</code>. First I will explain scenarios in the use of <code class="language-plaintext highlighter-rouge">conditional_variable</code>; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging <code class="language-plaintext highlighter-rouge">conditional_variable</code>.</p>
+    <p>This post tries to enumerate the pitfalls that might happen in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>. First I will explain scenarios in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging <code class="language-plaintext highlighter-rouge">condition_variable</code>.</p>
 
 <ul id="markdown-toc">
   <li><a href="#thread-flow" id="markdown-toc-thread-flow">Thread flow</a>    <ul>
@@ -67,7 +67,7 @@
 
 <h1 id="thread-flow">Thread flow</h1>
 
-<p>To understand <code class="language-plaintext highlighter-rouge">conditional_variable</code>, we assume following premises:</p>
+<p>To understand <code class="language-plaintext highlighter-rouge">condition_variable</code>, we assume following premises:</p>
 
 <ul>
   <li>There is only one notifying thread</li>
@@ -80,7 +80,7 @@
 
 <h2 id="waiting-thread">Waiting thread</h2>
 
-<p><code class="language-plaintext highlighter-rouge">conditional_variable</code> is implemented on <code class="language-plaintext highlighter-rouge">futex</code> in Linux, I will not go deeper about it at here, it’s too big a topic, more info can be found <a href="https://man7.org/linux/man-pages/man2/futex.2.html">here</a>. All we need to know in this blog is following:</p>
+<p><code class="language-plaintext highlighter-rouge">condition_variable</code> is implemented on <code class="language-plaintext highlighter-rouge">futex</code> in Linux, I will not go deeper about it at here, it’s too big a topic, more info can be found <a href="https://man7.org/linux/man-pages/man2/futex.2.html">here</a>. All we need to know in this blog is following:</p>
 
 <ul>
   <li>Iniside the <code class="language-plaintext highlighter-rouge">wait</code> function call, the mutex associated with it will be unlocked before blocking</li>
@@ -193,7 +193,7 @@
 <h1 id="golden-rules">Golden rules</h1>
 
 <ol>
-  <li>Always use <code class="language-plaintext highlighter-rouge">conditional_variable</code> with a <em>condition</em>, otherwise there is no way to check whether it’s a spurious wake up or not</li>
+  <li>Always use <code class="language-plaintext highlighter-rouge">condition_variable</code> with a <em>condition</em>, otherwise there is no way to check whether it’s a spurious wake up or not</li>
   <li>Use the same lock to protect:
     <ol>
       <li>Anything that might change the <em>condition</em>, even when the <em>condition</em> itself is atomic. As the analysis above, the atomic nature of the <em>condition</em> does not change the analysing results.</li>
@@ -205,7 +205,7 @@
 
 <h1 id="real-world-example">Real world example</h1>
 
-<p>Following is an implementation of thread pool, it basically shows every respect of the usage of <code class="language-plaintext highlighter-rouge">conditional_variable</code>:</p>
+<p>Following is an implementation of thread pool, it basically shows every respect of the usage of <code class="language-plaintext highlighter-rouge">condition_variable</code>:</p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;cstddef&gt;</span><span class="cp">
 #include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
