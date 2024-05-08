@@ -79,5 +79,73 @@ Proxy类的特点可以总结如下：
 
 ### 5.3.5 Events
 
+#### 5.3.5.1 Event Subscription and Local Cache
+
+
+如果Proxy端想要接收服务实例中的一个event，则必须使用event订阅这个接口。这个接口有两个作用：
+
+- 告诉COM模块需要接收这个event的数据
+- 告诉COM模块需要在ComAPI层开辟多少存储空间用于存放数据
+
+---
+**NOTE**
+
+`ara::core::Result<void> Subscribe(size_t maxSampleCount);` 对于这个接口有必要进一步的说明和解释：
+
+- `maxSampleCount`表示当前Proxy需要为当前event开辟的存放缓存数据的池子大小，这个池子与底层的协议绑定完全无关，比如DDS和SOME/IP，它不是底层协议的缓存，而是ComAPI binding层的缓存
+- 在`GetNewSamples`接口中需要将底层通信协议，例如DDS和SOME/IP，中的数据直接解序列化到这个池子，然后将指向这个池子中数据的指针`SamplePtr`传给上层应用；`SamplePtr`的行为将在后续小结详细说明
+
+---
+
+#### 5.3.5.3 Accessing Event Data — aka Samples
+
+> So there has to be taken an explicit action, to get/fetch those event samples from those buffers,eventually deserialze it and and then put them into the event wrapper class instance
+specific cache in form of a correct SampleType. The API to trigger this action is
+`GetNewSamples()`.
+
+---
+**NOTE**
+
+这段话给出了这个获取数据接口的两个核心行为：
+
+1. 从绑定协议的底层，例如DDS的history，中获取**未序列化**的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如UDS socket，或者VLAN socket中获取的原始数据包,尚未完成反序列化。
+2. 将原始字节流**反序列化**，然后存储在ComAPI的本地缓存中，即上面所说的`local cache`中，其大小在`Subscribe(size_t maxSampleCount)`时，由应用告诉ComAPI; 注意，为了保证运行时的确定性，这个池子的内存应当是固定的，不能在运行时重新申请、释放。另外，为了减少Copy，根据底层绑定协议的能力，应当尽量直接将数据反序列化到池子中，而不是先反序列化，然后Copy。
+
+---
+
+> On a call to GetNewSamples(), the ara::com implementation checks first, whether
+the number of event samples held by the application already exceeds the maximum
+number, which it had committed in the previous call to Subscribe(). If so, an
+ara::Core::ErrorCode is returned. Otherwise ara::com implementation checks,
+whether underlying buffers contain a new event sample and — if it’s the case — deserializes it into a sample slot and then calls the application provided f with a SamplePtr
+pointing to this new event sample. This processing (checking for further samples in the
+buffer and calling back the application provided callback f) is repeated until either:
+> 
+> - there aren’t any new samples in the buffers
+> - there are further samples in the buffers, but the application provided maxNumberOfSamples argument in call to GetNewSamples() has been reached.
+> - there are further samples in the buffers, but the application already exceeds its
+maxSampleCount, which it had committed in Subscribe().
+
+
+---
+**NOTE**
+
+这一部分解释了，如下`GetNewSamples`接口的行为：
+
+```cpp
+template <typename F>
+ara::core::Result<size_t> GetNewSamples(
+F&& f,
+size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
+```
+
+首先这里有三个限值要说明：
+
+1. `maxNumberOfSamples`: `GetNewSamples`接口传入的本次希望接收的最大数据数量
+2. `maxSampleCount`: `local cache`本地缓存的池子大小；大小由`Subscribe(size_t maxSampleCount)`时，由上层应用指定
+3. 底层绑定协议中buffer区域的可用的未读取的数据数量，姑且称为`bufferUnreadCount`
+
+可以用如下图来表示其行为：
+
 
 
