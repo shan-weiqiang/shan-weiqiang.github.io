@@ -7,6 +7,13 @@ tags: [AUTOSAR]
 
 [ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)是理解AUTOSAR AP中面向服务架构的入口。无论对于底层BSW开发，模型和代码引擎开发，还是对于上层应用开发，都是需要理解的。可以说ara::com API是应用层开发、BSW开发、模型/代码引擎开发的三者交汇点。理解它非常重要。本文是第一部分。
 
+---
+**WARNING**
+
+本文不是翻译，是对原文的注解，所有信息请以原文为准。
+
+---
+
 * toc
 {:toc}
 
