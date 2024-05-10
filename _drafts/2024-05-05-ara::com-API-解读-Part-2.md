@@ -14,6 +14,18 @@ tags: [AUTOSAR]
 
 ---
 
+---
+**NOTE**
+
+以下文中用到的词语解释：
+
+- *通信协议*，*驱动协议*： 如果不是特别说明，这里*通信协议*指的是ComAPI底层使用的通信驱动协议，例如DDS、SOME/IP。注意**不是**网络协议。
+- *ComAPI*, *ComAPI绑定*，*绑定层*：这些都是指ComAPI层的接口实现，也称作绑定实现；它是存在于应用层与通信协议之间的适配代码。
+- *服务实例*，*服务ID*，*Skeleton*：都是指一个具体的服务实例， 服务实例全局唯一。
+- *Proxy*，*客户端*：如无特别说明，都是指服务的消费方，一个Proxy接收一个*Skeleton*提供的服务。
+
+---
+
 * toc
 {:toc}
 
@@ -148,15 +160,15 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 首先这里有三个限值要说明：
 
-1. `maxNumberOfSamples`: `GetNewSamples`接口传入的本次希望接收的最大数据数量
-2. `maxSampleCount`: `local cache`本地缓存的池子大小；大小由`Subscribe(size_t maxSampleCount)`时，由上层应用指定
-3. 底层绑定协议中buffer区域的可用的未读取的数据数量，姑且称为`bufferUnreadCount`
+- `maxNumberOfSamples`: `GetNewSamples`接口传入的本次希望接收的最大数据数量
+- `maxSampleCount`: `local cache`本地缓存的池子大小；大小由`Subscribe(size_t maxSampleCount)`时，由上层应用指定
+- 底层绑定协议中buffer区域的可用的未读取的数据数量，姑且称为`bufferUnreadCount`
 
 `GetNewSamples`从底层CM获取未读的、未序列化的消息，将其序列化，存储到`local cache`池子中，然后将指向这个数据的`SamplePtr`指针作为参数传递给回调函数`f`. `F`必须是`void(ara::com::SamplePtr<SampleType const>).`类型。这个过程一直循环，直到：
 
-1. 所有CM底层的未读消息全部处理完
-2. 或者，`local cache`的数量已达到`maxSampleCount`
-3. 或者，本次已读取`maxNumberOfSamples`个数据
+- 所有CM底层的未读消息全部处理完
+- 或者，`local cache`的数量已达到`maxSampleCount`
+- 或者，本次已读取`maxNumberOfSamples`个数据
 
 接下来说明`SamplePtr`的行为。
 
@@ -166,13 +178,13 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 这个数据类型是理解`GetNewSamples`行为和events读取数据的关键。它需要满足如下功能：
 
-1. 它指向的内存区域应当是ComAPI实现申请的，且会被重复利用的区域；这意味着这些内存区域不会频繁的释放和申请
-2. 它指向的应当是应用层可以直接使用的数据类型
-3. 它指向的数据的所有权必须可以从ComAPI层`move`到应用层，且：
-   1. 如有必要，为了极致的性能优化，它还应当支持引用计数，即同时将所有权给不同的应用层的Proxy
-4. 最后一点也是，它与`std::unique_ptr`最大的区别：当其所有权被应用层释放，应当通知到ComAPI实现层，这样ComAPI就可以将其指向的内存区域重新利用；这里可以有两种方式：
-   1. 在`SamplePtr`析构时，通过类似引用计数的方式将释放信息传递给ComAPI，这个机制可以参考`std::shared_ptr`
-   2. 在`SamplePtr`中开放对应的API接口，应用程序使用完毕后，显式调用该接口
+- 它指向的内存区域应当是ComAPI实现申请的，且会被重复利用的区域；这意味着这些内存区域不会频繁的释放和申请
+- 它指向的应当是应用层可以直接使用的数据类型
+- 它指向的数据的所有权必须可以从ComAPI层`move`到应用层，且：
+  - 如有必要，为了极致的性能优化，它还应当支持引用计数，即同时将所有权给不同的应用层的Proxy
+- 最后一点也是，它与`std::unique_ptr`最大的区别：当其所有权被应用层释放，应当通知到ComAPI实现层，这样ComAPI就可以将其指向的内存区域重新利用；这里可以有两种方式：
+  - 在`SamplePtr`析构时，通过类似引用计数的方式将释放信息传递给ComAPI，这个机制可以参考`std::shared_ptr`
+  - 在`SamplePtr`中开放对应的API接口，应用程序使用完毕后，显式调用该接口
 
 理解了以上内容后，则会有个问题，如果同一个机器上有多个Proxy订阅了另外一台机器上的同一个Skeleton服务实例，怎么样才能做到性能最优？下面来说明下这个问题。
 
@@ -180,22 +192,34 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 ![Alt text](/assets/images/buffer_strategie.png)
 
-关于同机器上的订阅同一个服务实例的Proxy之间event数据共享问题，在讨论之前，必须设定一些前提，不然讨论起来就非常乱，混乱的原因大致有以下这些：
+关于Proxy之间event数据共享问题，在讨论之前，必须设定一些前提，不然讨论起来情形非常多，就会很没有头绪；主要有以下几方面的原因：
 
 - 这个服务实例可能在当前机器，此时当Skeleton发送数据时，可能会将数据保存在：
-    - kernel空间：例如uds domain socket，pipe
+    - kernel空间：例如unix domain socket，pipe
     - shared memory
-    - daemon 进程：这是指专门用来分发的进程
+    - daemon 进程：这是指专门用来分发的进程；当daemon进程与Proxy通信时也可以选择共享内存、unix domain socket、pipe等
 - 这个服务实例可能在另外一台机器，此时当Skeleton发送数据，可能会将数据保存在：
     - kernel空间：例如TCP/UDP socket
-    - daemon进程：这个是专门用来分发的进程
+    - daemon进程：同上
 - Proxy实例可能在同一个进程中，也可能在不同的进程中
 - 如果服务实例在当前机器，Skeleton和Proxy在同一个进程都是有可能的
 
-以上可以看出，Proxy和Skeleton不同的位置关系，使用的IPC技术方案，都会直接影响Proxy之间的数据共享。所以，在进一步讨论之前，必须将前提条件进行限制，我们暂且限制如下：
+以上可以看出，Proxy和Skeleton不同的位置关系，使用的IPC技术方案，都会直接影响Proxy之间的数据共享。所以，在进一步讨论之前，必须将前提条件进行限制，我们限制如下：
 
-1. 不同的Proxy在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小
-2. Skeleton服务实例在同一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器
+- 不同的Proxy在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小
+- Skeleton服务实例在另外一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器
 
 有了这些限制以后，再分析下，如何实现不同Proxy之间的event数据共享：
 
+- 首先需要一个Proxy所在机器的daemon进程统一管理与外部机器的网络数据收发，因为如果当前机器不同的Proxy分别与外部机器的Skeleton实例创建了网络连接，则会有重复的数据在网络发送；在Skeleton一侧，也应当有daemon进程，因为Proxy和Skeleton能相互通信的前提是底层使用了相同的通信协议，例如DDS或者SOME/IP
+- 在服务发现阶段，也应当由daemon进程统一管理，只有这样这个daemon进程才能汇总、梳理可能共享event数据的Proxy，例如如果不同的Proxy都同时订阅了一个相同的Skeleton，则这两个Proxy可以共享event数据
+- 在收到原始数据流后，daemon必须先对数据进行反序列化，才能共享；否则，如果共享的是为序列化的数据，则每次使用都必须反序列化，显然失去了共享的意义
+- 在将数据反序列化后，daemon应当将数据保存在共享内存中，这样在不同地址空间中的Proxy才能通过指针的方式共享这些数据
+- Proxy的`local cache`中存储的不再是值，而是数据的指针；且daemon进程中必须使用引用计数的方式来管理这些共享数据
+- 当Proxy将数据，即`SamplePtr` 给上层应用时，给的是指向daemon原始数据的指针；但是在这个`SamplePtr`的实现中，必须提供接口，或者在析构时，能够告知ComAPI层，当前`local cache`中的这个指针已经被应用层释放，从而ComAPI可以通知通信协议的daemon进程减少当前数据的引用计数
+- 当daemon进程管理的数据引用计数为0时，可以释放该数据
+
+这虽然实现了数据在不同Proxy之间的共享，但也造成了一些缺点：
+
+- 不同Proxy会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy可能会因为消费慢的Proxy而牺牲掉获取数据的机会；相比较而言，如果每个Proxy都有自己的缓冲copy，则不会出现这个问题
+- 不同的进程对数据的存储可能有不同的对齐要求，如果使用共享内存，则必须要考虑这个问题
