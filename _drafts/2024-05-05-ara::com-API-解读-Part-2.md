@@ -57,7 +57,7 @@ to communicate with a possibly remote service.
 
 Proxy类的特点可以总结如下：
 
-- `static`方法用于发现服务
+- `static`方法用于发现服务实例
 - 应用开发者需要通过发现的`HandleType`创建Proxy类的实例
 - 每一个Proxy类的实例只能与一个Skeleton端的服务实例通信
 
@@ -69,7 +69,7 @@ Proxy类的特点可以总结如下：
 
 通过使用StartFindService和FindService两个`static`方法来发现服务实例：
 
-- StartFindService为异步发现，注册一个回调到COM，每当有新的服务实例被发现，回调会被调用
+- StartFindService为异步发现，注册一个回调到ComAPI，每当有新的服务实例被发现，回调会被调用
 - FindService为同步发现，直接返回发现结果
 
 这两个API都有两个重载，分别接收` ara::com::InstanceIdentifier`和` ara::core::InstanceSpecifier`，关于这二者的区别详见[Part 1](https://shan-weiqiang.github.io/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html#481-instance-identifiers-and-instance-specifiers)
@@ -103,8 +103,8 @@ Proxy类的特点可以总结如下：
 
 如果Proxy端想要接收服务实例中的一个event，则必须使用event订阅这个接口。这个接口有两个作用：
 
-- 告诉COM模块需要接收这个event的数据
-- 告诉COM模块需要在ComAPI层开辟多少存储空间用于存放数据
+- 告诉ComAPI需要接收这个event的数据
+- 告诉ComAPI需要在ComAPI层开辟多少存储空间用于存放数据
 
 ---
 **NOTE**
@@ -127,7 +127,7 @@ specific cache in form of a correct SampleType. The API to trigger this action i
 
 这段话给出了这个获取数据接口的两个核心行为：
 
-1. 从绑定协议的底层，例如DDS的history，中获取**未序列化**的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如UDS socket，或者UDP/TCP socket中获取的原始数据包,尚未完成反序列化。
+1. 从绑定协议的底层，例如DDS的history，中获取**未序列化**的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如unix domain socket，或者UDP/TCP socket中获取的原始数据包,尚未完成反序列化。
 2. 将原始字节流**反序列化**，然后存储在ComAPI的本地缓存中，即上面所说的`local cache`中，其大小在`Subscribe(size_t maxSampleCount)`时，由应用告诉ComAPI; 注意，为了保证运行时的确定性，这个池子的内存应当是固定的，不能在运行时重新申请、释放。另外，为了减少Copy，根据底层绑定协议的能力，应当尽量直接将数据反序列化到池子中，而不是先反序列化，然后Copy。
 
 ---
@@ -166,7 +166,7 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 `GetNewSamples`从底层CM获取未读的、未序列化的消息，将其序列化，存储到`local cache`池子中，然后将指向这个数据的`SamplePtr`指针作为参数传递给回调函数`f`. `F`必须是`void(ara::com::SamplePtr<SampleType const>).`类型。这个过程一直循环，直到：
 
-- 所有CM底层的未读消息全部处理完
+- 所有`bufferUnreadCount`消息全部处理完
 - 或者，`local cache`的数量已达到`maxSampleCount`
 - 或者，本次已读取`maxNumberOfSamples`个数据
 
@@ -176,17 +176,16 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 #### 5.3.5.4 Event Sample Management via SamplePtrs
 
-这个数据类型是理解`GetNewSamples`行为和events读取数据的关键。它需要满足如下功能：
+`GetNewSamples`需要满足如下功能：
 
-- 它指向的内存区域应当是ComAPI实现申请的，且会被重复利用的区域；这意味着这些内存区域不会频繁的释放和申请
-- 它指向的应当是应用层可以直接使用的数据类型
+- 它指向的内存区域应当是ComAPI申请的，与底层绑定的协议无关，且会被重复利用的区域；这意味着这些内存区域不会频繁的释放和申请
+- 它指向的应当是应用层可以直接使用的数据类型，及已经完成反序列化
 - 它指向的数据的所有权必须可以从ComAPI层`move`到应用层，且：
   - 如有必要，为了极致的性能优化，它还应当支持引用计数，即同时将所有权给不同的应用层的Proxy
-- 最后一点也是，它与`std::unique_ptr`最大的区别：当其所有权被应用层释放，应当通知到ComAPI实现层，这样ComAPI就可以将其指向的内存区域重新利用；这里可以有两种方式：
+- 当其所有权被应用层释放，应当通知到ComAPI实现层，这样ComAPI就可以将其指向的内存区域重新利用；这里可以有两种方式：
   - 在`SamplePtr`析构时，通过类似引用计数的方式将释放信息传递给ComAPI，这个机制可以参考`std::shared_ptr`
-  - 在`SamplePtr`中开放对应的API接口，应用程序使用完毕后，显式调用该接口
+  - 在`SamplePtr`中开放对应的API接口，应用程序使用完毕后，显式调用该接口释放内存
 
-理解了以上内容后，则会有个问题，如果同一个机器上有多个Proxy订阅了另外一台机器上的同一个Skeleton服务实例，怎么样才能做到性能最优？下面来说明下这个问题。
 
 #### 5.3.5.6 Buffering Strategies
 
