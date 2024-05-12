@@ -1,11 +1,11 @@
 ---
 layout: post
 title:  "ara::com API 解读[Part 2]"
-date:   2024-05-05 13:22:46 +0800
+date:   2024-05-12 13:22:46 +0800
 tags: [AUTOSAR]
 ---
 
-[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)是理解AUTOSAR AP中面向服务架构的入口。无论对于底层BSW开发，模型和代码引擎开发，还是对于上层应用开发，都是需要理解的。可以说ara::com API是应用层开发、BSW开发、模型/代码引擎开发的三者交汇点。理解它非常重要。本文是第二部分。
+[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)解读的第二部分。
 
 ---
 **WARNING**
@@ -17,12 +17,15 @@ tags: [AUTOSAR]
 ---
 **NOTE**
 
-以下文中用到的词语解释：
+用词说明：
 
-- *通信协议*，*驱动协议*： 如果不是特别说明，这里*通信协议*指的是ComAPI底层使用的通信驱动协议，例如DDS、SOME/IP。注意**不是**网络协议。
-- *ComAPI*, *ComAPI绑定*，*绑定层*：这些都是指ComAPI层的接口实现，也称作绑定实现；它是存在于应用层与通信协议之间的适配代码。
-- *服务实例*，*服务ID*，*Skeleton*：都是指一个具体的服务实例， 服务实例全局唯一。
-- *Proxy*，*客户端*：如无特别说明，都是指服务的消费方，一个Proxy接收一个*Skeleton*提供的服务。
+- *通信协议*，*驱动协议*： 如果不是特别说明，这里*通信协议*指的是ComAPI底层使用的通信驱动协议，例如DDS、SOME/IP。注意**不是**网络协议
+- *ComAPI*, *ComAPI绑定*，*绑定层*，*绑定*，*适配层*：这些都是指ComAPI层的接口实现，也称作绑定实现；它是存在于应用层与通信协议之间的适配代码
+- *Proxy*，*Proxy类*，*客户端*：如无特别说明，都是指服务的消费方，Proxy接收Skeleton提供的服务
+- *Skeleton*，*Skeleton类*，*服务端*：如无特别说明，都是指服务提供方，Skeleton为Proxy提供服务
+- *服务实例*，*Skeleton类实例*，*Skeleton实例*：都是指一个具体的服务实例， 它是Skeleton类的实例；服务实例全局唯一
+- *消费实例*，*Proxy类实例*， *Proxy实例*：是指一个具体的消费方，它有唯一的Client ID; 注意Proxy实例是没有服务实例ID的，服务ID是Skeleton实例的唯一标识符
+- Skeleton/Proxy的**实例**与Seleton/Proxy**类**是两个概念，文中如果指的是实例，则会具体写明，否则指的是Skeleton/Proxy类本身
 
 ---
 
@@ -41,7 +44,7 @@ ara::com does standardize the interface of the generated Proxy class.
 ---
 **NOTE**
 
-Proxy类的API接口是AUTOSAR定义好的，所有的代码引擎都需要生成符合标准要求的API。
+Proxy的API接口是AUTOSAR定义好的，所有的代码引擎都需要生成符合标准要求的API
 
 ---
 
@@ -57,26 +60,26 @@ to communicate with a possibly remote service.
 
 Proxy类的特点可以总结如下：
 
-- `static`方法用于发现服务实例
+- `static`方法用于发现Skeleton实例
 - 应用开发者需要通过发现的`HandleType`创建Proxy类的实例
-- 每一个Proxy类的实例只能与一个Skeleton端的服务实例通信
+- 一个Proxy类实例只能与一个Skeleton类实例通信
 
-每一个Proxy类的实例都是一个独立的Client（从Skeleton的角度看），它们都有独立的Client ID；在method调用的时候Skeleton端的服务实例通过Client ID来区分这些不同的订阅者。
+一个Proxy类实例是一个独立的Client（从Skeleton实例的角度看），它们都有独立的Client ID；在method调用的时候Skeleton实例通过Client ID来区分这些不同的订阅者
 
 ---
 
 ### 5.3.4 Finding Services
 
-通过使用StartFindService和FindService两个`static`方法来发现服务实例：
+通过使用StartFindService和FindService两个`static`方法来发现Skeleton实例：
 
-- StartFindService为异步发现，注册一个回调到ComAPI，每当有新的服务实例被发现，回调会被调用
+- StartFindService为异步发现，注册一个回调到ComAPI，每当有新的Skeleton实例被发现，回调会被调用
 - FindService为同步发现，直接返回发现结果
 
 这两个API都有两个重载，分别接收` ara::com::InstanceIdentifier`和` ara::core::InstanceSpecifier`，关于这二者的区别详见[Part 1](https://shan-weiqiang.github.io/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html#481-instance-identifiers-and-instance-specifiers)
 
 #### 5.3.4.1 Auto Update Proxy instance
 
-当已经被发现的服务实例由于各种原因暂停提供服务，而后又重新提供服务后，可以通过自动更新Proxy实例来继续通信，而无需重新走一遍FindService，创建Proxy实例的流程。
+当已经被发现的Skeleton实例由于各种原因暂停提供服务，而后又重新提供服务后，可以通过自动更新Proxy实例来继续通信，而无需重新走一遍FindService，创建Proxy实例的流程。
 
 此外，允许在StartFindService注册的回调函数中直接使用已经存在的Proxy实例：
 
@@ -89,10 +92,8 @@ Proxy类的特点可以总结如下：
 
 笔者对这个功能持保留意见：
 
-1. 为什么会允许出现在运行时Proxy实例更新的情况？按照文中所说，Proxy实例甚至允许出现底层传输层地址改变的情况,这严重违反了AUTOSAR部署的意义：既然已经是部署，就不能允许在运行时更新部署配置信息。这显然是自相矛盾的。
-2. 即便在调用StartFindService注册的回调前自动更新了已经存在的Proxy实例，那也不能保证在调用这个实例的API时对方的服务实例仍然有效。因为这中间存在时间差，而对方服务实例可能远在另外一台机器。
-
-综合以上两点，自动更新Proxy服务实例的功能显得有点过度设计了。
+1. 为什么会允许出现在运行时Proxy实例更新的情况？按照文中所说，Proxy实例甚至允许出现底层传输层地址改变的情况,这严重违反了AUTOSAR部署的意义：既然已经是部署，就不能允许在运行时更新部署配置信息
+2. 即便在调用StartFindService注册的回调前自动更新了已经存在的Proxy实例，那也不能保证在调用这个实例的API时对方的Skeleton实例仍然有效。因为这中间存在时间差，而对方Skeleton实例可能远在另外一台机器。
 
 ---
 
@@ -101,7 +102,7 @@ Proxy类的特点可以总结如下：
 #### 5.3.5.1 Event Subscription and Local Cache
 
 
-如果Proxy端想要接收服务实例中的一个event，则必须使用event订阅这个接口。这个接口有两个作用：
+如果Proxy实例端想要接收Skeleton实例中的一个event，则必须使用event订阅这个接口。这个接口有两个作用：
 
 - 告诉ComAPI需要接收这个event的数据
 - 告诉ComAPI需要在ComAPI层开辟多少存储空间用于存放数据
@@ -164,7 +165,7 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 - `maxSampleCount`: `local cache`本地缓存的池子大小；大小由`Subscribe(size_t maxSampleCount)`时，由上层应用指定
 - 底层绑定协议中buffer区域的可用的未读取的数据数量，姑且称为`bufferUnreadCount`
 
-`GetNewSamples`从底层CM获取未读的、未序列化的消息，将其序列化，存储到`local cache`池子中，然后将指向这个数据的`SamplePtr`指针作为参数传递给回调函数`f`. `F`必须是`void(ara::com::SamplePtr<SampleType const>).`类型。这个过程一直循环，直到：
+`GetNewSamples`从底层通信获取未读的、未序列化的消息，将其序列化，存储到`local cache`池子中，然后将指向这个数据的`SamplePtr`指针作为参数传递给回调函数`f`. `F`必须是`void(ara::com::SamplePtr<SampleType const>).`类型。这个过程一直循环，直到：
 
 - 所有`bufferUnreadCount`消息全部处理完
 - 或者，`local cache`的数量已达到`maxSampleCount`
@@ -176,7 +177,7 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 #### 5.3.5.4 Event Sample Management via SamplePtrs
 
-`GetNewSamples`需要满足如下功能：
+`SamplePtr`需要满足如下功能：
 
 - 它指向的内存区域应当是ComAPI申请的，与底层绑定的协议无关，且会被重复利用的区域；这意味着这些内存区域不会频繁的释放和申请
 - 它指向的应当是应用层可以直接使用的数据类型，及已经完成反序列化
@@ -191,34 +192,34 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 ![Alt text](/assets/images/buffer_strategie.png)
 
-关于Proxy之间event数据共享问题，在讨论之前，必须设定一些前提，不然讨论起来情形非常多，就会很没有头绪；主要有以下几方面的原因：
+关于Proxy实例之间event数据共享问题，在讨论之前，必须设定一些前提，不然讨论起来情形非常多，就会很没有头绪；主要有以下几方面的原因：
 
-- 这个服务实例可能在当前机器，此时当Skeleton发送数据时，可能会将数据保存在：
+- 这个Skeleton实例可能在当前机器，当Skeleton实例发送数据时，可能会将数据保存在：
     - kernel空间：例如unix domain socket，pipe
     - shared memory
     - daemon 进程：这是指专门用来分发的进程；当daemon进程与Proxy通信时也可以选择共享内存、unix domain socket、pipe等
-- 这个服务实例可能在另外一台机器，此时当Skeleton发送数据，可能会将数据保存在：
+- 这个Skeleton实例可能在另外一台机器，当其发送数据，可能会将数据保存在：
     - kernel空间：例如TCP/UDP socket
     - daemon进程：同上
 - Proxy实例可能在同一个进程中，也可能在不同的进程中
-- 如果服务实例在当前机器，Skeleton和Proxy在同一个进程都是有可能的
+- 如果Skeleton实例在当前机器，Skeleton实例和Proxy实例在同一个进程都是有可能的
 
-以上可以看出，Proxy和Skeleton不同的位置关系，使用的IPC技术方案，都会直接影响Proxy之间的数据共享。所以，在进一步讨论之前，必须将前提条件进行限制，我们限制如下：
+以上可以看出，Proxy实例和Skeleton实例不同的位置关系，使用的IPC技术方案，都会直接影响Proxy实例之间的数据共享。所以，在进一步讨论之前，必须将前提条件进行限制，我们限制如下：
 
-- 不同的Proxy在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小
-- Skeleton服务实例在另外一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器
+- 不同的Proxy实例在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小
+- Skeleton实例在另外一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器
 
-有了这些限制以后，再分析下，如何实现不同Proxy之间的event数据共享：
+有了这些限制以后，再分析下，如何实现不同Proxy实例之间的event数据共享：
 
-- 首先需要一个Proxy所在机器的daemon进程统一管理与外部机器的网络数据收发，因为如果当前机器不同的Proxy分别与外部机器的Skeleton实例创建了网络连接，则会有重复的数据在网络发送；在Skeleton一侧，也应当有daemon进程，因为Proxy和Skeleton能相互通信的前提是底层使用了相同的通信协议，例如DDS或者SOME/IP
-- 在服务发现阶段，也应当由daemon进程统一管理，只有这样这个daemon进程才能汇总、梳理可能共享event数据的Proxy，例如如果不同的Proxy都同时订阅了一个相同的Skeleton，则这两个Proxy可以共享event数据
+- 首先需要一个Proxy实例所在机器的daemon进程统一管理与外部机器的网络数据收发，因为如果当前机器不同的Proxy实例分别与外部机器的Skeleton实例创建了网络连接，则会有重复的数据在网络发送；在Skeleton一侧，也应当有daemon进程，因为Proxy实例和Skeleton实例能相互通信的前提是底层使用了相同的通信协议（在模型中它们来自同一个*部署*），例如DDS或者SOME/IP
+- 在服务发现阶段，也应当由daemon进程统一管理，只有这样这个daemon进程才能汇总、梳理可能共享event数据的Proxy实例，例如如果不同的Proxy实例都同时订阅了一个相同的Skeleton实例，则这两个Proxy实例可以共享event数据
 - 在收到原始数据流后，daemon必须先对数据进行反序列化，才能共享；否则，如果共享的是为序列化的数据，则每次使用都必须反序列化，显然失去了共享的意义
-- 在将数据反序列化后，daemon应当将数据保存在共享内存中，这样在不同地址空间中的Proxy才能通过指针的方式共享这些数据
-- Proxy的`local cache`中存储的不再是值，而是数据的指针；且daemon进程中必须使用引用计数的方式来管理这些共享数据
-- 当Proxy将数据，即`SamplePtr` 给上层应用时，给的是指向daemon原始数据的指针；但是在这个`SamplePtr`的实现中，必须提供接口，或者在析构时，能够告知ComAPI层，当前`local cache`中的这个指针已经被应用层释放，从而ComAPI可以通知通信协议的daemon进程减少当前数据的引用计数
+- 在将数据反序列化后，daemon应当将数据保存在共享内存中，这样在不同地址空间中的Proxy实例才能通过指针的方式共享这些数据
+- Proxy实例的`local cache`中存储的不再是值，而是数据的指针；且daemon进程中必须使用引用计数的方式来管理这些共享数据
+- 当Proxy实例将数据，即`SamplePtr` 给上层应用时，给的是指向daemon原始数据的指针；但是在这个`SamplePtr`的实现中，必须提供接口，或者在析构时，能够告知ComAPI层，当前`local cache`中的这个指针已经被应用层释放，从而ComAPI可以通知通信协议的daemon进程减少当前数据的引用计数
 - 当daemon进程管理的数据引用计数为0时，可以释放该数据
 
-这虽然实现了数据在不同Proxy之间的共享，但也造成了一些缺点：
+这虽然实现了数据在不同Proxy实例之间的共享，但也造成了一些缺点：
 
-- 不同Proxy会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy可能会因为消费慢的Proxy而牺牲掉获取数据的机会；相比较而言，如果每个Proxy都有自己的缓冲copy，则不会出现这个问题
+- 不同Proxy实例会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy实例之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy实例可能会因为消费慢的Proxy实例而牺牲掉获取数据的机会；相比较而言，如果每个Proxy实例都有自己的缓冲copy，则不会出现这个问题
 - 不同的进程对数据的存储可能有不同的对齐要求，如果使用共享内存，则必须要考虑这个问题
