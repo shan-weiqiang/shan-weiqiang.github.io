@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Docker与系统编程"
+title:  "Docker CLI原理"
 date:   2024-03-20 19:22:46 +0800
 tags: [system_programming]
 ---
@@ -11,19 +11,19 @@ tags: [system_programming]
 
 # 参考文章
 
-1. [https://www.linusakesson.net/programming/tty/](https://www.linusakesson.net/programming/tty/)
+1. [The TTY demystified](https://www.linusakesson.net/programming/tty/)
    
     这篇文章对tty的解释非常到位，可以说是最有价值的关于tty的文章
     
-2. [https://www.rkoucha.fr/tech_corner/pty_pdip.html](https://www.rkoucha.fr/tech_corner/pty_pdip.html)
+2. [Using pseudo-terminals (pty) to control interactive programs](https://www.rkoucha.fr/tech_corner/pty_pdip.html)
    
     这篇主要提供了tty的编程代码
     
-3. [https://man7.org/linux/man-pages/man2/dup.2.html](https://man7.org/linux/man-pages/man2/dup.2.html)
+3. [dup(2) — Linux manual page](https://man7.org/linux/man-pages/man2/dup.2.html)
    
     修改文件描述符
     
-4. [https://man7.org/linux/man-pages/man2/pipe.2.html](https://man7.org/linux/man-pages/man2/pipe.2.html)
+4. [pipe(2) — Linux manual page](https://man7.org/linux/man-pages/man2/pipe.2.html)
    
     pipe管道IPC通信
     
