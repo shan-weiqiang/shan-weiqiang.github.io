@@ -5,16 +5,18 @@ date:   2024-05-12 13:22:46 +0800
 tags: [system_programming]
 ---
 
-本篇文章解释I/O缓存机制。Linux I/O缓存分从外设到kernel之间的I/O缓存，称为kernel缓存；以及`stdio` C库到kernel之间的I/O缓存，称为`stdio`缓存。
+本篇文章是[The Linux Programming Interface](https://man7.org/tlpi/)(*published in October 2010, No Starch Press, ISBN 978-1-59327-220-3*)这本书第13章：*File I/O Buffering*的翻译、阅读笔记、理解汇总。因为I/O在平时工作中非常重要，所以特写下来以供后续翻阅。本文除原理图外，大部分都是翻译。
 
 * toc
 {:toc}
 
 # I/O缓存原理图
 
+Linux I/O缓存分从外设到kernel之间的I/O缓存，称为kernel缓存；以及`stdio` C库到kernel之间的I/O缓存，称为`stdio`缓存：
+
 ![Alt text](../assets/images/io_buffer.png)
 
-# usr缓存
+# stdio缓存
 
 usr缓存即C系统库`stdio`的缓存，由于这个缓存的存在，会造成用户的期望和实际程序行为的不一致，所以理解这个缓存对写出符合期望的程序是很有用的。从原理图上就可以看出`stdio`的缓存最根本的影响就是：用户调用`stdio`做I/O，跟kernel实际接收到I/O请求是不同步的。这个落差就是用户以为做了I/O，但是kernel确还没收到请求。`stdio`会将用户的I/O数据首先copy到缓存区域，根据`stdio`的模式来进行与kernel的交互，即syscall。无论读写，`stdio`有三种缓存模式：
 
@@ -51,3 +53,34 @@ usr缓存即C系统库`stdio`的缓存，由于这个缓存的存在，会造成
 - 如果流是只读的，`fflush`的作用是清空缓冲区
 - 如果流被关闭，`fflush`会自动被调用
   - 这里说明如果流是可读可写的，且实现采用了单一缓存，`stdio`肯定要知道当前缓存中存储的是读还是写的缓存，不然流关闭时无法决定相应的操作
+
+# 内核缓存
+
+内核缓存存在于内核地址空间的buffer与外部存储例如磁盘之间。
+
+## 数据同步和文件同步
+
+synchronized I/O data integrity completion，表示一次内核缓存与外部存储之间的同步操作。这里的data包含的数据可分为两部分：文件本身的数据以及`metadata`，`metadata`主要包含文件的作者、大小、修改时间等等。数据同步包含的意思是：
+
+- 对于读操作：数据从磁盘读取到内核缓存，在读之前如果有尚未完成的写磁盘的操作，则先将写磁盘完成后，再进行读操作
+- 对于写操作：文件数据以及**与读文件相关**的`metadata`数据成功从内核缓存写入磁盘
+
+文件同步是数据同步的区别在于，文件同步在写操作时要将所有的`metadata`写入到磁盘，才算是完成，比数据同步要求更为苛刻：
+
+- `fsync(int fd)`系统调用可以完成文件的文件同步，将文件写到磁盘后返回
+- `fdatasync(int fd)`系统调用可以完成文件的数据同步，将文件写入磁盘后返回
+
+` sync(void);`系统调用会将内核缓存中的所有文件的数据写入磁盘。
+
+## O_SYNC/O_DSYNC/O_RSYNC
+
+在使用`open`系统调用打开文件描述符时，可以通过flag设置内核缓存到磁盘的同步方式：
+
+- O_SYNC: 每次`write`都是文件同步，数据被写入磁盘后才返回
+- O_DSYNC: 每次`write`都是数据同步，数据被写入磁盘后返回
+- O_RSYNC: 与O_SYNC和O_DSYNC配合使用，将`write`的同步特性增加到`read`操作上
+
+
+# I/O缓存及flush总结
+
+![Alt text](/assets/images/io_summary.png)
