@@ -83,6 +83,10 @@
 
 <p>4.Data link layer accept IP datagram from IP layer and enclose the whole IP datagram in one <em>frame</em> and add <em>Frame Header</em> into it and switch it to destination interface.</p>
 
+<p>5.At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer</p>
+
+<p>6.At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer</p>
+
 <table>
   <thead>
     <tr>
@@ -95,10 +99,6 @@
     </tr>
   </tbody>
 </table>
-
-<p>5.At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer</p>
-
-<p>6.At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer</p>
 
 <p>7.TCP running in the reciever side accept the TCP segment and copies it in the kernel buffer, starting from the <strong>LastByteRcvd</strong> and send a <em>ack</em> to the sender. Note that at the reciever side, it does not need to worry there will be no space left to store the recieved segment, because in the <em>ack</em> to the sender, it will contain the size of the <code class="language-plaintext highlighter-rouge">rwnd</code>, and sender will assure that <code class="language-plaintext highlighter-rouge">LastByteSent - LastByteAcked &lt;= min{rwnd, cwnd}</code>. The flow control is done in sender side, not the reciever side.</p>
 
@@ -114,7 +114,14 @@
   <li>
     <p>Except for the TCP part, all the layers beneath are also applicable to UDP and any other protocols using IP</p>
   </li>
+  <li>
+    <p>The buffering at sender or the reciver side can also applicable to unix domain socket</p>
+  </li>
 </ol>
+
+<p>The whole picture:</p>
+
+<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>
 
   </div><a class="u-url" href="/2024/05/19/Life-of-a-TCP-segment.html" hidden></a>
 </article>

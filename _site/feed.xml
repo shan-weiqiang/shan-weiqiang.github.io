@@ -1,4 +1,121 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-19T14:09:18+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">Life of a TCP segment</title><link href="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html" rel="alternate" type="text/html" title="Life of a TCP segment" /><published>2024-05-19T10:22:46+08:00</published><updated>2024-05-19T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/Life-of%20-a-TCP-segment</id><content type="html" xml:base="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html"><![CDATA[<p>This article iterate the process from <code class="language-plaintext highlighter-rouge">write</code> to a TCP socket, to the <code class="language-plaintext highlighter-rouge">read</code> from a TCP socket.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-19T16:33:10+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
+
+<ul id="markdown-toc">
+  <li><a href="#io缓存原理图" id="markdown-toc-io缓存原理图">I/O缓存原理图</a></li>
+  <li><a href="#stdio缓存" id="markdown-toc-stdio缓存">stdio缓存</a>    <ul>
+      <li><a href="#设置缓存模式" id="markdown-toc-设置缓存模式">设置缓存模式</a></li>
+      <li><a href="#flush缓存" id="markdown-toc-flush缓存">flush缓存</a></li>
+    </ul>
+  </li>
+  <li><a href="#内核缓存" id="markdown-toc-内核缓存">内核缓存</a>    <ul>
+      <li><a href="#数据同步和文件同步" id="markdown-toc-数据同步和文件同步">数据同步和文件同步</a></li>
+      <li><a href="#o_synco_dsynco_rsync" id="markdown-toc-o_synco_dsynco_rsync">O_SYNC/O_DSYNC/O_RSYNC</a></li>
+    </ul>
+  </li>
+  <li><a href="#io缓存及flush总结" id="markdown-toc-io缓存及flush总结">I/O缓存及flush总结</a></li>
+  <li><a href="#file与fd" id="markdown-toc-file与fd">FILE与FD</a></li>
+</ul>
+
+<h1 id="io缓存原理图">I/O缓存原理图</h1>
+
+<p>Linux I/O缓存分从外设到kernel之间的I/O缓存，称为kernel缓存；以及<code class="language-plaintext highlighter-rouge">stdio</code> C库到kernel之间的I/O缓存，称为<code class="language-plaintext highlighter-rouge">stdio</code>缓存：</p>
+
+<p><img src="/assets/images/io_buffer.png" alt="Alt text" /></p>
+
+<h1 id="stdio缓存">stdio缓存</h1>
+
+<p>usr缓存即C系统库<code class="language-plaintext highlighter-rouge">stdio</code>的缓存，由于这个缓存的存在，会造成用户的期望和实际程序行为的不一致，所以理解这个缓存对写出符合期望的程序是很有用的。从原理图上就可以看出<code class="language-plaintext highlighter-rouge">stdio</code>的缓存最根本的影响就是：用户调用<code class="language-plaintext highlighter-rouge">stdio</code>做I/O，跟kernel实际接收到I/O请求是不同步的。这个落差就是用户以为做了I/O，但是kernel确还没收到请求。<code class="language-plaintext highlighter-rouge">stdio</code>会将用户的I/O数据首先copy到缓存区域，根据<code class="language-plaintext highlighter-rouge">stdio</code>的模式来进行与kernel的交互，即syscall。无论读写，<code class="language-plaintext highlighter-rouge">stdio</code>有三种缓存模式：</p>
+
+<ul>
+  <li>IONBF: 没有缓存，所有的<code class="language-plaintext highlighter-rouge">stdio</code>调用都直接调用<code class="language-plaintext highlighter-rouge">write/read</code> syscall，相当于透传；默认情况下<code class="language-plaintext highlighter-rouge">stderr</code>是这个模式</li>
+  <li>IOLBF: Line buffered, 行缓存，即每当读，或者写遇到<code class="language-plaintext highlighter-rouge">\n</code>换行符时，<code class="language-plaintext highlighter-rouge">stdio</code>函数才会调用<code class="language-plaintext highlighter-rouge">write/read</code>系统调用，每次读写一行。如果读写的文件描述符是一个pty设备，模式是此模式</li>
+  <li>IOFBF: Fully buffered，全缓存，即根据用户设置或者默认的缓存大小进行缓存，只有到缓存满时，<code class="language-plaintext highlighter-rouge">stdio</code>的函数才会调用<code class="language-plaintext highlighter-rouge">write/read</code>系统调用进行kernel的读写操作；一般磁盘文件读写模式这个模式</li>
+</ul>
+
+<h2 id="设置缓存模式">设置缓存模式</h2>
+
+<p><code class="language-plaintext highlighter-rouge">setvbuf</code>用于设置一个文件描述符的缓存模式：</p>
+
+<ul>
+  <li>每个文件描述符有自己的IO缓存模式</li>
+  <li><code class="language-plaintext highlighter-rouge">setvbuf</code>的设置会影响<code class="language-plaintext highlighter-rouge">stdio</code>中所有的函数对当前文件描述符的缓存模式</li>
+  <li>必须在当前文件描述符使用任何<code class="language-plaintext highlighter-rouge">stdio</code>函数前调用<code class="language-plaintext highlighter-rouge">setvbuf</code></li>
+</ul>
+
+<h2 id="flush缓存">flush缓存</h2>
+
+<p>根据一个流文件的打开方式，一个流可以是只读的；可以是只写的；也可以是可读可写的：</p>
+
+<ul>
+  <li>如果是只读的，则流文件需要一个<code class="language-plaintext highlighter-rouge">stdio</code>的read缓冲区</li>
+  <li>如果是只写的，则流文件需要一个<code class="language-plaintext highlighter-rouge">stdio</code>的write缓冲区</li>
+  <li>如果是可读可写的，C标准并没有定义是否需要为读和写分别分配缓冲区，还是使用同一个缓冲区；不过C标准规定了一些规则：
+    <ul>
+      <li>写操作后不能直接跟读操作，中间必须有<code class="language-plaintext highlighter-rouge">fflush</code>， <code class="language-plaintext highlighter-rouge">fseek</code>, <code class="language-plaintext highlighter-rouge">fsetpos</code>或者<code class="language-plaintext highlighter-rouge">rewind</code>，这些操作的特点是都会清空缓存区域</li>
+      <li>读操作后不能直接跟写操作，中间必须有<code class="language-plaintext highlighter-rouge">fseek</code>, <code class="language-plaintext highlighter-rouge">fsetpos</code>或者<code class="language-plaintext highlighter-rouge">rewind</code>，除非读操作读到的是EOL，此时表示文件是空的，所以是不需要读缓冲区的</li>
+      <li>以上两点规定间接的定义了读和写的缓冲区的设计，只要满足了以上的标准要求，系统实现时读和写可以使用同一个缓冲区，当然也可以实现不同的缓冲区</li>
+      <li>上面的规则是为了保证在应用层<code class="language-plaintext highlighter-rouge">stdio</code>读写操作的<strong>原子性</strong>，虽然在kernel中对一个文件的读写是原子的，但是<code class="language-plaintext highlighter-rouge">stdio</code>的读写不是原子的，如果要保证原子性，就必须在读和写之间有一个类似<strong>读写屏障</strong>的机制，即读和写在<code class="language-plaintext highlighter-rouge">stdio</code>层也是原子的</li>
+    </ul>
+  </li>
+</ul>
+
+<p>需要强调的是，一个流只有在使用了<code class="language-plaintext highlighter-rouge">stdio</code>时，编译器才会分配相关的缓冲区。</p>
+
+<p><code class="language-plaintext highlighter-rouge">fflush</code>用于主动刷新缓存区：</p>
+
+<ul>
+  <li>如果不传入任何文件描述符，这个函数刷新所有<code class="language-plaintext highlighter-rouge">stdio</code>的缓冲区
+    <ul>
+      <li>每个流都有自己的<code class="language-plaintext highlighter-rouge">stdio</code>函数缓冲区，缓冲区是跟流挂钩的</li>
+    </ul>
+  </li>
+  <li>如果流是只读的，<code class="language-plaintext highlighter-rouge">fflush</code>的作用是清空缓冲区</li>
+  <li>如果流被关闭，<code class="language-plaintext highlighter-rouge">fflush</code>会自动被调用
+    <ul>
+      <li>这里说明如果流是可读可写的，且实现采用了单一缓存，<code class="language-plaintext highlighter-rouge">stdio</code>肯定要知道当前缓存中存储的是读还是写的缓存，不然流关闭时无法决定相应的操作</li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="内核缓存">内核缓存</h1>
+
+<p>内核缓存存在于内核地址空间的buffer与外部存储例如磁盘之间。</p>
+
+<h2 id="数据同步和文件同步">数据同步和文件同步</h2>
+
+<p>synchronized I/O data integrity completion，表示一次内核缓存与外部存储之间的同步操作。这里的data包含的数据可分为两部分：文件本身的数据以及<code class="language-plaintext highlighter-rouge">metadata</code>，<code class="language-plaintext highlighter-rouge">metadata</code>主要包含文件的作者、大小、修改时间等等。数据同步包含的意思是：</p>
+
+<ul>
+  <li>对于读操作：数据从磁盘读取到内核缓存，在读之前如果有尚未完成的写磁盘的操作，则先将写磁盘完成后，再进行读操作</li>
+  <li>对于写操作：文件数据以及<strong>与读文件相关</strong>的<code class="language-plaintext highlighter-rouge">metadata</code>数据成功从内核缓存写入磁盘</li>
+</ul>
+
+<p>文件同步是数据同步的区别在于，文件同步在写操作时要将所有的<code class="language-plaintext highlighter-rouge">metadata</code>写入到磁盘，才算是完成，比数据同步要求更为苛刻：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">fsync(int fd)</code>系统调用可以完成文件的文件同步，将文件写到磁盘后返回</li>
+  <li><code class="language-plaintext highlighter-rouge">fdatasync(int fd)</code>系统调用可以完成文件的数据同步，将文件写入磁盘后返回</li>
+</ul>
+
+<p>` sync(void);`系统调用会将内核缓存中的所有文件的数据写入磁盘。</p>
+
+<h2 id="o_synco_dsynco_rsync">O_SYNC/O_DSYNC/O_RSYNC</h2>
+
+<p>在使用<code class="language-plaintext highlighter-rouge">open</code>系统调用打开文件描述符时，可以通过flag设置内核缓存到磁盘的同步方式：</p>
+
+<ul>
+  <li>O_SYNC: 每次<code class="language-plaintext highlighter-rouge">write</code>都是文件同步，数据被写入磁盘后才返回</li>
+  <li>O_DSYNC: 每次<code class="language-plaintext highlighter-rouge">write</code>都是数据同步，数据被写入磁盘后返回</li>
+  <li>O_RSYNC: 与O_SYNC和O_DSYNC配合使用，将<code class="language-plaintext highlighter-rouge">write</code>的同步特性增加到<code class="language-plaintext highlighter-rouge">read</code>操作上</li>
+</ul>
+
+<h1 id="io缓存及flush总结">I/O缓存及flush总结</h1>
+
+<p><img src="/assets/images/io_summary.png" alt="Alt text" /></p>
+
+<h1 id="file与fd">FILE与FD</h1>
+
+<p><code class="language-plaintext highlighter-rouge">stdio</code>所有的操作都是针对一个<code class="language-plaintext highlighter-rouge">FILE</code>结构体，它封装了一个文件描述符以及<code class="language-plaintext highlighter-rouge">stdio</code>会用到的buffer的指针等。<code class="language-plaintext highlighter-rouge">int fileno(FILE *stream);</code>和<code class="language-plaintext highlighter-rouge">FILE *fdopen(int fd, const char *mode);</code>可以用于二者之间的转换，转换后可以使用<code class="language-plaintext highlighter-rouge">stdio</code>和<code class="language-plaintext highlighter-rouge">read/write</code>系统调用同时对文件描述符进行操作。socket和pipe创建的时候返回的是文件描述符，如果想使用<code class="language-plaintext highlighter-rouge">stdio</code>，则可以使用<code class="language-plaintext highlighter-rouge">fdopen</code>进行转换。更多详见：<a href="https://www.gnu.org/software/libc/manual/html_node/Streams-and-File-Descriptors.html">11.1.1 Streams and File Descriptors</a></p>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[本篇文章是The Linux Programming Interface(published in October 2010, No Starch Press, ISBN 978-1-59327-220-3)这本书第13章：File I/O Buffering的阅读总结及翻译。]]></summary></entry><entry><title type="html">Life of a TCP segment</title><link href="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html" rel="alternate" type="text/html" title="Life of a TCP segment" /><published>2024-05-19T10:22:46+08:00</published><updated>2024-05-19T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/Life-of%20-a-TCP-segment</id><content type="html" xml:base="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html"><![CDATA[<p>This article iterate the process from <code class="language-plaintext highlighter-rouge">write</code> to a TCP socket, to the <code class="language-plaintext highlighter-rouge">read</code> from a TCP socket.</p>
 
 <table>
   <thead>
@@ -34,6 +151,10 @@
 
 <p>4.Data link layer accept IP datagram from IP layer and enclose the whole IP datagram in one <em>frame</em> and add <em>Frame Header</em> into it and switch it to destination interface.</p>
 
+<p>5.At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer</p>
+
+<p>6.At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer</p>
+
 <table>
   <thead>
     <tr>
@@ -46,10 +167,6 @@
     </tr>
   </tbody>
 </table>
-
-<p>5.At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer</p>
-
-<p>6.At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer</p>
 
 <p>7.TCP running in the reciever side accept the TCP segment and copies it in the kernel buffer, starting from the <strong>LastByteRcvd</strong> and send a <em>ack</em> to the sender. Note that at the reciever side, it does not need to worry there will be no space left to store the recieved segment, because in the <em>ack</em> to the sender, it will contain the size of the <code class="language-plaintext highlighter-rouge">rwnd</code>, and sender will assure that <code class="language-plaintext highlighter-rouge">LastByteSent - LastByteAcked &lt;= min{rwnd, cwnd}</code>. The flow control is done in sender side, not the reciever side.</p>
 
@@ -65,7 +182,14 @@
   <li>
     <p>Except for the TCP part, all the layers beneath are also applicable to UDP and any other protocols using IP</p>
   </li>
-</ol>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[This article iterate the process from write to a TCP socket, to the read from a TCP socket.]]></summary></entry><entry><title type="html">ara::com API 解读[Part 2]</title><link href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 2]" /><published>2024-05-12T13:22:46+08:00</published><updated>2024-05-12T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/12/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-2</id><content type="html" xml:base="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a>解读的第二部分。</p>
+  <li>
+    <p>The buffering at sender or the reciver side can also applicable to unix domain socket</p>
+  </li>
+</ol>
+
+<p>The whole picture:</p>
+
+<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[This article iterate the process from write to a TCP socket, to the read from a TCP socket.]]></summary></entry><entry><title type="html">ara::com API 解读[Part 2]</title><link href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 2]" /><published>2024-05-12T13:22:46+08:00</published><updated>2024-05-12T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/12/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-2</id><content type="html" xml:base="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a>解读的第二部分。</p>
 
 <hr />
 <p><strong>WARNING</strong></p>
@@ -2346,316 +2470,4 @@ A destructor
   <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
 <span class="p">}</span>
 
-</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /></entry><entry><title type="html">Docker CLI原理</title><link href="http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html" rel="alternate" type="text/html" title="Docker CLI原理" /><published>2024-03-20T19:22:46+08:00</published><updated>2024-03-20T19:22:46+08:00</updated><id>http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86</id><content type="html" xml:base="http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html"><![CDATA[<ul id="markdown-toc">
-  <li><a href="#参考文章" id="markdown-toc-参考文章">参考文章</a></li>
-  <li><a href="#操作系统支持" id="markdown-toc-操作系统支持">操作系统支持</a>    <ul>
-      <li><a href="#dup2修改文件描述符" id="markdown-toc-dup2修改文件描述符">dup2修改文件描述符</a></li>
-      <li><a href="#tty虚拟终端" id="markdown-toc-tty虚拟终端">tty虚拟终端</a></li>
-      <li><a href="#pipe管道ipc通信" id="markdown-toc-pipe管道ipc通信">pipe管道IPC通信</a></li>
-    </ul>
-  </li>
-  <li><a href="#docker-cli工作原理" id="markdown-toc-docker-cli工作原理">Docker CLI工作原理</a></li>
-</ul>
-
-<h1 id="参考文章">参考文章</h1>
-
-<ol>
-  <li>
-    <p><a href="https://www.linusakesson.net/programming/tty/">The TTY demystified</a></p>
-
-    <p>这篇文章对tty的解释非常到位，可以说是最有价值的关于tty的文章</p>
-  </li>
-  <li>
-    <p><a href="https://www.rkoucha.fr/tech_corner/pty_pdip.html">Using pseudo-terminals (pty) to control interactive programs</a></p>
-
-    <p>这篇主要提供了tty的编程代码</p>
-  </li>
-  <li>
-    <p><a href="https://man7.org/linux/man-pages/man2/dup.2.html">dup(2) — Linux manual page</a></p>
-
-    <p>修改文件描述符</p>
-  </li>
-  <li>
-    <p><a href="https://man7.org/linux/man-pages/man2/pipe.2.html">pipe(2) — Linux manual page</a></p>
-
-    <p>pipe管道IPC通信</p>
-  </li>
-</ol>
-
-<h1 id="操作系统支持">操作系统支持</h1>
-
-<p>如果想理解Docker CLI与Docker Daemon的交互，必须了解底层操作系统的支持</p>
-
-<h2 id="dup2修改文件描述符">dup2修改文件描述符</h2>
-
-<p>Linux操作系统下可以使用dup复制文件描述符，可以使用dup2来修改文件描述符的指向：</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;chrono&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;fstream&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;ostream&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;string&gt;</span><span class="cp">
-</span>
-<span class="cp">#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;string.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;thread&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-</span>
-<span class="cp">#define MAX_BUFFER_SIZE 1024
-</span>
-<span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="nf">readLineFromFd</span><span class="p">(</span><span class="kt">int</span> <span class="n">fd</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">char</span> <span class="n">buff</span><span class="p">[</span><span class="n">MAX_BUFFER_SIZE</span> <span class="o">-</span> <span class="mi">1</span><span class="p">];</span>
-  <span class="n">memset</span><span class="p">(</span><span class="n">buff</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">MAX_BUFFER_SIZE</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
-  <span class="kt">char</span> <span class="n">c</span><span class="p">;</span>
-  <span class="kt">int</span> <span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
-  <span class="k">while</span> <span class="p">(</span><span class="n">read</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">c</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="n">cnt</span> <span class="o">!=</span> <span class="n">MAX_BUFFER_SIZE</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">c</span> <span class="o">==</span> <span class="sc">'\n'</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>
-    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-      <span class="n">buff</span><span class="p">[</span><span class="n">cnt</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="p">;</span>
-      <span class="o">++</span><span class="n">cnt</span><span class="p">;</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-  <span class="c1">// EOF</span>
-  <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">(</span><span class="n">buff</span><span class="p">);</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-  <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
-
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Enter a command or filename:"</span><span class="p">;</span>
-    <span class="n">fflush</span><span class="p">(</span><span class="n">stdout</span><span class="p">);</span>
-    <span class="c1">/// std::cout when connect to tty is line buffered; otherwise is full</span>
-    <span class="c1">/// buffered std::cin and std::cerr will flush std::cout automatically</span>
-    <span class="c1">/// getline will read until '/n', '/n' will be extracted, but not stored</span>
-    <span class="k">auto</span> <span class="n">line</span> <span class="o">=</span> <span class="n">readLineFromFd</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">line</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
-    <span class="p">}</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"You entered: "</span> <span class="o">&lt;&lt;</span> <span class="n">line</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-
-    <span class="c1">// If input is *.input, open the file and print every line</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">line</span><span class="p">.</span><span class="n">find</span><span class="p">(</span><span class="s">".input"</span><span class="p">)</span> <span class="o">!=</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">::</span><span class="n">npos</span><span class="p">)</span> <span class="p">{</span>
-      <span class="k">auto</span> <span class="n">file</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="n">line</span><span class="p">.</span><span class="n">c_str</span><span class="p">(),</span> <span class="n">O_RDONLY</span><span class="p">);</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">file</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Error opening file"</span>
-                  <span class="o">&lt;&lt;</span> <span class="s">" Error code:"</span> <span class="o">&lt;&lt;</span> <span class="n">file</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-        <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-      <span class="p">}</span>
-
-      <span class="c1">// Redirect stdin to the file</span>
-      <span class="kt">int</span> <span class="n">original_stdin</span> <span class="o">=</span> <span class="n">dup</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span>
-      <span class="n">dup2</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">STDIN_FILENO</span><span class="p">);</span>
-      <span class="n">close</span><span class="p">(</span><span class="n">file</span><span class="p">);</span>
-
-      <span class="c1">// Print every line</span>
-      <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">line</span> <span class="o">=</span> <span class="n">readLineFromFd</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span>
-      <span class="k">while</span> <span class="p">(</span><span class="nb">true</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">seconds</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">line</span> <span class="o">==</span> <span class="s">"ChangeStdinToTerminal"</span><span class="p">)</span> <span class="p">{</span>
-          <span class="c1">// Switch stdin back to terminal</span>
-          <span class="k">if</span> <span class="p">(</span><span class="n">dup2</span><span class="p">(</span><span class="n">original_stdin</span><span class="p">,</span> <span class="n">STDIN_FILENO</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-            <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
-          <span class="p">};</span>
-          <span class="n">close</span><span class="p">(</span><span class="n">original_stdin</span><span class="p">);</span>
-          <span class="k">break</span><span class="p">;</span>
-        <span class="p">}</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">line</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-        <span class="n">line</span> <span class="o">=</span> <span class="n">readLineFromFd</span><span class="p">(</span><span class="n">STDIN_FILENO</span><span class="p">);</span>
-      <span class="p">}</span>
-    <span class="p">}</span>
-  <span class="p">}</span>
-
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<h2 id="tty虚拟终端">tty虚拟终端</h2>
-
-<p>操作系统内核提供的虚拟终端支持，以下代码来zhttp://www.rkoucha.fr/tech_corner/pty_pdip.html：</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">/// demo from :http://www.rkoucha.fr/tech_corner/pty_pdip.html</span>
-<span class="cp">#define _XOPEN_SOURCE 600
-#include</span> <span class="cpf">&lt;errno.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;fcntl.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-#define __USE_BSD
-#include</span> <span class="cpf">&lt;termios.h&gt;</span><span class="cp">
-</span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">fdm</span><span class="p">,</span> <span class="n">fds</span><span class="p">,</span> <span class="n">rc</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">input</span><span class="p">[</span><span class="mi">150</span><span class="p">];</span>
-
-  <span class="n">fdm</span> <span class="o">=</span> <span class="n">posix_openpt</span><span class="p">(</span><span class="n">O_RDWR</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">fdm</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Error %d on posix_openpt()</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
-    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="n">rc</span> <span class="o">=</span> <span class="n">grantpt</span><span class="p">(</span><span class="n">fdm</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Error %d on grantpt()</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
-    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="n">rc</span> <span class="o">=</span> <span class="n">unlockpt</span><span class="p">(</span><span class="n">fdm</span><span class="p">);</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"Error %d on unlockpt()</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">errno</span><span class="p">);</span>
-    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
-  <span class="p">}</span>
-
-  <span class="c1">// Open the slave PTY</span>
-  <span class="n">fds</span> <span class="o">=</span> <span class="n">open</span><span class="p">(</span><span class="n">ptsname</span><span class="p">(</span><span class="n">fdm</span><span class="p">),</span> <span class="n">O_RDWR</span><span class="p">);</span>
-
-  <span class="c1">// Creation of a child process</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">fork</span><span class="p">())</span> <span class="p">{</span>
-    <span class="c1">// Father</span>
-
-    <span class="c1">// Close the slave side of the PTY</span>
-    <span class="n">close</span><span class="p">(</span><span class="n">fds</span><span class="p">);</span>
-    <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-      <span class="c1">// Operator's entry (standard input = terminal)</span>
-      <span class="n">write</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s">"Input : "</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="s">"Input : "</span><span class="p">));</span>
-      <span class="n">rc</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">input</span><span class="p">));</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// Send the input to the child process through the PTY</span>
-        <span class="n">write</span><span class="p">(</span><span class="n">fdm</span><span class="p">,</span> <span class="n">input</span><span class="p">,</span> <span class="n">rc</span><span class="p">);</span>
-
-        <span class="c1">// Get the child's answer through the PTY</span>
-        <span class="n">rc</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fdm</span><span class="p">,</span> <span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">input</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-          <span class="c1">// Make the answer NUL terminated to display it as a string</span>
-          <span class="n">input</span><span class="p">[</span><span class="n">rc</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
-
-          <span class="n">fprintf</span><span class="p">(</span><span class="n">stderr</span><span class="p">,</span> <span class="s">"%s"</span><span class="p">,</span> <span class="n">input</span><span class="p">);</span>
-        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-          <span class="k">break</span><span class="p">;</span>
-        <span class="p">}</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="k">break</span><span class="p">;</span>
-      <span class="p">}</span>
-    <span class="p">}</span> <span class="c1">// End while</span>
-  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-    <span class="k">struct</span> <span class="nc">termios</span> <span class="n">slave_orig_term_settings</span><span class="p">;</span> <span class="c1">// Saved terminal settings</span>
-    <span class="k">struct</span> <span class="nc">termios</span> <span class="n">new_term_settings</span><span class="p">;</span>        <span class="c1">// Current terminal settings</span>
-
-    <span class="c1">// Child</span>
-
-    <span class="c1">// Close the master side of the PTY</span>
-    <span class="n">close</span><span class="p">(</span><span class="n">fdm</span><span class="p">);</span>
-
-    <span class="c1">// Save the default parameters of the slave side of the PTY</span>
-    <span class="n">rc</span> <span class="o">=</span> <span class="n">tcgetattr</span><span class="p">(</span><span class="n">fds</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">slave_orig_term_settings</span><span class="p">);</span>
-
-    <span class="c1">// Set raw mode on the slave side of the PTY</span>
-    <span class="n">new_term_settings</span> <span class="o">=</span> <span class="n">slave_orig_term_settings</span><span class="p">;</span>
-    <span class="n">cfmakeraw</span><span class="p">(</span><span class="o">&amp;</span><span class="n">new_term_settings</span><span class="p">);</span>
-    <span class="n">tcsetattr</span><span class="p">(</span><span class="n">fds</span><span class="p">,</span> <span class="n">TCSANOW</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">new_term_settings</span><span class="p">);</span>
-
-    <span class="c1">// The slave side of the PTY becomes the standard input and outputs of the</span>
-    <span class="c1">// child process</span>
-    <span class="n">close</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="c1">// Close standard input (current terminal)</span>
-    <span class="n">close</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="c1">// Close standard output (current terminal)</span>
-    <span class="n">close</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span> <span class="c1">// Close standard error (current terminal)</span>
-
-    <span class="n">dup</span><span class="p">(</span><span class="n">fds</span><span class="p">);</span> <span class="c1">// PTY becomes standard input (0)</span>
-    <span class="n">dup</span><span class="p">(</span><span class="n">fds</span><span class="p">);</span> <span class="c1">// PTY becomes standard output (1)</span>
-    <span class="n">dup</span><span class="p">(</span><span class="n">fds</span><span class="p">);</span> <span class="c1">// PTY becomes standard error (2)</span>
-
-    <span class="k">while</span> <span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-      <span class="n">rc</span> <span class="o">=</span> <span class="n">read</span><span class="p">(</span><span class="n">fds</span><span class="p">,</span> <span class="n">input</span><span class="p">,</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">input</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">);</span>
-
-      <span class="k">if</span> <span class="p">(</span><span class="n">rc</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-        <span class="c1">// Replace the terminating \n by a NUL to display it as a string</span>
-        <span class="n">input</span><span class="p">[</span><span class="n">rc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="sc">'\0'</span><span class="p">;</span>
-
-        <span class="n">printf</span><span class="p">(</span><span class="s">"Child received : '%s'</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">input</span><span class="p">);</span>
-      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
-        <span class="k">break</span><span class="p">;</span>
-      <span class="p">}</span>
-    <span class="p">}</span> <span class="c1">// End while</span>
-  <span class="p">}</span>
-
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span> <span class="c1">// main</span>
-</code></pre></div></div>
-
-<h2 id="pipe管道ipc通信">pipe管道IPC通信</h2>
-
-<p>Linux操作系统支持使用管道的IPC通信：</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;sys/types.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;sys/wait.h&gt;</span><span class="cp">
-</span>
-<span class="cp">#define BUFFER_SIZE 25
-</span>
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-  <span class="kt">int</span> <span class="n">pipefd</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
-  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
-  <span class="kt">char</span> <span class="n">buffer</span><span class="p">[</span><span class="n">BUFFER_SIZE</span><span class="p">];</span>
-
-  <span class="c1">// Create pipe</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">pipe</span><span class="p">(</span><span class="n">pipefd</span><span class="p">)</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">perror</span><span class="p">(</span><span class="s">"pipe"</span><span class="p">);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="c1">// Fork a child process</span>
-  <span class="n">pid</span> <span class="o">=</span> <span class="n">fork</span><span class="p">();</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">pid</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">perror</span><span class="p">(</span><span class="s">"fork"</span><span class="p">);</span>
-    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="k">if</span> <span class="p">(</span><span class="n">pid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>     <span class="c1">// Child process</span>
-    <span class="n">close</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span> <span class="c1">// Close the write end of the pipe</span>
-
-    <span class="c1">// Read from the pipe</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"Child process reading from the pipe...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">read</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">BUFFER_SIZE</span><span class="p">);</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"Child process received: %s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">buffer</span><span class="p">);</span>
-
-    <span class="n">close</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> <span class="c1">// Close the read end of the pipe</span>
-    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
-  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>            <span class="c1">// Parent process</span>
-    <span class="n">close</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span> <span class="c1">// Close the read end of the pipe</span>
-
-    <span class="c1">// Write to the pipe</span>
-    <span class="n">printf</span><span class="p">(</span><span class="s">"Parent process writing to the pipe...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
-    <span class="n">write</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">"Hello from parent!"</span><span class="p">,</span> <span class="mi">18</span><span class="p">);</span>
-
-    <span class="n">close</span><span class="p">(</span><span class="n">pipefd</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span> <span class="c1">// Close the write end of the pipe</span>
-    <span class="n">wait</span><span class="p">(</span><span class="nb">NULL</span><span class="p">);</span>       <span class="c1">// Wait for the child process to finish</span>
-    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_SUCCESS</span><span class="p">);</span>
-  <span class="p">}</span>
-
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<h1 id="docker-cli工作原理">Docker CLI工作原理</h1>
-
-<p>在了解了底层操作系统的支持后，下面是我整理画出的Docker CLI与容器的交互过程（不保证正确）：</p>
-
-<p><img src="/assets/images/docker_cli.drawio.png" alt="docker_cli.drawio.png" /></p>
-
-<p>说明如下：</p>
-
-<ol>
-  <li>当运行Docker CLI程序，例如<code class="language-plaintext highlighter-rouge">docker run</code>， <code class="language-plaintext highlighter-rouge">docker attach</code>等，这些程序会跟Docker Daemon通信；Docker CLI与Docker Daemon是客户/服务的工作模式</li>
-  <li>Docker CLI与Docker Daemon的通信可以使用本机的unix domain socket，也可以是远程的网络连接，比如TCP等</li>
-  <li>真正的容器操作，例如创建运行容器、attach容器、关闭容器等操作都是由Docker Daemon完成的，所以Docker Daemon是整个Docker系统的核心组件</li>
-  <li>当使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-d</code>选项运行一个镜像时，Docker CLI与Docker Daemon之间的连接被关闭，Docker CLI程序执行完毕，但是运行的容器跟这个选项没有任何关系，用户随时可以使用<code class="language-plaintext highlighter-rouge">docker attach</code>命令来重新与Docker Daemon建立连接</li>
-  <li>Docker Daemon与创建的容器进程（运行在与Host独立的namespace中）之间的通信可以是<code class="language-plaintext highlighter-rouge">pipe</code>，也可以是<code class="language-plaintext highlighter-rouge">tty</code>。Docker Daemon通过这些通信手段来控制容器进程的标准输入</li>
-  <li>当使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-t</code>，选项时，会为容器进程分配一个<code class="language-plaintext highlighter-rouge">tty</code>，注意这个<code class="language-plaintext highlighter-rouge">tty</code>是Host内核中的<code class="language-plaintext highlighter-rouge">tty</code>，但是工作在容器进程这个独立与Host 的namespace中</li>
-  <li>如果不使用<code class="language-plaintext highlighter-rouge">-t</code>，则会直接使用<code class="language-plaintext highlighter-rouge">pipe</code>与容器进程通信</li>
-  <li>如果使用<code class="language-plaintext highlighter-rouge">docker run</code> <code class="language-plaintext highlighter-rouge">-i</code>，则是告诉Docker Daemon保持容器进程的标准输入为打开状态，即不关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端</li>
-  <li>如果不使用<code class="language-plaintext highlighter-rouge">-i</code>，则Docker Daemon会关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端，如此容器进程的程序会在标准输入读到<code class="language-plaintext highlighter-rouge">EOF</code></li>
-</ol>]]></content><author><name></name></author><category term="system_programming" /></entry></feed>
+</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /></entry></feed>
