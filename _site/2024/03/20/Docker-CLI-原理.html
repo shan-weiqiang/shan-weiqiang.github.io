@@ -3,19 +3,19 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>Docker与系统编程 | Shan Weiqiang’s blog</title>
+<title>Docker CLI原理 | Shan Weiqiang’s blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="Docker与系统编程" />
+<meta property="og:title" content="Docker CLI原理" />
 <meta property="og:locale" content="en_US" />
-<link rel="canonical" href="http://localhost:4000/2024/03/20/Docker%E4%B8%8E%E7%B3%BB%E7%BB%9F%E7%BC%96%E7%A8%8B.html" />
-<meta property="og:url" content="http://localhost:4000/2024/03/20/Docker%E4%B8%8E%E7%B3%BB%E7%BB%9F%E7%BC%96%E7%A8%8B.html" />
+<link rel="canonical" href="http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html" />
+<meta property="og:url" content="http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html" />
 <meta property="og:site_name" content="Shan Weiqiang’s blog" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-03-20T19:22:46+08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="Docker与系统编程" />
+<meta property="twitter:title" content="Docker CLI原理" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-03-20T19:22:46+08:00","datePublished":"2024-03-20T19:22:46+08:00","headline":"Docker与系统编程","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/03/20/Docker%E4%B8%8E%E7%B3%BB%E7%BB%9F%E7%BC%96%E7%A8%8B.html"},"url":"http://localhost:4000/2024/03/20/Docker%E4%B8%8E%E7%B3%BB%E7%BB%9F%E7%BC%96%E7%A8%8B.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-03-20T19:22:46+08:00","datePublished":"2024-03-20T19:22:46+08:00","headline":"Docker CLI原理","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html"},"url":"http://localhost:4000/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -38,7 +38,7 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">Docker与系统编程</h1>
+    <h1 class="post-title p-name" itemprop="name headline">Docker CLI原理</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2024-03-20T19:22:46+08:00" itemprop="datePublished">Mar 20, 2024
       </time></p>
@@ -60,22 +60,22 @@
 
 <ol>
   <li>
-    <p><a href="https://www.linusakesson.net/programming/tty/">https://www.linusakesson.net/programming/tty/</a></p>
+    <p><a href="https://www.linusakesson.net/programming/tty/">The TTY demystified</a></p>
 
     <p>这篇文章对tty的解释非常到位，可以说是最有价值的关于tty的文章</p>
   </li>
   <li>
-    <p><a href="https://www.rkoucha.fr/tech_corner/pty_pdip.html">https://www.rkoucha.fr/tech_corner/pty_pdip.html</a></p>
+    <p><a href="https://www.rkoucha.fr/tech_corner/pty_pdip.html">Using pseudo-terminals (pty) to control interactive programs</a></p>
 
     <p>这篇主要提供了tty的编程代码</p>
   </li>
   <li>
-    <p><a href="https://man7.org/linux/man-pages/man2/dup.2.html">https://man7.org/linux/man-pages/man2/dup.2.html</a></p>
+    <p><a href="https://man7.org/linux/man-pages/man2/dup.2.html">dup(2) — Linux manual page</a></p>
 
     <p>修改文件描述符</p>
   </li>
   <li>
-    <p><a href="https://man7.org/linux/man-pages/man2/pipe.2.html">https://man7.org/linux/man-pages/man2/pipe.2.html</a></p>
+    <p><a href="https://man7.org/linux/man-pages/man2/pipe.2.html">pipe(2) — Linux manual page</a></p>
 
     <p>pipe管道IPC通信</p>
   </li>
@@ -359,7 +359,7 @@
   <li>如果不使用<code class="language-plaintext highlighter-rouge">-i</code>，则Docker Daemon会关闭<code class="language-plaintext highlighter-rouge">tty</code>或者<code class="language-plaintext highlighter-rouge">pipe</code>的写入端，如此容器进程的程序会在标准输入读到<code class="language-plaintext highlighter-rouge">EOF</code></li>
 </ol>
 
-  </div><a class="u-url" href="/2024/03/20/Docker%E4%B8%8E%E7%B3%BB%E7%BB%9F%E7%BC%96%E7%A8%8B.html" hidden></a>
+  </div><a class="u-url" href="/2024/03/20/Docker-CLI-%E5%8E%9F%E7%90%86.html" hidden></a>
 </article>
 
       </div>
