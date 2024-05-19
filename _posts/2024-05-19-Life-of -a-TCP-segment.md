@@ -26,13 +26,14 @@ This article iterate the process from `write` to a TCP socket, to the `read` fro
 
   4.Data link layer accept IP datagram from IP layer and enclose the whole IP datagram in one *frame* and add *Frame Header* into it and switch it to destination interface. 
 
-| ![Alt text](/assets/images/tcp_buffering_recv.png) | 
-|:--:| 
-| *TCP kernel buffering at the reciever* |
 
   5.At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer
 
   6.At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer
+
+| ![Alt text](/assets/images/tcp_buffering_recv.png) | 
+|:--:| 
+| *TCP kernel buffering at the reciever* |
 
   7.TCP running in the reciever side accept the TCP segment and copies it in the kernel buffer, starting from the **LastByteRcvd** and send a *ack* to the sender. Note that at the reciever side, it does not need to worry there will be no space left to store the recieved segment, because in the *ack* to the sender, it will contain the size of the `rwnd`, and sender will assure that `LastByteSent - LastByteAcked <= min{rwnd, cwnd}`. The flow control is done in sender side, not the reciever side.
 
@@ -43,3 +44,9 @@ In above steps, there are some notes to take:
 2. IP layer support segmentation because it will not know before hand which data link layer it will pass through, such as Ethernet, Wifi. It might happen that the IP datagram is bigger than the MTU. However, in new IP standards and IPv6, support for segmentation is removed.
 
 3. Except for the TCP part, all the layers beneath are also applicable to UDP and any other protocols using IP
+
+4. The buffering at sender or the reciver side can also applicable to unix domain socket
+
+The whole picture:
+
+![Alt text](/assets/images/tcp_segmentation.png)
