@@ -1,30 +1,57 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-19T11:39:31+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">Life of a TCP segment</title><link href="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html" rel="alternate" type="text/html" title="Life of a TCP segment" /><published>2024-05-19T10:22:46+08:00</published><updated>2024-05-19T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/Life-of%20-a-TCP-segment</id><content type="html" xml:base="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html"><![CDATA[<p>This article iterate the process from <code class="language-plaintext highlighter-rouge">write</code> to a TCP socket, to the <code class="language-plaintext highlighter-rouge">read</code> from a TCP socket.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-19T14:09:18+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">Life of a TCP segment</title><link href="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html" rel="alternate" type="text/html" title="Life of a TCP segment" /><published>2024-05-19T10:22:46+08:00</published><updated>2024-05-19T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/Life-of%20-a-TCP-segment</id><content type="html" xml:base="http://localhost:4000/2024/05/19/Life-of-a-TCP-segment.html"><![CDATA[<p>This article iterate the process from <code class="language-plaintext highlighter-rouge">write</code> to a TCP socket, to the <code class="language-plaintext highlighter-rouge">read</code> from a TCP socket.</p>
 
-<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"><img src="/assets/images/tcp__buffering_sender.png" alt="Alt text" /></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><em>TCP kernel buffering, sender side</em></td>
+    </tr>
+  </tbody>
+</table>
 
-<ol>
-  <li>
-    <p>Application process calls <code class="language-plaintext highlighter-rouge">write</code> to write bytes into TCP socket, kernel check whether there is available buffer space, <strong>Acked(ready for writing from application)</strong> in the diagram, to store those bytes. If yes, kernel copies all the bytes into this area, starting from <strong>AppDataWrtPtr</strong>. If now enough space, kernel use all of the <strong>Acked(ready for writing from application)</strong> space. In both scenario, <code class="language-plaintext highlighter-rouge">write</code> return the number of bytes copied.</p>
-  </li>
-  <li>
-    <p>TCP running in kernel checks <code class="language-plaintext highlighter-rouge">LastByteSent - LastByteAcked</code>, and compares it with <code class="language-plaintext highlighter-rouge">min{rwnd, cwnd}</code>, in which <code class="language-plaintext highlighter-rouge">rwnd</code> stands for <em>Reciving Window</em> in the reciever side and <code class="language-plaintext highlighter-rouge">cwnd</code> stands for <em>Conjestion Window</em> in sender side. If it is smaller than <code class="language-plaintext highlighter-rouge">min{rwnd, cwnd}</code>, kernel consume a block of bytes, starting from <strong>LastByteSent</strong> onwards in the <strong>WaitToBeSent</strong> area, and make it a <em>TCP segment</em>. The length of the segment is decided by the MTU size in data link layer, which starnds for <em>maximum transmission unit</em>. The sum of segment and  TCP header, anbd IP header should fit into a MTU, which leads to a <em>maximum segment size</em>(MSS) that equals: <code class="language-plaintext highlighter-rouge">MTU - TCP header size - IP header size</code>. This is normally <code class="language-plaintext highlighter-rouge">1500 - 20 - 20 = 1460</code> bytes. In this diagram, the numbered <code class="language-plaintext highlighter-rouge">N, N+1, N+2....</code> stands for an individual segment.</p>
-  </li>
-  <li>
-    <p>TCP running in kernel add <em>TCP header</em> in the segment and make it a <em>IP datagram</em> payload. Since the IP datagram will be routed across various endpoints, routers, it is possible that the IP datagram plus the IP header is bigger than the MTU in the data link layer. In this case, the IP datagram needs to be segmented. IP running in the kernel divides the IP datagram into seperate fragmentations, each of which is a smaller IP datagram(with a unique sequence unmber). This is the only layer that will do segmentation in the TCP/IP protocol stack.</p>
-  </li>
-  <li>
-    <p>Data link layer accept IP datagram from IP layer and enclose the whole IP datagram in one <em>frame</em> and add <em>Frame Header</em> into it and switch it to destination interface.</p>
-  </li>
-  <li>
-    <p>At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer</p>
-  </li>
-  <li>
-    <p>At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer</p>
-  </li>
-  <li>
-    <p>TCP running in the reciever side accept the TCP segment and copies it in the kernel buffer, starting from the <strong>LastByteRcvd</strong> and send a <em>ack</em> to the sender. Note that at the reciever side, it does not need to worry there will be no space left to store the recieved segment, because in the <em>ack</em> to the sender, it will contain the size of the <code class="language-plaintext highlighter-rouge">rwnd</code>, and sender will assure that <code class="language-plaintext highlighter-rouge">LastByteSent - LastByteAcked &lt;= min{rwnd, cwnd}</code>. The flow control is done in sender side, not the reciever side.</p>
-  </li>
-</ol>
+<p>1.Application process calls <code class="language-plaintext highlighter-rouge">write</code> to write bytes into TCP socket, kernel check whether there is available buffer space, <strong>Acked(ready for writing from application)</strong> in the diagram, to store those bytes. If yes, kernel copies all the bytes into this area, starting from <strong>AppDataWrtPtr</strong>. If not enough space, kernel use all of the <strong>Acked(ready for writing from application)</strong> space. In both scenario, <code class="language-plaintext highlighter-rouge">write</code> return the number of bytes copied.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"><img src="/assets/images/tcp_protocol_stack.png" alt="Alt text" /></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><em>Starting a journey of protocol stack</em></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>2.TCP running in kernel checks <code class="language-plaintext highlighter-rouge">LastByteSent - LastByteAcked</code>, and compares it with <code class="language-plaintext highlighter-rouge">min{rwnd, cwnd}</code>, in which <code class="language-plaintext highlighter-rouge">rwnd</code> stands for <em>Reciving Window</em> in the reciever side and <code class="language-plaintext highlighter-rouge">cwnd</code> stands for <em>Conjestion Window</em> in sender side. If it is smaller than <code class="language-plaintext highlighter-rouge">min{rwnd, cwnd}</code>, kernel consume a block of bytes, starting from <strong>LastByteSent</strong> onwards in the <strong>WaitToBeSent</strong> area, and make it a <em>TCP segment</em>. The length of the segment is decided by the MTU size in data link layer, which starnds for <em>maximum transmission unit</em>. The sum of segment and  TCP header, anbd IP header should fit into a MTU, which leads to a <em>maximum segment size</em>(MSS) that equals: <code class="language-plaintext highlighter-rouge">MTU - TCP header size - IP header size</code>. This is normally <code class="language-plaintext highlighter-rouge">1500 - 20 - 20 = 1460</code> bytes. In this diagram, the numbered <code class="language-plaintext highlighter-rouge">N, N+1, N+2....</code> stands for an individual segment.</p>
+
+<p>3.TCP running in kernel add <em>TCP header</em> in the segment and make it a <em>IP datagram</em> payload. Since the IP datagram will be routed across various endpoints, routers, it is possible that the IP datagram plus the IP header is bigger than the MTU in the data link layer. In this case, the IP datagram needs to be segmented. IP running in the kernel divides the IP datagram into seperate fragmentations, each of which is a smaller IP datagram(with a unique sequence unmber). This is the only layer that will do segmentation in the TCP/IP protocol stack.</p>
+
+<p>4.Data link layer accept IP datagram from IP layer and enclose the whole IP datagram in one <em>frame</em> and add <em>Frame Header</em> into it and switch it to destination interface.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"><img src="/assets/images/tcp_buffering_recv.png" alt="Alt text" /></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><em>TCP kernel buffering at the reciever</em></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>5.At the reciver side, in the data link layer, it just unpack it and after checking pass it to the IP layer</p>
+
+<p>6.At the IP layer, if the IP datagram is fragmented, it will wait for all the fragmentations to arrive during a specified time duration, counted with a timer. If with this duration, all fragmentations are recieved, IP running in kernel assembles them and compose a complete IP datagram and pass it to TCP layer. If the IP datagram is not fragmented, IP layer just unpack and after checking pass it to TCP layer</p>
+
+<p>7.TCP running in the reciever side accept the TCP segment and copies it in the kernel buffer, starting from the <strong>LastByteRcvd</strong> and send a <em>ack</em> to the sender. Note that at the reciever side, it does not need to worry there will be no space left to store the recieved segment, because in the <em>ack</em> to the sender, it will contain the size of the <code class="language-plaintext highlighter-rouge">rwnd</code>, and sender will assure that <code class="language-plaintext highlighter-rouge">LastByteSent - LastByteAcked &lt;= min{rwnd, cwnd}</code>. The flow control is done in sender side, not the reciever side.</p>
 
 <p>In above steps, there are some notes to take:</p>
 
