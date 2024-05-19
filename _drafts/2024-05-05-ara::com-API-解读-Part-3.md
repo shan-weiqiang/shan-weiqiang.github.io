@@ -68,3 +68,20 @@ auto then(F&& func) -> Future<SEE_COMMENT_ABOVE>;
 
 #### 5.3.6.3 Canceling Method Result
 
+`promise/future` 是 *DefaultContructible* 和 *MoveConstructible*, 但不是*CopyConstructible* 或者 *CopyAssignable*的，所以如果想要放弃method结果，需要使用拷贝复制给`future`一个空的`ara::com::Future`，这样当`promise/future`的`shared state`就会只有`promise`的引用，当`promise`调用了`set_value`且生命周期结束后，`shared state`会自动释放。
+
+### 5.3.7 Fields
+
+fields是event和method的集合，可以用如下几条总结fields的特点:
+
+- 与event不同的时，一旦Proxy订阅了一个field，Skeleton会自动发送当前的值给Proxy
+- `Get()/Set()`可以用来获取或者设定当前的field值，就是普通的method
+
+除此之外，field与event一样，也有`Subscribe`,`GetSubscriptionState`,`SetReceiveHandler`等方法。
+
+### 5.3.8 Triggers
+
+trigger是一个特殊的event，它没有数据，所以不需要`local cache`。除了`GetNewSamples`方法变成`size_t GetNewTriggers()`以外，其他都与event相同。
+
+## 5.4 Skeleton Class
+
