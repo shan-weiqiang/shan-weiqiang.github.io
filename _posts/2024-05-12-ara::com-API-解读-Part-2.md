@@ -5,14 +5,8 @@ date:   2024-05-12 13:22:46 +0800
 tags: [AUTOSAR]
 ---
 
-[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)解读的第二部分。
+标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)
 
----
-**WARNING**
-
-本文不是翻译，是对原文的注解，所有信息请以原文为准。
-
----
 
 ---
 **NOTE**
@@ -64,8 +58,6 @@ Proxy类的特点可以总结如下：
 - 应用开发者需要通过发现的`HandleType`创建Proxy类的实例
 - 一个Proxy类实例只能与一个Skeleton类实例通信
 
-一个Proxy类实例是一个独立的Client（从Skeleton实例的角度看），它们都有独立的Client ID；在method调用的时候Skeleton实例通过Client ID来区分这些不同的订阅者
-
 ---
 
 ### 5.3.4 Finding Services
@@ -110,7 +102,7 @@ Proxy类的特点可以总结如下：
 ---
 **NOTE**
 
-`ara::core::Result<void> Subscribe(size_t maxSampleCount);` 对于这个接口有必要进一步的说明和解释：
+`ara::core::Result<void> Subscribe(size_t maxSampleCount);` ：
 
 - `maxSampleCount`表示当前Proxy需要为当前event开辟的存放缓存数据的池子大小，这个池子与底层的协议绑定完全无关，比如DDS和SOME/IP，它不是底层协议的缓存，而是ComAPI binding层的缓存
 - 在`GetNewSamples`接口中需要将底层通信协议，例如DDS和SOME/IP，中的数据直接解序列化到这个池子，然后将指向这个池子中数据的指针`SamplePtr`传给上层应用；`SamplePtr`的行为将在后续小结详细说明
@@ -125,8 +117,6 @@ specific cache in form of a correct SampleType. The API to trigger this action i
 
 ---
 **NOTE**
-
-这段话给出了这个获取数据接口的两个核心行为：
 
 1. 从绑定协议的底层，例如DDS的history，中获取**未序列化**的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如unix domain socket，或者UDP/TCP socket中获取的原始数据包,尚未完成反序列化。
 2. 将原始字节流**反序列化**，然后存储在ComAPI的本地缓存中，即上面所说的`local cache`中，其大小在`Subscribe(size_t maxSampleCount)`时，由应用告诉ComAPI; 注意，为了保证运行时的确定性，这个池子的内存应当是固定的，不能在运行时重新申请、释放。另外，为了减少Copy，根据底层绑定协议的能力，应当尽量直接将数据反序列化到池子中，而不是先反序列化，然后Copy。
@@ -150,7 +140,7 @@ maxSampleCount, which it had committed in Subscribe().
 ---
 **NOTE**
 
-这一部分解释了，如下`GetNewSamples`接口的行为：
+`GetNewSamples`接口的行为：
 
 ```cpp
 template <typename F>
@@ -158,8 +148,6 @@ ara::core::Result<size_t> GetNewSamples(
 F&& f,
 size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 ```
-
-首先这里有三个限值要说明：
 
 - `maxNumberOfSamples`: `GetNewSamples`接口传入的本次希望接收的最大数据数量
 - `maxSampleCount`: `local cache`本地缓存的池子大小；大小由`Subscribe(size_t maxSampleCount)`时，由上层应用指定
@@ -170,8 +158,6 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 - 所有`bufferUnreadCount`消息全部处理完
 - 或者，`local cache`的数量已达到`maxSampleCount`
 - 或者，本次已读取`maxNumberOfSamples`个数据
-
-接下来说明`SamplePtr`的行为。
 
 ---
 

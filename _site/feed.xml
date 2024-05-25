@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T16:35:08+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T16:59:46+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
 
 <ul id="markdown-toc">
   <li><a href="#io缓存原理图" id="markdown-toc-io缓存原理图">I/O缓存原理图</a></li>
@@ -189,14 +189,7 @@
 
 <p>The whole picture:</p>
 
-<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[This article iterate the process from write to a TCP socket, to the read from a TCP socket.]]></summary></entry><entry><title type="html">ara::com API 解读[Part 2]</title><link href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 2]" /><published>2024-05-12T13:22:46+08:00</published><updated>2024-05-12T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/12/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-2</id><content type="html" xml:base="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a>解读的第二部分。</p>
-
-<hr />
-<p><strong>WARNING</strong></p>
-
-<p>本文不是翻译，是对原文的注解，所有信息请以原文为准。</p>
-
-<hr />
+<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[This article iterate the process from write to a TCP socket, to the read from a TCP socket.]]></summary></entry><entry><title type="html">ara::com API 解读[Part 2]</title><link href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 2]" /><published>2024-05-12T13:22:46+08:00</published><updated>2024-05-12T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/12/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-2</id><content type="html" xml:base="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
 
 <hr />
 <p><strong>NOTE</strong></p>
@@ -273,8 +266,6 @@ to communicate with a possibly remote service.</p>
   <li>一个Proxy类实例只能与一个Skeleton类实例通信</li>
 </ul>
 
-<p>一个Proxy类实例是一个独立的Client（从Skeleton实例的角度看），它们都有独立的Client ID；在method调用的时候Skeleton实例通过Client ID来区分这些不同的订阅者</p>
-
 <hr />
 
 <h3 id="534-finding-services">5.3.4 Finding Services</h3>
@@ -326,7 +317,7 @@ to communicate with a possibly remote service.</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p><code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Subscribe(size_t maxSampleCount);</code> 对于这个接口有必要进一步的说明和解释：</p>
+<p><code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Subscribe(size_t maxSampleCount);</code> ：</p>
 
 <ul>
   <li><code class="language-plaintext highlighter-rouge">maxSampleCount</code>表示当前Proxy需要为当前event开辟的存放缓存数据的池子大小，这个池子与底层的协议绑定完全无关，比如DDS和SOME/IP，它不是底层协议的缓存，而是ComAPI binding层的缓存</li>
@@ -345,8 +336,6 @@ specific cache in form of a correct SampleType. The API to trigger this action i
 
 <hr />
 <p><strong>NOTE</strong></p>
-
-<p>这段话给出了这个获取数据接口的两个核心行为：</p>
 
 <ol>
   <li>从绑定协议的底层，例如DDS的history，中获取<strong>未序列化</strong>的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如unix domain socket，或者UDP/TCP socket中获取的原始数据包,尚未完成反序列化。</li>
@@ -375,15 +364,13 @@ maxSampleCount, which it had committed in Subscribe().</li>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>这一部分解释了，如下<code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口的行为：</p>
+<p><code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口的行为：</p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">F</span><span class="p">&gt;</span>
 <span class="n">ara</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">Result</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">GetNewSamples</span><span class="p">(</span>
 <span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span>
 <span class="kt">size_t</span> <span class="n">maxNumberOfSamples</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">());</span>
 </code></pre></div></div>
-
-<p>首先这里有三个限值要说明：</p>
 
 <ul>
   <li><code class="language-plaintext highlighter-rouge">maxNumberOfSamples</code>: <code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口传入的本次希望接收的最大数据数量</li>
@@ -398,8 +385,6 @@ maxSampleCount, which it had committed in Subscribe().</li>
   <li>或者，<code class="language-plaintext highlighter-rouge">local cache</code>的数量已达到<code class="language-plaintext highlighter-rouge">maxSampleCount</code></li>
   <li>或者，本次已读取<code class="language-plaintext highlighter-rouge">maxNumberOfSamples</code>个数据</li>
 </ul>
-
-<p>接下来说明<code class="language-plaintext highlighter-rouge">SamplePtr</code>的行为。</p>
 
 <hr />
 
@@ -471,14 +456,7 @@ maxSampleCount, which it had committed in Subscribe().</li>
 <ul>
   <li>不同Proxy实例会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy实例之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy实例可能会因为消费慢的Proxy实例而牺牲掉获取数据的机会；相比较而言，如果每个Proxy实例都有自己的缓冲copy，则不会出现这个问题</li>
   <li>不同的进程对数据的存储可能有不同的对齐要求，如果使用共享内存，则必须要考虑这个问题</li>
-</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[ara::com API解读的第二部分。]]></summary></entry><entry><title type="html">ara::com API 解读[Part 1]</title><link href="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 1]" /><published>2024-05-05T13:22:46+08:00</published><updated>2024-05-05T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/05/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-1</id><content type="html" xml:base="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a>是理解AUTOSAR AP中面向服务架构的入口。无论对于底层BSW开发，模型和代码引擎开发，还是对于上层应用开发，都是需要理解的。可以说ara::com API是应用层开发、BSW开发、模型/代码引擎开发的三者交汇点。理解它非常重要。本文是第一部分。</p>
-
-<hr />
-<p><strong>WARNING</strong></p>
-
-<p>本文不是翻译，是对原文的注解，所有信息请以原文为准。</p>
-
-<hr />
+</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">ara::com API 解读[Part 1]</title><link href="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 1]" /><published>2024-05-05T13:22:46+08:00</published><updated>2024-05-05T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/05/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-1</id><content type="html" xml:base="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
 
 <hr />
 <p><strong>NOTE</strong></p>
@@ -519,8 +497,6 @@ maxSampleCount, which it had committed in Subscribe().</li>
 
 <h2 id="31-approach">3.1 Approach</h2>
 
-<p>标准列举了为什么要设计一个新的API的原因，这些原因也是ComAPI的核心特点：</p>
-
 <blockquote>
   <p>We need a Communication Management, which is NOT bound to a concrete
 network communication protocol. It has to support the SOME/IP protocol but
@@ -530,7 +506,7 @@ there has to be flexibility to exchange that.</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见<a href="https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html">SOME/IP Service Discovery解读</a>, <a href="https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html">SOME/IP 解读</a>。总之，SOME/IP协议是AUTOSAR官方的协议，AUTOSAR的模型系统是基于SOME/IP设计的，在对其他协议进行模型设计时，也需要首先熟知SOME/IP，否则AUTOSAR Manifest中模型的来源就会变得莫名其妙。</p>
+<p>ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见<a href="https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html">SOME/IP Service Discovery解读</a>, <a href="https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html">SOME/IP 解读</a></p>
 
 <hr />
 
@@ -617,7 +593,7 @@ standardized to support typical collaboration models.</p>
 
 <p>Service Implementation：服务的应用层实现，例如应用层调用Send接口发送数据；method中注册应用层的方法实现回调等；这些实现通过标准的ComAPI接口与应用层连接，其实现本身并不是ComAPI的一部分。</p>
 
-<p>从以上可以看出，一个Client或者Service应用，需要三部分的代码才能实现：</p>
+<p>一个Client或者Service应用，需要三部分的代码才能实现：</p>
 
 <ul>
   <li>应用层的实现代码</li>
@@ -633,8 +609,6 @@ standardized to support typical collaboration models.</p>
 
 <hr />
 <p><strong>NOTE</strong></p>
-
-<p>这个图中的每个角色需要解释一下：</p>
 
 <p>Client/Server application: 服务的消费和提供方的应用代码；这部分是服务和消费的具体实现，代码中主要是调用ComAPI的标准接口，注册回调等。例如Send，Subscribe，method的处理函数回调，消息的时间触发回调，获取消息GetNewSample等都是在应用代码中调用的。</p>
 
@@ -689,7 +663,7 @@ specific instance of a service is created.</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>Instance identifier 表示一个服务的Instance，一个服务的Instance有一个全局唯一的Instance ID。只有Skeleton实例才有，才确定一个Instance ID。Proxy端是没有服务实例ID的，但需要指定一个其需要发现的服务实例D或者发现所有服务实例ID。</p>
+<p>Instance identifier 表示一个服务的Instance，一个服务的Instance有一个全局唯一的Instance ID。只有Skeleton实例才有，一个Skeleton类的实例可以对应一个或者多个服务实例。Proxy端是没有服务实例ID的，但需要指定一个其需要发现的服务实例D或者发现所有服务实例ID。</p>
 
 <hr />
 
@@ -704,7 +678,7 @@ manifest, which maps the same ara::core::InstanceSpecifier differently</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>要想完整的理解这两个概念，需要阅读<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_TPS_ManifestSpecification.pdf">Specification of Manifest</a>中<code class="language-plaintext highlighter-rouge">ServiceInstanceToPortPrototypeMapping</code>这个模型以及与其相关的模型。</p>
+<p>参考<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_TPS_ManifestSpecification.pdf">Specification of Manifest</a>中<code class="language-plaintext highlighter-rouge">ServiceInstanceToPortPrototypeMapping</code>。</p>
 
 <p>在AUTOSAR AP的模型中一个PortPrototype是一个Service Interface在应用软件（Software Component）中的实例化，而一个Service Instance是一个Service Interface在驱动协议中的实例化。每一个应用软件的每一个PortPrototype都有一个全局唯一的模型路径，例如<code class="language-plaintext highlighter-rouge">/a/b/c</code>，而这个路径就是所谓的Instance Specifier;每一个Service Instance在模型中也有自己的全局唯一的路径，例如<code class="language-plaintext highlighter-rouge">/d/e/f</code>，这个路径就是所谓的Instance Identifier（也唯一的对应一个Instance ID）。</p>
 
@@ -714,7 +688,7 @@ manifest, which maps the same ara::core::InstanceSpecifier differently</p>
 
 <p>Instance Identifier和Instance Specifier都是<em>部署</em>阶段的模型元素，代码引擎会根据不同的部署模型生成不同的部署配置文件清单（例如json），在配置清单中会详细的包含Instance Specifier与Instance Identifier的对应关系。这就是文中从Instance Specifier解析Instance Identifier的信息来源：解析配置清单，获取对应信息。</p>
 
-<hr />]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[ara::com API是理解AUTOSAR AP中面向服务架构的入口。无论对于底层BSW开发，模型和代码引擎开发，还是对于上层应用开发，都是需要理解的。可以说ara::com API是应用层开发、BSW开发、模型/代码引擎开发的三者交汇点。理解它非常重要。本文是第一部分。]]></summary></entry><entry><title type="html">condition_variable fully explained</title><link href="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html" rel="alternate" type="text/html" title="condition_variable fully explained" /><published>2024-04-27T19:22:46+08:00</published><updated>2024-04-27T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/27/condition_variable%20-fully-explained</id><content type="html" xml:base="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"><![CDATA[<p>This post tries to enumerate the pitfalls that might happen in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>. First I will explain scenarios in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging <code class="language-plaintext highlighter-rouge">condition_variable</code>.</p>
+<hr />]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">condition_variable fully explained</title><link href="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html" rel="alternate" type="text/html" title="condition_variable fully explained" /><published>2024-04-27T19:22:46+08:00</published><updated>2024-04-27T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/27/condition_variable%20-fully-explained</id><content type="html" xml:base="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"><![CDATA[<p>This post tries to enumerate the pitfalls that might happen in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>. First I will explain scenarios in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging <code class="language-plaintext highlighter-rouge">condition_variable</code>.</p>
 
 <ul id="markdown-toc">
   <li><a href="#thread-flow" id="markdown-toc-thread-flow">Thread flow</a>    <ul>

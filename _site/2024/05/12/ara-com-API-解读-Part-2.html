@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="ara::com API 解读[Part 2]" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="ara::com API解读的第二部分。" />
-<meta property="og:description" content="ara::com API解读的第二部分。" />
+<meta name="description" content="标准连接：ara::com API" />
+<meta property="og:description" content="标准连接：ara::com API" />
 <link rel="canonical" href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" />
 <meta property="og:url" content="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" />
 <meta property="og:site_name" content="Shan Weiqiang’s blog" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="ara::com API 解读[Part 2]" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-12T13:22:46+08:00","datePublished":"2024-05-12T13:22:46+08:00","description":"ara::com API解读的第二部分。","headline":"ara::com API 解读[Part 2]","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"},"url":"http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-12T13:22:46+08:00","datePublished":"2024-05-12T13:22:46+08:00","description":"标准连接：ara::com API","headline":"ara::com API 解读[Part 2]","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"},"url":"http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -47,14 +47,7 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p><a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a>解读的第二部分。</p>
-
-<hr />
-<p><strong>WARNING</strong></p>
-
-<p>本文不是翻译，是对原文的注解，所有信息请以原文为准。</p>
-
-<hr />
+    <p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
 
 <hr />
 <p><strong>NOTE</strong></p>
@@ -131,8 +124,6 @@ to communicate with a possibly remote service.</p>
   <li>一个Proxy类实例只能与一个Skeleton类实例通信</li>
 </ul>
 
-<p>一个Proxy类实例是一个独立的Client（从Skeleton实例的角度看），它们都有独立的Client ID；在method调用的时候Skeleton实例通过Client ID来区分这些不同的订阅者</p>
-
 <hr />
 
 <h3 id="534-finding-services">5.3.4 Finding Services</h3>
@@ -184,7 +175,7 @@ to communicate with a possibly remote service.</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p><code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Subscribe(size_t maxSampleCount);</code> 对于这个接口有必要进一步的说明和解释：</p>
+<p><code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Subscribe(size_t maxSampleCount);</code> ：</p>
 
 <ul>
   <li><code class="language-plaintext highlighter-rouge">maxSampleCount</code>表示当前Proxy需要为当前event开辟的存放缓存数据的池子大小，这个池子与底层的协议绑定完全无关，比如DDS和SOME/IP，它不是底层协议的缓存，而是ComAPI binding层的缓存</li>
@@ -203,8 +194,6 @@ specific cache in form of a correct SampleType. The API to trigger this action i
 
 <hr />
 <p><strong>NOTE</strong></p>
-
-<p>这段话给出了这个获取数据接口的两个核心行为：</p>
 
 <ol>
   <li>从绑定协议的底层，例如DDS的history，中获取<strong>未序列化</strong>的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如unix domain socket，或者UDP/TCP socket中获取的原始数据包,尚未完成反序列化。</li>
@@ -233,15 +222,13 @@ maxSampleCount, which it had committed in Subscribe().</li>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>这一部分解释了，如下<code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口的行为：</p>
+<p><code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口的行为：</p>
 
 <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">F</span><span class="p">&gt;</span>
 <span class="n">ara</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">Result</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">GetNewSamples</span><span class="p">(</span>
 <span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span>
 <span class="kt">size_t</span> <span class="n">maxNumberOfSamples</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">());</span>
 </code></pre></div></div>
-
-<p>首先这里有三个限值要说明：</p>
 
 <ul>
   <li><code class="language-plaintext highlighter-rouge">maxNumberOfSamples</code>: <code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口传入的本次希望接收的最大数据数量</li>
@@ -256,8 +243,6 @@ maxSampleCount, which it had committed in Subscribe().</li>
   <li>或者，<code class="language-plaintext highlighter-rouge">local cache</code>的数量已达到<code class="language-plaintext highlighter-rouge">maxSampleCount</code></li>
   <li>或者，本次已读取<code class="language-plaintext highlighter-rouge">maxNumberOfSamples</code>个数据</li>
 </ul>
-
-<p>接下来说明<code class="language-plaintext highlighter-rouge">SamplePtr</code>的行为。</p>
 
 <hr />
 

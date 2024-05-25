@@ -5,14 +5,7 @@ date:   2024-05-05 13:22:46 +0800
 tags: [AUTOSAR]
 ---
 
-[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)是理解AUTOSAR AP中面向服务架构的入口。无论对于底层BSW开发，模型和代码引擎开发，还是对于上层应用开发，都是需要理解的。可以说ara::com API是应用层开发、BSW开发、模型/代码引擎开发的三者交汇点。理解它非常重要。本文是第一部分。
-
----
-**WARNING**
-
-本文不是翻译，是对原文的注解，所有信息请以原文为准。
-
----
+标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)
 
 ---
 **NOTE**
@@ -37,8 +30,6 @@ tags: [AUTOSAR]
 
 ## 3.1 Approach
 
-标准列举了为什么要设计一个新的API的原因，这些原因也是ComAPI的核心特点：
-
 > We need a Communication Management, which is NOT bound to a concrete
 network communication protocol. It has to support the SOME/IP protocol but
 there has to be flexibility to exchange that.
@@ -46,7 +37,7 @@ there has to be flexibility to exchange that.
 ---
 **NOTE**
 
-ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见[SOME/IP Service Discovery解读](https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html), [SOME/IP 解读](https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html)。总之，SOME/IP协议是AUTOSAR官方的协议，AUTOSAR的模型系统是基于SOME/IP设计的，在对其他协议进行模型设计时，也需要首先熟知SOME/IP，否则AUTOSAR Manifest中模型的来源就会变得莫名其妙。
+ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见[SOME/IP Service Discovery解读](https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html), [SOME/IP 解读](https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html)
 
 ---
 
@@ -124,7 +115,7 @@ Service Consumer Implementation： Proxy一侧的应用层实现，例如在Poll
 
 Service Implementation：服务的应用层实现，例如应用层调用Send接口发送数据；method中注册应用层的方法实现回调等；这些实现通过标准的ComAPI接口与应用层连接，其实现本身并不是ComAPI的一部分。
 
-从以上可以看出，一个Client或者Service应用，需要三部分的代码才能实现：
+一个Client或者Service应用，需要三部分的代码才能实现：
 
 - 应用层的实现代码
 - ComAPI标准接口代码及绑定实现
@@ -140,7 +131,6 @@ Service Implementation：服务的应用层实现，例如应用层调用Send接
 ---
 **NOTE**
 
-这个图中的每个角色需要解释一下：
 
 Client/Server application: 服务的消费和提供方的应用代码；这部分是服务和消费的具体实现，代码中主要是调用ComAPI的标准接口，注册回调等。例如Send，Subscribe，method的处理函数回调，消息的时间触发回调，获取消息GetNewSample等都是在应用代码中调用的。
 
@@ -191,7 +181,7 @@ specific instance of a service is created.
 ---
 **NOTE**
 
-Instance identifier 表示一个服务的Instance，一个服务的Instance有一个全局唯一的Instance ID。只有Skeleton实例才有，才确定一个Instance ID。Proxy端是没有服务实例ID的，但需要指定一个其需要发现的服务实例D或者发现所有服务实例ID。
+Instance identifier 表示一个服务的Instance，一个服务的Instance有一个全局唯一的Instance ID。只有Skeleton实例才有，一个Skeleton类的实例可以对应一个或者多个服务实例。Proxy端是没有服务实例ID的，但需要指定一个其需要发现的服务实例D或者发现所有服务实例ID。
 
 ---
 
@@ -205,7 +195,7 @@ manifest, which maps the same ara::core::InstanceSpecifier differently
 ---
 **NOTE**
 
-要想完整的理解这两个概念，需要阅读[Specification of Manifest](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_TPS_ManifestSpecification.pdf)中`ServiceInstanceToPortPrototypeMapping`这个模型以及与其相关的模型。
+参考[Specification of Manifest](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_TPS_ManifestSpecification.pdf)中`ServiceInstanceToPortPrototypeMapping`。
 
 在AUTOSAR AP的模型中一个PortPrototype是一个Service Interface在应用软件（Software Component）中的实例化，而一个Service Instance是一个Service Interface在驱动协议中的实例化。每一个应用软件的每一个PortPrototype都有一个全局唯一的模型路径，例如`/a/b/c`，而这个路径就是所谓的Instance Specifier;每一个Service Instance在模型中也有自己的全局唯一的路径，例如`/d/e/f`，这个路径就是所谓的Instance Identifier（也唯一的对应一个Instance ID）。
 
