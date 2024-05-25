@@ -178,7 +178,7 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 
 ![Alt text](/assets/images/buffer_strategie.png)
 
-关于Proxy实例之间event数据共享问题，在讨论之前，必须设定一些前提，不然讨论起来情形非常多，就会很没有头绪；主要有以下几方面的原因：
+在讨论之前，必须设定一些前提，不然讨论起来情形非常多；主要有以下几方面的原因：
 
 - 这个Skeleton实例可能在当前机器，当Skeleton实例发送数据时，可能会将数据保存在：
     - kernel空间：例如unix domain socket，pipe
@@ -190,12 +190,12 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 - Proxy实例可能在同一个进程中，也可能在不同的进程中
 - 如果Skeleton实例在当前机器，Skeleton实例和Proxy实例在同一个进程都是有可能的
 
-以上可以看出，Proxy实例和Skeleton实例不同的位置关系，使用的IPC技术方案，都会直接影响Proxy实例之间的数据共享。所以，在进一步讨论之前，必须将前提条件进行限制，我们限制如下：
+Proxy实例和Skeleton实例不同的位置关系，使用的IPC技术方案，都会直接影响Proxy实例之间的数据共享。所以，我们限制如下：
 
 - 不同的Proxy实例在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小
 - Skeleton实例在另外一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器
 
-有了这些限制以后，再分析下，如何实现不同Proxy实例之间的event数据共享：
+如何实现不同Proxy实例之间的event数据共享：
 
 - 首先需要一个Proxy实例所在机器的daemon进程统一管理与外部机器的网络数据收发，因为如果当前机器不同的Proxy实例分别与外部机器的Skeleton实例创建了网络连接，则会有重复的数据在网络发送；在Skeleton一侧，也应当有daemon进程，因为Proxy实例和Skeleton实例能相互通信的前提是底层使用了相同的通信协议（在模型中它们来自同一个*部署*），例如DDS或者SOME/IP
 - 在服务发现阶段，也应当由daemon进程统一管理，只有这样这个daemon进程才能汇总、梳理可能共享event数据的Proxy实例，例如如果不同的Proxy实例都同时订阅了一个相同的Skeleton实例，则这两个Proxy实例可以共享event数据
@@ -205,7 +205,7 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
 - 当Proxy实例将数据，即`SamplePtr` 给上层应用时，给的是指向daemon原始数据的指针；但是在这个`SamplePtr`的实现中，必须提供接口，或者在析构时，能够告知ComAPI层，当前`local cache`中的这个指针已经被应用层释放，从而ComAPI可以通知通信协议的daemon进程减少当前数据的引用计数
 - 当daemon进程管理的数据引用计数为0时，可以释放该数据
 
-这虽然实现了数据在不同Proxy实例之间的共享，但也造成了一些缺点：
+缺点：
 
 - 不同Proxy实例会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy实例之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy实例可能会因为消费慢的Proxy实例而牺牲掉获取数据的机会；相比较而言，如果每个Proxy实例都有自己的缓冲copy，则不会出现这个问题
 - 不同的进程对数据的存储可能有不同的对齐要求，如果使用共享内存，则必须要考虑这个问题

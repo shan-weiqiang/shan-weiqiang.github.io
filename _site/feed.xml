@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T16:59:46+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T17:06:20+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
 
 <ul id="markdown-toc">
   <li><a href="#io缓存原理图" id="markdown-toc-io缓存原理图">I/O缓存原理图</a></li>
@@ -412,7 +412,7 @@ maxSampleCount, which it had committed in Subscribe().</li>
 
 <p><img src="/assets/images/buffer_strategie.png" alt="Alt text" /></p>
 
-<p>关于Proxy实例之间event数据共享问题，在讨论之前，必须设定一些前提，不然讨论起来情形非常多，就会很没有头绪；主要有以下几方面的原因：</p>
+<p>在讨论之前，必须设定一些前提，不然讨论起来情形非常多；主要有以下几方面的原因：</p>
 
 <ul>
   <li>这个Skeleton实例可能在当前机器，当Skeleton实例发送数据时，可能会将数据保存在：
@@ -432,14 +432,14 @@ maxSampleCount, which it had committed in Subscribe().</li>
   <li>如果Skeleton实例在当前机器，Skeleton实例和Proxy实例在同一个进程都是有可能的</li>
 </ul>
 
-<p>以上可以看出，Proxy实例和Skeleton实例不同的位置关系，使用的IPC技术方案，都会直接影响Proxy实例之间的数据共享。所以，在进一步讨论之前，必须将前提条件进行限制，我们限制如下：</p>
+<p>Proxy实例和Skeleton实例不同的位置关系，使用的IPC技术方案，都会直接影响Proxy实例之间的数据共享。所以，我们限制如下：</p>
 
 <ul>
   <li>不同的Proxy实例在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小</li>
   <li>Skeleton实例在另外一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器</li>
 </ul>
 
-<p>有了这些限制以后，再分析下，如何实现不同Proxy实例之间的event数据共享：</p>
+<p>如何实现不同Proxy实例之间的event数据共享：</p>
 
 <ul>
   <li>首先需要一个Proxy实例所在机器的daemon进程统一管理与外部机器的网络数据收发，因为如果当前机器不同的Proxy实例分别与外部机器的Skeleton实例创建了网络连接，则会有重复的数据在网络发送；在Skeleton一侧，也应当有daemon进程，因为Proxy实例和Skeleton实例能相互通信的前提是底层使用了相同的通信协议（在模型中它们来自同一个<em>部署</em>），例如DDS或者SOME/IP</li>
@@ -451,7 +451,7 @@ maxSampleCount, which it had committed in Subscribe().</li>
   <li>当daemon进程管理的数据引用计数为0时，可以释放该数据</li>
 </ul>
 
-<p>这虽然实现了数据在不同Proxy实例之间的共享，但也造成了一些缺点：</p>
+<p>缺点：</p>
 
 <ul>
   <li>不同Proxy实例会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy实例之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy实例可能会因为消费慢的Proxy实例而牺牲掉获取数据的机会；相比较而言，如果每个Proxy实例都有自己的缓冲copy，则不会出现这个问题</li>
