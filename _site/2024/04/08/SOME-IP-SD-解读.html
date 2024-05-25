@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="SOME/IP Service Discovery解读" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="SOME/IP SD\" />
-<meta property="og:description" content="SOME/IP SD\" />
+<meta name="description" content="标准连接：SOME/IP SD" />
+<meta property="og:description" content="标准连接：SOME/IP SD" />
 <link rel="canonical" href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" />
 <meta property="og:url" content="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" />
 <meta property="og:site_name" content="Shan Weiqiang’s blog" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="SOME/IP Service Discovery解读" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-08T19:22:46+08:00","datePublished":"2024-04-08T19:22:46+08:00","description":"SOME/IP SD\\","headline":"SOME/IP Service Discovery解读","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"},"url":"http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-08T19:22:46+08:00","datePublished":"2024-04-08T19:22:46+08:00","description":"标准连接：SOME/IP SD","headline":"SOME/IP Service Discovery解读","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"},"url":"http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -47,7 +47,7 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p><a href="hhttps://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a>\</p>
+    <p>标准连接：<a href="hhttps://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a></p>
 
 <ul id="markdown-toc">
   <li><a href="#1-introduction-and-overview" id="markdown-toc-1-introduction-and-overview">1 Introduction and overview</a>    <ul>
@@ -116,7 +116,7 @@
 
 <h3 id="512-someip-sd-message-format">5.1.2 SOME/IP-SD Message Format</h3>
 
-<p>了解了SOME/IP-SD的消息结构，也就理解了SOME/IP-SD的服务发现协议。可以看出SOME/IP-SD是一个普通SOME/IP消息的payload，也就是说SD是基于SOME/IP协议进行的。可以将SOME/IP-SD协议理解为基于SOME/IP协议之上的一个应用层协议。</p>
+<p>SOME/IP-SD是一个普通SOME/IP消息的payload，也就是说SD是基于SOME/IP协议进行的。可以将SOME/IP-SD协议理解为基于SOME/IP协议之上的一个应用层协议。</p>
 
 <p><img src="/assets/images/some_ip_sd_pdu.jpg" alt="Untitled" /></p>
 
@@ -155,8 +155,6 @@
 
 <hr />
 
-<p>这一部分是服务发现的实际内容信息：</p>
-
 <ul>
   <li>一个SOME/IP-SD消息可以包含多个服务实例的信息(Entry)</li>
   <li>实际发现内容分为两类：
@@ -177,8 +175,6 @@
     <p><img src="/assets/images/some_ip_event_group_entry_type.jpg" alt="Untitled" /></p>
   </li>
 </ul>
-
-<p>这两种Entry的内容很多都是重复的，有些就是字面意思，不再解释，其他分别解释如下：</p>
 
 <p>Type:</p>
 
@@ -210,7 +206,7 @@
 
 <hr />
 
-<p>每个条目有了以上这些信息后，就需要知道他们更进一步的信息了，比如IP地址，Port端口，传输层协议等，这些最终需要传达的信息。SOME/IP-SD中这些信息是通过Options来包含的。每个条目有两段，每段有连续的多个Options组成，原因如下：</p>
+<p>IP地址，Port端口，传输层协议是通过Options来包含的。每个条目有两段，每段有连续的多个Options组成，原因如下：</p>
 
 <ul>
   <li>第一段中的Options是所有SOME/IP-SD共有的Options</li>
@@ -221,7 +217,7 @@
 
 <h4 id="5124-options-format">5.1.2.4 Options Format</h4>
 
-<p>通过以上层层递进，现在已经到达最终的目的地了：具体的Option内容信息。它也有自己的格式规范，每一个Option都必须以如下格式开头：</p>
+<p>每一个Option都必须以如下格式开头：</p>
 
 <p><img src="/assets/images/some_ip_option_header.jpg" alt="Untitled" /></p>
 
@@ -282,7 +278,7 @@
 
 <p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
 
-<p>关于组播，只能在Entry类型为 SubscribeEventgroup，StopSubscribeEventgroup，SubscribeEventgroupAck中被使用，引用一次或者零次：</p>
+<p>组播只能在Entry类型为 SubscribeEventgroup，StopSubscribeEventgroup，SubscribeEventgroupAck中被使用，引用一次或者零次：</p>
 
 <ul>
   <li>当被SubscribeEventgroup引用，表示Client端接收组播Events的地址</li>
@@ -291,7 +287,7 @@
 </ul>
 
 <blockquote>
-  <p>要理解组播在EventGroup的角色，首先要理解是EventGroup分为三种：单播EventGroup，即所有Events都是通过一个单播通信链接（EndPoint pair）发送；组播EventGroup，即所有Events都被发送到一个组播EndPoint上，注意这是从Server的角度来说的，如果Server端通过单播提供服务，但是Client端在SubscribeEventGroup时提供了组播的地址，Server也会通过该组播地址发送给改Client；自适应EventGroup，即其中的Events的发送方式是根据运行时订阅状态在组播和单播之间切换的。所以，无论是SubscribeEventgroup，还是SubscribeEventgroupAck引用的组播地址，都是Server或者Client指明自己发送或者接收这个EventGroup的EndPoint</p>
+  <p>EventGroup分为三种：单播EventGroup，即所有Events都是通过一个单播通信链接（EndPoint pair）发送；组播EventGroup，即所有Events都被发送到一个组播EndPoint上，注意这是从Server的角度来说的，如果Server端通过单播提供服务，但是Client端在SubscribeEventGroup时提供了组播的地址，Server也会通过该组播地址发送给改Client；自适应EventGroup，即其中的Events的发送方式是根据运行时订阅状态在组播和单播之间切换的。所以，无论是SubscribeEventgroup，还是SubscribeEventgroupAck引用的组播地址，都是Server或者Client指明自己发送或者接收这个EventGroup的EndPoint</p>
 
 </blockquote>
 
