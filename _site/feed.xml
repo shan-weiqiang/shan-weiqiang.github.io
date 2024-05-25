@@ -1,4 +1,60 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T17:06:20+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T17:18:28+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">pimpl vs virtual class: binary difference</title><link href="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" rel="alternate" type="text/html" title="pimpl vs virtual class: binary difference" /><published>2024-05-25T10:22:46+08:00</published><updated>2024-05-25T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff</id><content type="html" xml:base="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"><![CDATA[<p>Both pimpl and pure abstract class can achieve compile firewall, but they are different in theory and used in different scenarios in real world</p>
+
+<h3 id="technical-difference-under-the-hood">Technical difference under the hood</h3>
+
+<h4 id="pimpl">pimpl</h4>
+
+<p>The core of pimpl is opaque pointer. The user only know the public APIs plus opaque pointer. During compiling time, the user code can complile without knowing the implementation details of the object that the opaque pointer points to, because the memory size is known to the user(pointer size is known for the user). Note: whether the user is shared lib or executable, there is no need for recompile or relink needed when the client side changes, because the user side do not need to compile and link will be done during runtime by dynamic linker of the os. The user side even can write a dummy implementation for the client APIs for the purpose of debuging and isolation of working with the client side and there are no needs for recompile or link when the dummy implementation lib is replaced with the real client lib. The development for user side and client side can be isolated this way. The core reason why pimpl works is the dynamic linker, which can reallocate symbols during runtime.</p>
+
+<p>There is additional method to achieve more efficiency, such as <code class="language-plaintext highlighter-rouge">lazy binding</code> in the process of dynamic linking.</p>
+
+<p>Note: no additional CPU instructions are generated for using pimpl, overhead comes from the pointer access of the opaque pointer.</p>
+
+<h4 id="pure-abstract-class">pure abstract class</h4>
+
+<p>Pure abstract class use virtual table as the media to achieve compile isolation. It’s a process called <code class="language-plaintext highlighter-rouge">late binding</code></p>
+
+<p>Late binding, also known as dynamic binding or runtime binding, refers to the process of determining the specific function implementation to be called at runtime, based on the actual type of the object being referred to. It is typically associated with polymorphism and virtual function dispatch.</p>
+
+<p>In languages like C++, when a virtual function is called on a pointer or reference to a base class, late binding ensures that the appropriate function implementation is selected based on the runtime type of the object. This allows different derived classes to have their own implementations of the same virtual function, providing flexibility and extensibility.</p>
+
+<p>Note: The user use the base pure virtual class and the APIs and when the user’s code are actually executed, the API implementation is decided by the actual derived subclasses that is passed into the user’s function. At compile time the user’s code only knows the base class and will generate the CPU instructions for how to get relevent function address based on the virtual table, but at runtime, the passed instance is subclass of base class, which has a different virtual table address(but the instrunctions for finding functions are the same); This way the functions found is the implementation of the subclass. This behavior decides that if the base class’s member or methods are changed (whether it’s quantity or appearance squences, because these all influence the CPU instructions generated from the compiler), the user code need to be compiled again, while pimpl do not have this problem.</p>
+
+<p>The overhead of pure abstract class is in the access of the virtual tables.</p>
+
+<p>Note that pure abstract class does not prevent successuful building even if there are no implementations:</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">class</span> <span class="nc">VirtualClass</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">f</span><span class="p">()</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">void</span> <span class="nf">somefunc</span><span class="p">(</span><span class="n">VirtualClass</span> <span class="o">*</span><span class="n">cls</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="c1">/// This call be compiled successfully, but will have segmentation fault at</span>
+  <span class="c1">/// runtime</span>
+  <span class="n">cls</span><span class="o">-&gt;</span><span class="n">f</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="n">somefunc</span><span class="p">((</span><span class="n">VirtualClass</span> <span class="o">*</span><span class="p">)(</span><span class="n">ptr</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Above code will compile successfully!</p>
+
+<h3 id="use-case">Use case</h3>
+
+<p>Pure abstract class is mainly used as interface. Namely, a group of clients has the same API and the user side only need to use the common interfaces that are shared by all the clients. It’s one to more mapping between the user and the client. The actualization is achieved by passing different client instances into the user.</p>
+
+<p>Pimpl is mainly used for encapsulation. Namely, a class or lib is exposed to user as standard APIs(only public api that will be used by user) and the private implementations are hidden by the opaque pointer. It’s more to one mapping between user and client. The actualization is achieved by user use the standard API provided by client and link to the client lib.</p>
+
+<h3 id="compile-fire-wall-and-linking">Compile fire wall and linking</h3>
+
+<p>Compile isolation means there is no need for <code class="language-plaintext highlighter-rouge">static</code> recompiling and relinking during compilation time, only runtime dynamic linking(pimpl) or runtime virtual table handling(pure abstract class) is required for the client’s new implementation to take effect.</p>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[Both pimpl and pure abstract class can achieve compile firewall, but they are different in theory and used in different scenarios in real world]]></summary></entry><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
 
 <ul id="markdown-toc">
   <li><a href="#io缓存原理图" id="markdown-toc-io缓存原理图">I/O缓存原理图</a></li>
@@ -2175,287 +2231,4 @@ This is especially important, when notifications are transported using multicast
 
 <blockquote>
   <p>SOME/IP-SD服务发现提供在没有静态配置的情况下在运行时发现所需要的服务以及其EndPoint信息；但是它可以被纯静态的配置替代，比如可以使用配置文件静态的将所有的通信配置，EndPoint信息定义好，只需要在运行时解析配置文件获取相关通信配置即可，这些都不是SOME/IP-SD协议的一部分。</p>
-</blockquote>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：SOME/IP SD]]></summary></entry><entry><title type="html">C++ Parameter Binding</title><link href="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
-  <li><a href="#绑定矩阵binding-matrix" id="markdown-toc-绑定矩阵binding-matrix">绑定矩阵（binding matrix）</a></li>
-  <li><a href="#示例代码" id="markdown-toc-示例代码">示例代码</a></li>
-</ul>
-
-<h1 id="绑定矩阵binding-matrix">绑定矩阵（binding matrix）</h1>
-
-<p>假设：</p>
-<ul>
-  <li>类型<code class="language-plaintext highlighter-rouge">T</code>为定义了所有特殊成员函数的的类型</li>
-  <li>表格左侧为形参类型</li>
-  <li>表格上方为实参类型</li>
-</ul>
-
-<p>则C++有如下的绑定矩阵，且绑定时的动作如下：</p>
-
-<table>
-  <thead>
-    <tr>
-      <th> </th>
-      <th>T(lvalue)</th>
-      <th>T(rvalue)</th>
-      <th>T&amp;</th>
-      <th>T&amp;&amp;</th>
-      <th>const T(lvalue)</th>
-      <th>const T(rvalue)</th>
-      <th>const T&amp;</th>
-      <th>const T&amp;&amp;</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>T</td>
-      <td>拷贝构造</td>
-      <td>移动构造</td>
-      <td>拷贝构造</td>
-      <td>移动构造</td>
-      <td>移动构造</td>
-      <td>拷贝构造</td>
-      <td>拷贝构造</td>
-      <td>拷贝构造</td>
-    </tr>
-    <tr>
-      <td>T&amp;</td>
-      <td>引用绑定</td>
-      <td>No</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>No</td>
-      <td>No</td>
-      <td>No</td>
-      <td>No</td>
-    </tr>
-    <tr>
-      <td>T&amp;&amp;</td>
-      <td>No</td>
-      <td>引用绑定</td>
-      <td>No</td>
-      <td>No(Note3)</td>
-      <td>No</td>
-      <td>No</td>
-      <td>No</td>
-      <td>No(Note3)</td>
-    </tr>
-    <tr>
-      <td>const T</td>
-      <td>拷贝构造</td>
-      <td>移动构造</td>
-      <td>拷贝构造</td>
-      <td>移动构造</td>
-      <td>拷贝构造</td>
-      <td>移动构造</td>
-      <td>拷贝构造</td>
-      <td>移动构造</td>
-    </tr>
-    <tr>
-      <td>const T&amp;</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-      <td>引用绑定</td>
-    </tr>
-    <tr>
-      <td>const T&amp;&amp;</td>
-      <td>No</td>
-      <td>引用绑定</td>
-      <td>No</td>
-      <td>No(Note3)</td>
-      <td>No</td>
-      <td>引用绑定</td>
-      <td>No</td>
-      <td>No(Note3)</td>
-    </tr>
-  </tbody>
-</table>
-
-<p>说明：</p>
-<ol>
-  <li>当传入右值构造一个对象时，如果没有定义移动构造函数，则会默认调用拷贝构造函数</li>
-  <li>以上表格中默认T类型定义了所有的类特殊成员函数</li>
-  <li>所有有名的变量，包括右值引用都是左值，所以不能传递给接收右值引用的入参类型！！</li>
-  <li>所有引用都是有名称的左值</li>
-  <li>函数调用参数传递分两步：
-    <ol>
-      <li>形参要通过binding绑定实参</li>
-      <li>无论函数形参是哪种类型，在函数内部，形参都被作为左值使用，如果要保留形参类型，必须使用std::forward转发</li>
-    </ol>
-  </li>
-</ol>
-
-<h1 id="示例代码">示例代码</h1>
-
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;utility&gt;</span><span class="cp">
-</span>
-<span class="k">struct</span> <span class="nc">Example</span> <span class="p">{</span>
-  <span class="c1">// constructor</span>
-  <span class="n">Example</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Example constructor"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">}</span>
-  <span class="c1">// destructor</span>
-  <span class="o">~</span><span class="n">Example</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Example destructor"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">}</span>
-  <span class="c1">// copy constructor</span>
-  <span class="n">Example</span><span class="p">(</span><span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Example copy constructor"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="c1">// copy assignment operator</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Example copy assignment operator"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-    <span class="k">return</span> <span class="o">*</span><span class="k">this</span><span class="p">;</span>
-  <span class="p">}</span>
-  <span class="c1">// move constructor</span>
-  <span class="n">Example</span><span class="p">(</span><span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Example move constructor"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">}</span>
-  <span class="c1">// move assignment operator</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="k">operator</span><span class="o">=</span><span class="p">(</span><span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Example move assignment operator"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-    <span class="k">return</span> <span class="o">*</span><span class="k">this</span><span class="p">;</span>
-  <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="c1">// write a function, that takes a parameter by value</span>
-<span class="kt">void</span> <span class="nf">func</span><span class="p">(</span><span class="n">Example</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"func"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">}</span>
-<span class="c1">// write a function, that takes a parameter by lvalue reference</span>
-<span class="kt">void</span> <span class="nf">func_lref</span><span class="p">(</span><span class="n">Example</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"func lvalue reference"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="c1">// write a function, that takes a parameter by rvalue reference</span>
-<span class="kt">void</span> <span class="nf">func_rref</span><span class="p">(</span><span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"func rvalue reference"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="c1">// function that takes a const value</span>
-<span class="kt">void</span> <span class="nf">func_const</span><span class="p">(</span><span class="k">const</span> <span class="n">Example</span> <span class="n">e</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"func const"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">}</span>
-<span class="c1">// function that takes a const lvalue reference</span>
-<span class="kt">void</span> <span class="nf">func_const_lref</span><span class="p">(</span><span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"func const lvalue reference"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="p">}</span>
-<span class="c1">// function that takes a const rvalue reference</span>
-<span class="kt">void</span> <span class="nf">func_const_rref</span><span class="p">(</span><span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e</span><span class="p">)</span> <span class="p">{</span>
-  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"func const rvalue reference"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-<span class="p">}</span>
-
-<span class="c1">// test func, to pass various types of objects into it</span>
-<span class="kt">void</span> <span class="nf">test_func</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">Example</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">e</span><span class="p">);</span>         <span class="c1">// lvalue</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">Example</span><span class="p">());</span> <span class="c1">// rvalue</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">e_ref</span><span class="p">);</span>     <span class="c1">// lvalue reference</span>
-  <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">e_rref</span><span class="p">);</span> <span class="c1">// rvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="n">e_const</span><span class="p">;</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">e_const</span><span class="p">);</span>                               <span class="c1">// const lvalue</span>
-  <span class="n">func</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Example</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Example</span><span class="p">()));</span> <span class="c1">// const rvalue</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_const_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">e_const_ref</span><span class="p">);</span> <span class="c1">// const lvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_const_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func</span><span class="p">(</span><span class="n">e_const_rref</span><span class="p">);</span> <span class="c1">// const rvalue reference</span>
-<span class="p">}</span>
-
-<span class="c1">// test func_lref, to pass various types of objects into it</span>
-<span class="kt">void</span> <span class="nf">test_func_lref</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">Example</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func_lref</span><span class="p">(</span><span class="n">e</span><span class="p">);</span> <span class="c1">// lvalue</span>
-  <span class="c1">// func_lref(Example()); // rvalue</span>
-  <span class="n">func_lref</span><span class="p">(</span><span class="n">e_ref</span><span class="p">);</span> <span class="c1">// lvalue reference</span>
-  <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func_lref</span><span class="p">(</span><span class="n">e_rref</span><span class="p">);</span> <span class="c1">// rvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="n">e_const</span><span class="p">;</span>
-  <span class="c1">// func_lref(e_const);                               // const lvalue</span>
-  <span class="c1">// func_lref(static_cast&lt;const Example&gt;(Example())); // const rvalue</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_const_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="c1">// func_lref(e_const_ref); // const lvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_const_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="c1">// func_lref(e_const_rref); // const rvalue reference</span>
-<span class="p">}</span>
-
-<span class="c1">// test func_rref, to pass various types of objects into it</span>
-<span class="kt">void</span> <span class="nf">test_func_rref</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">Example</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="c1">// func_rref(e);         // lvalue</span>
-  <span class="n">func_rref</span><span class="p">(</span><span class="n">Example</span><span class="p">());</span> <span class="c1">// rvalue</span>
-  <span class="c1">// func_rref(e_ref);     // lvalue reference</span>
-  <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="c1">/// !! WARN: every named variable is lvalue, so it can't be passed to rvalue</span>
-  <span class="c1">/// reference</span>
-  <span class="c1">// func_rref(e_rref); // rvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="n">e_const</span><span class="p">;</span>
-  <span class="c1">// func_rref(e_const);                               // const lvalue</span>
-  <span class="c1">// func_rref(static_cast&lt;const Example&gt;(Example())); // const rvalue</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_const_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="c1">// func_rref(e_const_ref); // const lvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_const_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="c1">// func_rref(e_const_rref); // const rvalue reference</span>
-<span class="p">}</span>
-
-<span class="c1">// test func_const, to pass various types of objects into it</span>
-<span class="kt">void</span> <span class="nf">test_func_const</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">Example</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">e</span><span class="p">);</span>         <span class="c1">// lvalue</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">Example</span><span class="p">());</span> <span class="c1">// rvalue</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">e_ref</span><span class="p">);</span>     <span class="c1">// lvalue reference</span>
-  <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">e_rref</span><span class="p">);</span> <span class="c1">// rvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="n">e_const</span><span class="p">;</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">e_const</span><span class="p">);</span>                               <span class="c1">// const lvalue</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Example</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Example</span><span class="p">()));</span> <span class="c1">// const rvalue</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_const_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">e_const_ref</span><span class="p">);</span> <span class="c1">// const lvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_const_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func_const</span><span class="p">(</span><span class="n">e_const_rref</span><span class="p">);</span> <span class="c1">// const rvalue reference</span>
-<span class="p">}</span>
-
-<span class="c1">// test func_const_lref, to pass various types of objects into it</span>
-<span class="kt">void</span> <span class="nf">test_func_const_lref</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">Example</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">e</span><span class="p">);</span>         <span class="c1">// lvalue</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">Example</span><span class="p">());</span> <span class="c1">// rvalue</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">e_ref</span><span class="p">);</span>     <span class="c1">// lvalue reference</span>
-  <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">e_rref</span><span class="p">);</span> <span class="c1">// rvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="n">e_const</span><span class="p">;</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">e_const</span><span class="p">);</span>                               <span class="c1">// const lvalue</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Example</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Example</span><span class="p">()));</span> <span class="c1">// const rvalue</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_const_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">e_const_ref</span><span class="p">);</span> <span class="c1">// const lvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_const_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="n">func_const_lref</span><span class="p">(</span><span class="n">e_const_rref</span><span class="p">);</span> <span class="c1">// const rvalue reference</span>
-<span class="p">}</span>
-
-<span class="c1">// test func_const_rref, to pass various types of objects into it</span>
-<span class="kt">void</span> <span class="nf">test_func_const_rref</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">Example</span> <span class="n">e</span><span class="p">;</span>
-  <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="c1">// func_const_rref(e); // lvalue</span>
-  <span class="n">func_const_rref</span><span class="p">(</span><span class="n">Example</span><span class="p">());</span> <span class="c1">// rvalue</span>
-  <span class="c1">// func_const_rref(e_ref); // lvalue reference</span>
-  <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="c1">// func_const_rref(e_rref); // rvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="n">e_const</span><span class="p">;</span>
-  <span class="c1">// func_const_rref(e_const);                               // const lvalue</span>
-  <span class="n">func_const_rref</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Example</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Example</span><span class="p">()));</span> <span class="c1">// const rvalue</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;</span><span class="n">e_const_ref</span> <span class="o">=</span> <span class="n">e</span><span class="p">;</span>
-  <span class="c1">// func_const_rref(e_const_ref); // const lvalue reference</span>
-  <span class="k">const</span> <span class="n">Example</span> <span class="o">&amp;&amp;</span><span class="n">e_const_rref</span> <span class="o">=</span> <span class="n">Example</span><span class="p">();</span>
-  <span class="c1">// func_const_rref(e_const_rref); // const rvalue reference</span>
-<span class="p">}</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-  <span class="n">test_func</span><span class="p">();</span>
-  <span class="n">test_func_lref</span><span class="p">();</span>
-  <span class="n">test_func_rref</span><span class="p">();</span>
-  <span class="n">test_func_const</span><span class="p">();</span>
-  <span class="n">test_func_const_lref</span><span class="p">();</span>
-  <span class="n">test_func_const_rref</span><span class="p">();</span>
-  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-
-</code></pre></div></div>]]></content><author><name></name></author><category term="C++" /></entry></feed>
+</blockquote>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：SOME/IP SD]]></summary></entry></feed>
