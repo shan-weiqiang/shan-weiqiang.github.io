@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T16:16:15+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-25T16:29:26+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
 
 <ul id="markdown-toc">
   <li><a href="#io缓存原理图" id="markdown-toc-io缓存原理图">I/O缓存原理图</a></li>
@@ -1727,14 +1727,7 @@ This is especially important, when notifications are transported using multicast
   </li>
   <li>如果在错误发生时实时性要求&lt;100ms，使用UDP</li>
   <li>如果错误发生时实时性要求&lt;100ms，且消息&gt;1400 Bytes，使用SOME/IP-TP</li>
-</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准链接：SOME/IP(Scalable service-Oriented MiddlewarE over IP)。]]></summary></entry><entry><title type="html">SOME/IP Service Discovery解读</title><link href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP Service Discovery解读" /><published>2024-04-08T19:22:46+08:00</published><updated>2024-04-08T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="https://www.autosar.org/fileadmin/standards/R22-11/FO/AUTOSAR_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a>是AUTOSAR规范中定义的用于SOME/IP协议运行时服务发现的协议。它运行于SOME/IP协议之上，可以认为是基于SOME/IP协议的应用层协议。</p>
-
-<blockquote>
-  <p>AUTOSAR模型中也定义了SOME/IP纯静态的发现机制，是通过服务实例到Machine的映射完成的。可以参见<a href="https://www.autosar.org/fileadmin/standards/R22-11/AP/AUTOSAR_TPS_ManifestSpecification.pdf">Specification Manifest</a>第11.3.1.3章节。当使用纯静态的发现机制后，SOME/IP SD可以不使用。</p>
-
-</blockquote>
-
-<p>本文不是SOME/IP SD协议的翻译，而是按照原文章节对各个章节中的难以理解的部分进行解读。限于个人理解，如有错误，请以原文为准。</p>
+</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准链接：SOME/IP(Scalable service-Oriented MiddlewarE over IP)。]]></summary></entry><entry><title type="html">SOME/IP Service Discovery解读</title><link href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP Service Discovery解读" /><published>2024-04-08T19:22:46+08:00</published><updated>2024-04-08T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p><a href="hhttps://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a>\</p>
 
 <ul id="markdown-toc">
   <li><a href="#1-introduction-and-overview" id="markdown-toc-1-introduction-and-overview">1 Introduction and overview</a>    <ul>
@@ -1924,7 +1917,7 @@ This is especially important, when notifications are transported using multicast
 
 <hr />
 
-<p>这个选项在OfferService 时有用，目的是为每一个Instance提供优先级，proxy端可以根据这个选项提供的信息选择Instance；信息格式参考<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-srv-record/">DNS SRV</a>。这里如果一个proxy想发现一个服务ID下所有的实例，Service Instance 设置为 0xFFFF，当这个proxy得到所有的实例后，应当使用优先级最高的那个实例来构建proxy实例</p>
+<p>这个选项在OfferService 时有用，目的是为每一个Instance提供优先级，client端可以根据这个选项提供的信息选择Instance</p>
 
 <p><img src="/assets/images/some_ip_load_balancing_option.jpg" alt="Untitled" /></p>
 
@@ -1932,21 +1925,17 @@ This is especially important, when notifications are transported using multicast
 
 <hr />
 
-<p>IPv4选项用于指定当前Entry的IPv4地址信息，包括IP地址，传输层协议，Port端口号。注意这是一个skeleton和proxy都可能需要的选项：</p>
+<p>IPv4选项用于指定当前Entry的IPv4地址信息，包括IP地址，传输层协议，Port端口号。注意这是一个server和client都可能需要的选项：</p>
 
 <ul>
-  <li>对于skeleton，在OfferService Entry中提供Instance的源地址信息
+  <li>对于client，在OfferService Entry中提供Instance的源地址信息
     <ul>
       <li>一个Instance可以在TCP和UDP上分别占用一个Port口，且至少有一个。也就是说，一个服务实例可以同时在TCP和UDP传输协议上提供服务</li>
-      <li>Instance内部的元素，例如Event，Method必须指定是在TCP还是在UDP上通信，也就是说，服务内具体的Event，Method的通信都是唯一确定的
-        <blockquote>
-          <p>Event, Method等使用UDP还是TCP是在Deployment模型中确定的，Server和Client端在服务发现前已经知道</p>
-        </blockquote>
-      </li>
+      <li>Instance内部的元素，例如Event，Method必须指定是在TCP还是在UDP上通信，也就是说，服务内具体的Event，Method的通信都是唯一确定的</li>
       <li>一个Host上相同Service的不同Instance必须使用不同的TCP和UDP的Port；不同的Service的Instance可以使用同一个TCP和UDP的Port</li>
     </ul>
   </li>
-  <li>对于proxy，在SubscribeEventGroup Entry中使用这个选项来传递proxy实例已经准备好的，用于接收Events的IPv4链接信息
+  <li>对于client，在SubscribeEventGroup Entry中使用这个选项来传递client实例已经准备好的，用于接收Events的IPv4链接信息
     <ul>
       <li>Client端可以有0~2个单播EndPoint，如果是2个，则TCP和UDP各一个</li>
       <li>Client端还有至多1个组播接收地址</li>
@@ -1955,7 +1944,7 @@ This is especially important, when notifications are transported using multicast
 </ul>
 
 <blockquote>
-  <p>当proxy对外提供准备好接收的EventGroup信息时，所有通信资源例如socket等都已准备完毕</p>
+  <p>当client对外提供准备好接收的EventGroup信息时，所有通信资源例如socket等都已准备完毕</p>
 </blockquote>
 
 <p><img src="/assets/images/some_ip_endpoint_option.jpg" alt="Untitled" /></p>
@@ -1964,11 +1953,11 @@ This is especially important, when notifications are transported using multicast
 
 <hr />
 
-<p>该选项可以被skeleton或者proxy端组播发送：</p>
+<p>该选项可以被server或者client端组播发送：</p>
 
 <ul>
-  <li>skeleton组播发送自己提供Instance的组播地址，端口号</li>
-  <li>proxy组播发送自己接收服务的组播地址，端口号</li>
+  <li>server组播发送自己提供Instance的组播地址，端口号</li>
+  <li>client组播发送自己接收服务的组播地址，端口号</li>
 </ul>
 
 <p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
@@ -1982,7 +1971,7 @@ This is especially important, when notifications are transported using multicast
 </ul>
 
 <blockquote>
-  <p>要理解组播在EventGroup的角色，首先要理解是EventGroup分为三种：单播EventGroup，即所有Events都是通过一个单播通信链接（EndPoint pair）发送；组播EventGroup，即所有Events都被发送到一个组播EndPoint上，注意这是从Server的角度来说的，如果Server端通过单播提供服务，但是Client端在SubscribeEventGroup时提供了组播的地址，Server也会通过该组播地址发送给改Client；自适应EventGroup，即其中的Events的发送方式是根据运行时订阅状态在组播和单播之间切换的，这点在后面会详细解释。所以，无论是SubscribeEventgroup，还是SubscribeEventgroupAck引用的组播地址，都是Server或者Client指明自己发送或者接收这个EventGroup的EndPoint</p>
+  <p>要理解组播在EventGroup的角色，首先要理解是EventGroup分为三种：单播EventGroup，即所有Events都是通过一个单播通信链接（EndPoint pair）发送；组播EventGroup，即所有Events都被发送到一个组播EndPoint上，注意这是从Server的角度来说的，如果Server端通过单播提供服务，但是Client端在SubscribeEventGroup时提供了组播的地址，Server也会通过该组播地址发送给改Client；自适应EventGroup，即其中的Events的发送方式是根据运行时订阅状态在组播和单播之间切换的。所以，无论是SubscribeEventgroup，还是SubscribeEventgroupAck引用的组播地址，都是Server或者Client指明自己发送或者接收这个EventGroup的EndPoint</p>
 
 </blockquote>
 
@@ -2024,8 +2013,6 @@ This is especially important, when notifications are transported using multicast
 
 <h4 id="5126-endpoint-handling-for-services-and-events">5.1.2.6 Endpoint Handling for Services and Events</h4>
 
-<p>这里有一组很重要的概念需要解释和澄清：</p>
-
 <ul>
   <li>一个Service Instance的OfferService Entry信息中可以包含至多两个，至少一个通信EndPoint信息
     <ul>
@@ -2044,10 +2031,7 @@ This is especially important, when notifications are transported using multicast
 
 <p><img src="/assets/images/some_ip_sd_flow.jpg" alt="Untitled" /></p>
 
-<p>这个流程中有如下需要说明：</p>
-
 <ul>
-  <li>OfferService必须使用单播地址，无论是TCP还是UDP</li>
   <li>如果服务以TCP方式提供，Client端在收到OfferService的SOME/IP-SD信息后负责发起TCP链接</li>
   <li>在SubscribeEventGroup时，Client端会把上一步创建的TCP链接信息以及UDP信息发给Server</li>
   <li>Server主动发送第一个初始Events消息</li>
@@ -2101,17 +2085,12 @@ This is especially important, when notifications are transported using multicast
 
 </blockquote>
 
-<blockquote>
-  <p>如果Server发送Initial Events，则SubscribeEventGroup必须指定一个单播地址，因为Initial Events必须以单播形式发送。如果Client以组播形式订阅EventGroup，Server怎么以单播形式向Client发送？这一段解释原文编排错误，需要后续考证</p>
-
-</blockquote>
-
 <h3 id="514-service-discovery-communication-behavior">5.1.4 Service Discovery Communication Behavior</h3>
 
 <p>SOME/IP-SD应尽量将Entry放在一个SOME/IP 消息中：</p>
 
 <ul>
-  <li>不同服务Ins’tan’ce的Entry可以放在一个SD消息中</li>
+  <li>不同服务Instance的Entry可以放在一个SD消息中</li>
   <li>相同服务Instance的不同Entry可以放在一个SD消息中</li>
 </ul>
 
@@ -2226,7 +2205,7 @@ This is especially important, when notifications are transported using multicast
 
 <blockquote>
   <p>SOME/IP-SD服务发现提供在没有静态配置的情况下在运行时发现所需要的服务以及其EndPoint信息；但是它可以被纯静态的配置替代，比如可以使用配置文件静态的将所有的通信配置，EndPoint信息定义好，只需要在运行时解析配置文件获取相关通信配置即可，这些都不是SOME/IP-SD协议的一部分。</p>
-</blockquote>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[SOME/IP SD是AUTOSAR规范中定义的用于SOME/IP协议运行时服务发现的协议。它运行于SOME/IP协议之上，可以认为是基于SOME/IP协议的应用层协议。]]></summary></entry><entry><title type="html">C++ Parameter Binding</title><link href="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
+</blockquote>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[SOME/IP SD\]]></summary></entry><entry><title type="html">C++ Parameter Binding</title><link href="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html" rel="alternate" type="text/html" title="C++ Parameter Binding" /><published>2024-04-05T19:22:46+08:00</published><updated>2024-04-05T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/05/C++-Parameter-Binding</id><content type="html" xml:base="http://localhost:4000/2024/04/05/C++-Parameter-Binding.html"><![CDATA[<ul id="markdown-toc">
   <li><a href="#绑定矩阵binding-matrix" id="markdown-toc-绑定矩阵binding-matrix">绑定矩阵（binding matrix）</a></li>
   <li><a href="#示例代码" id="markdown-toc-示例代码">示例代码</a></li>
 </ul>
