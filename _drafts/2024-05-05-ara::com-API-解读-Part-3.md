@@ -5,14 +5,8 @@ date:   2024-05-05 13:22:46 +0800
 tags: [AUTOSAR]
 ---
 
-[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)是理解AUTOSAR AP中面向服务架构的入口。无论对于底层BSW开发，模型和代码引擎开发，还是对于上层应用开发，都是需要理解的。可以说ara::com API是应用层开发、BSW开发、模型/代码引擎开发的三者交汇点。理解它非常重要。本文是第三部分。
+标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)
 
----
-**WARNING**
-
-本文不是翻译，是对原文的注解，所有信息请以原文为准。
-
----
 
 ---
 **NOTE**
@@ -95,7 +89,9 @@ non-deterministic.
 ---
 ***NOTE**
 
-每一个Skeleton和Proxy的*实例*都是全局唯一的，所以Skeleton和Proxy类都不是*CopyConstructible*和*CopyAssignable*的。Skeleton的实例通过Instance ID唯一确定；Proxy的实例通过Client ID唯一确定。Skeleton实例和Proxy实例唯一ID的有效范围是不同的：
+每一个Skeleton和Proxy的*实例*都是全局唯一的，所以Skeleton和Proxy类都不是*CopyConstructible*和*CopyAssignable*的:
 
-- Skeleton的实例ID必须在当前Service ID下唯一（Service ID由一个具体的Service Interface 的Deployment确定）
-- Proxy的Client ID理论上讲只需要在该Proxy实例订阅的Skeleton实例处唯一即可，即Client ID的作用是让
+- Skeleton的实例通过Instance ID唯一确定，全局唯一
+- Proxy通过Skeleton的Instance ID实例化，与对应的Skeleton创建链接
+
+---
