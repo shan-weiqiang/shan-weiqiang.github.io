@@ -87,11 +87,40 @@ for some time with the same instance identifier and routing of method calls woul
 non-deterministic.
 
 ---
-***NOTE**
+**NOTE**
 
 每一个Skeleton和Proxy的*实例*都是全局唯一的，所以Skeleton和Proxy类都不是*CopyConstructible*和*CopyAssignable*的:
 
 - Skeleton的实例通过Instance ID唯一确定，全局唯一
 - Proxy通过Skeleton的Instance ID实例化，与对应的Skeleton创建链接
 
+面对不同通信协议，binding层需要根据各个协议的特点适配，从而在ComAPI层看起来有一致的行为：
+
+- Skeleton的实例必须是全局唯一的，且能够接收不同Proxy实例的连接，对它们提供服务
+- Proxy的实例必须能够与Skeleton进行一对一的通信，且要保证event订阅能够准确发送到Proxy实例；method的response能够和request准确配对，不能出现错乱
+
 ---
+
+Skeleton有三种类型的构造函数，分别接收：
+
+- `ara::com::InstanceIdentifier`: 一个确定的服务Instance, 需要包含ID，底层通信协议等信息；Skeleton类可以通过它来实例化底层的通信协议
+- `ara::com::InstanceIdentifierContainer`: 一组服务Instance；Skeleton会实例化其中所有的服务实例；称为multi-binding
+- `ara::core::InstanceSpecifier`: 首先通过它来解析manifest，获取`ara::com::InstanceIdentifier`，然后再通过`ara::com::InstanceIdentifier`实例化Skeleton；根据manifest，也可能是multi-binding
+
+### 5.4.4 Offering Service instance
+
+> From this point in time, where you call it, method calls might be dispatched to your
+service instance — even if the call to OfferService() has not yet returned.
+
+在`OfferService()`内部，对外提供服务需要的系统资源，例如uds socket、共享内存、TCP/UDP监听端口，开始分配，并对外发送当前服务实例的存在；在`OfferService()`还未返回的时候，可能已经有Proxy的实例与当前Skeleton实例创建链接并发送订阅、method请求；Skeleton析构函数会间接停止对外提供服务，释放系统资源；也可以主动调用` StopOfferService()`主动停止对外提供服务。
+
+### 5.4.5 Polling and event-driven processing modes
+
+Skeleton端的polling和event-driven主要体现在对method请求的处理上；Proxy端的polling和event-driven主要体现在对订阅的event数据处理上。在Skeleton的构造函数中，第二个参数用于指定method请求的处理方式： kPoll, kEvent, kEventSingleThread：
+
+- 同一个Skeleton实例，其提供的所有方法都共用同一个处理方式
+- 当Skeleton实例是multi-binding时，Skeleton实例包含的所有服务实例的所有method都共用同一个处理方式
+- 默认是kEvent方式
+
+#### 5.4.5.1 Polling Mode
+
