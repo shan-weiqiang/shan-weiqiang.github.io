@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-28T21:11:59+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">pimpl vs virtual class: binary difference</title><link href="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" rel="alternate" type="text/html" title="pimpl vs virtual class: binary difference" /><published>2024-05-25T10:22:46+08:00</published><updated>2024-05-25T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff</id><content type="html" xml:base="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"><![CDATA[<p>Both pimpl and pure abstract class can achieve compile firewall, but they are different in theory and used in different scenarios in real world</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-31T21:23:54+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">pimpl vs virtual class: binary difference</title><link href="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" rel="alternate" type="text/html" title="pimpl vs virtual class: binary difference" /><published>2024-05-25T10:22:46+08:00</published><updated>2024-05-25T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff</id><content type="html" xml:base="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"><![CDATA[<p>Both pimpl and pure abstract class can achieve compile firewall, but they are different in theory and used in different scenarios in real world</p>
 
 <h3 id="technical-difference-under-the-hood">Technical difference under the hood</h3>
 
@@ -276,6 +276,7 @@
               <li><a href="#5351-event-subscription-and-local-cache" id="markdown-toc-5351-event-subscription-and-local-cache">5.3.5.1 Event Subscription and Local Cache</a></li>
               <li><a href="#5353-accessing-event-data--aka-samples" id="markdown-toc-5353-accessing-event-data--aka-samples">5.3.5.3 Accessing Event Data — aka Samples</a></li>
               <li><a href="#5354-event-sample-management-via-sampleptrs" id="markdown-toc-5354-event-sample-management-via-sampleptrs">5.3.5.4 Event Sample Management via SamplePtrs</a></li>
+              <li><a href="#5355-event-driven-vs-polling-based-access" id="markdown-toc-5355-event-driven-vs-polling-based-access">5.3.5.5 Event-Driven vs Polling-Based access</a></li>
               <li><a href="#5356-buffering-strategies" id="markdown-toc-5356-buffering-strategies">5.3.5.6 Buffering Strategies</a></li>
             </ul>
           </li>
@@ -460,6 +461,19 @@ maxSampleCount, which it had committed in Subscribe().</li>
     <ul>
       <li>在<code class="language-plaintext highlighter-rouge">SamplePtr</code>析构时，通过类似引用计数的方式将释放信息传递给ComAPI，这个机制可以参考<code class="language-plaintext highlighter-rouge">std::shared_ptr</code></li>
       <li>在<code class="language-plaintext highlighter-rouge">SamplePtr</code>中开放对应的API接口，应用程序使用完毕后，显式调用该接口释放内存</li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="5355-event-driven-vs-polling-based-access">5.3.5.5 Event-Driven vs Polling-Based access</h4>
+
+<p>Proxy端event的polling和event-driven模式分别通过两个API实现：</p>
+
+<ul>
+  <li>polling: <code class="language-plaintext highlighter-rouge">GetNewSamples</code>实现polling</li>
+  <li>event-driven：<code class="language-plaintext highlighter-rouge">SetReceiveHandler(ara::com::EventReceiveHandlerhandler)</code> 注册一个回调，底层通信协议在收到新的消息后会调用这个回调
+    <ul>
+      <li>在这个回调中再调用<code class="language-plaintext highlighter-rouge">GetNewSamples</code>获取数据</li>
     </ul>
   </li>
 </ul>

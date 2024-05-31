@@ -173,6 +173,14 @@ size_t maxNumberOfSamples = std::numeric_limits<size_t>::max());
   - 在`SamplePtr`析构时，通过类似引用计数的方式将释放信息传递给ComAPI，这个机制可以参考`std::shared_ptr`
   - 在`SamplePtr`中开放对应的API接口，应用程序使用完毕后，显式调用该接口释放内存
 
+#### 5.3.5.5 Event-Driven vs Polling-Based access
+
+Proxy端event的polling和event-driven模式分别通过两个API实现：
+
+- polling: `GetNewSamples`实现polling
+- event-driven：`SetReceiveHandler(ara::com::EventReceiveHandlerhandler)` 注册一个回调，底层通信协议在收到新的消息后会调用这个回调
+  - 在这个回调中再调用`GetNewSamples`获取数据
+
 
 #### 5.3.5.6 Buffering Strategies
 
