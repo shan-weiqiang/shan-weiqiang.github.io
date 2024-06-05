@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "condition_variable fully explained"
+title:  "std::condition_variable breakdown"
 date:   2024-04-27 19:22:46 +0800
 tags: [C++]
 ---

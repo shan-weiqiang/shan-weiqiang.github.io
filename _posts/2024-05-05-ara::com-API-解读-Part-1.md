@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "ara::com API 解读[Part 1]"
+title:  "ara::com API[Part 1]"
 date:   2024-05-05 13:22:46 +0800
 tags: [AUTOSAR]
 ---
@@ -37,7 +37,7 @@ there has to be flexibility to exchange that.
 ---
 **NOTE**
 
-ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见[SOME/IP Service Discovery解读](https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html), [SOME/IP 解读](https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html)
+ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见[SOME/IP Service Discovery](https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html), [SOME/IP](https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html)
 
 ---
 
