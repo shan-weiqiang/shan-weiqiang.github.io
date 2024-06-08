@@ -1,24 +1,239 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-05-31T21:23:54+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">pimpl vs virtual class: binary difference</title><link href="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" rel="alternate" type="text/html" title="pimpl vs virtual class: binary difference" /><published>2024-05-25T10:22:46+08:00</published><updated>2024-05-25T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff</id><content type="html" xml:base="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"><![CDATA[<p>Both pimpl and pure abstract class can achieve compile firewall, but they are different in theory and used in different scenarios in real world</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-06-08T10:17:15+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">Shan Weiqiang’s blog</title><subtitle></subtitle><entry><title type="html">AUTOSAR Service Model: a big picture</title><link href="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html" rel="alternate" type="text/html" title="AUTOSAR Service Model: a big picture" /><published>2024-06-08T09:22:46+08:00</published><updated>2024-06-08T09:22:46+08:00</updated><id>http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture</id><content type="html" xml:base="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html"><![CDATA[<p>The design phase of AUTOSAR communication management can be generalized as following steps: First, a <em>methodology</em> is chosen. According to the methodology, <em>standards</em> and <em>protocols</em> are designed, specifying detailed <em>behavior</em>. AUTOSAR vendors and open source organizations <em>implement</em> these <em>standards</em> and <em>protocol</em>.</p>
+
+<p>AUTOSAR Service Model is based on SOA(service-oriented architecture). According to this service model, AUTOSAR designs the user level API, aka the ara::com::API and the low level communication protocol SOME/IP. ara::com::API and SOME/IP both inherit concept from AUTOSAR service model, so they both have similar concept like service,event, method, etc, even though the meaning of these names varies in its own context. ara::com API can be implemented on other communication protocols, like DDS, instead of SOME/IP. (Interestingly, DDS is not service-oriented.).</p>
+
+<p>These steps can be illustrated in the following diagram:</p>
+
+<p><img src="/assets/images/autosar_service_model.png" alt="Alt text" /></p>
+
+<p>The soul of the software is the AUTOSAR service model, which defines <em>service description</em>:</p>
+
+<ul>
+  <li>A service is interface between service provider and service consumer(SOA)</li>
+  <li>AUTOSAR service consists of one or more of following elements:
+    <ul>
+      <li>events</li>
+      <li>methods</li>
+      <li>fields</li>
+    </ul>
+  </li>
+</ul>
+
+<p>ara::com API and SOME/IP both contain these concepts, but they describe them in different levels:</p>
+
+<ul>
+  <li>SOME/IP is low level <em>communication oriented</em> protocol. It emphasize the <em>transportation</em> of <em>data</em>. It doesn’t care about method calls, event handling. It’s job is to compose corresponding messages and deliver them to desired target.</li>
+  <li>ara::com API is high level <em>user oriented</em> standards. It focus on the user side and give detailed requirement on <em>behavior</em> of these concepts. For example, ara::com API defines fixed class, method signature and data structures to unify the <em>behavior</em> in the eye of the user. ara::com API defines how service provider implement their method logic, how consumer implement their event handler. ara::com API also specifies the execution mechanism, polling or event-driven, for method and event handling. Except for events, methods, fields, ara::com API extends another element: triggers, which does not appear in AUTOSAR service model and SOME/IP.</li>
+</ul>
+
+<p>Implementation details can be very different for SOME/IP, as long as the implementation adhere to the message format. Implemetentations for ara::com API must use the standard code specified by AUTOSAR, so user does not need to care about the underlying details. The underlying implementation for the ara::com API is called <em>binding</em>, and the underlying protocol used for communication is called <em>driver</em> or <em>communication driver</em>. ara::com API can use SOME/IP as <em>driver</em>, which is the AUTOSAR standard. Besides SOME/IP, the ara::com API can also be bound to DDS, whose binding requirement are included in standard.</p>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[The design phase of AUTOSAR communication management can be generalized as following steps: First, a methodology is chosen. According to the methodology, standards and protocols are designed, specifying detailed behavior. AUTOSAR vendors and open source organizations implement these standards and protocol.]]></summary></entry><entry><title type="html">ara::com API[Part 3]</title><link href="http://localhost:4000/2024/06/01/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-3.html" rel="alternate" type="text/html" title="ara::com API[Part 3]" /><published>2024-06-01T09:22:46+08:00</published><updated>2024-06-01T09:22:46+08:00</updated><id>http://localhost:4000/2024/06/01/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-3</id><content type="html" xml:base="http://localhost:4000/2024/06/01/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-3.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>以下文中用到的词语解释：</p>
+
+<ul>
+  <li><em>通信协议</em>，<em>驱动协议</em>： 如果不是特别说明，这里<em>通信协议</em>指的是ComAPI底层使用的通信驱动协议，例如DDS、SOME/IP。注意<strong>不是</strong>网络协议</li>
+  <li><em>ComAPI</em>, <em>ComAPI绑定</em>，<em>绑定层</em>，<em>绑定</em>，<em>适配层</em>：这些都是指ComAPI层的接口实现，也称作绑定实现；它是存在于应用层与通信协议之间的适配代码</li>
+  <li><em>Proxy</em>，<em>Proxy类</em>，<em>客户端</em>：如无特别说明，都是指服务的消费方，Proxy接收Skeleton提供的服务</li>
+  <li><em>Skeleton</em>，<em>Skeleton类</em>，<em>服务端</em>：如无特别说明，都是指服务提供方，Skeleton为Proxy提供服务</li>
+  <li><em>服务实例</em>，<em>Skeleton类实例</em>，<em>Skeleton实例</em>：都是指一个具体的服务实例， 它是Skeleton类的实例；服务实例全局唯一</li>
+  <li><em>消费实例</em>，<em>Proxy类实例</em>， <em>Proxy实例</em>：是指一个具体的消费方，它有唯一的Client ID; 注意Proxy实例是没有服务实例ID的，服务ID是Skeleton实例的唯一标识符</li>
+  <li>Skeleton/Proxy的<strong>实例</strong>与Seleton/Proxy<strong>类</strong>是两个概念，文中如果指的是实例，则会具体写明，否则指的是Skeleton/Proxy类本身</li>
+</ul>
+
+<hr />
+
+<ul id="markdown-toc">
+  <li><a href="#536-methods" id="markdown-toc-536-methods">5.3.6 Methods</a>    <ul>
+      <li><a href="#5361-one-way-aka-fire-and-forget-methods" id="markdown-toc-5361-one-way-aka-fire-and-forget-methods">5.3.6.1 One-Way aka Fire-and-Forget Methods</a></li>
+      <li><a href="#5362-event-driven-vs-polling-access-to-method-results" id="markdown-toc-5362-event-driven-vs-polling-access-to-method-results">5.3.6.2 Event-Driven vs Polling access to method results</a></li>
+      <li><a href="#5363-canceling-method-result" id="markdown-toc-5363-canceling-method-result">5.3.6.3 Canceling Method Result</a></li>
+    </ul>
+  </li>
+  <li><a href="#537-fields" id="markdown-toc-537-fields">5.3.7 Fields</a></li>
+  <li><a href="#538-triggers" id="markdown-toc-538-triggers">5.3.8 Triggers</a></li>
+  <li><a href="#54-skeleton-class" id="markdown-toc-54-skeleton-class">5.4 Skeleton Class</a>    <ul>
+      <li><a href="#543-instantiation-constructors" id="markdown-toc-543-instantiation-constructors">5.4.3 Instantiation (Constructors)</a></li>
+      <li><a href="#544-offering-service-instance" id="markdown-toc-544-offering-service-instance">5.4.4 Offering Service instance</a></li>
+      <li><a href="#545-polling-and-event-driven-processing-modes" id="markdown-toc-545-polling-and-event-driven-processing-modes">5.4.5 Polling and event-driven processing modes</a>        <ul>
+          <li><a href="#5451-polling-mode" id="markdown-toc-5451-polling-mode">5.4.5.1 Polling Mode</a></li>
+          <li><a href="#5452-event-driven-mode" id="markdown-toc-5452-event-driven-mode">5.4.5.2 Event-Driven Mode</a></li>
+        </ul>
+      </li>
+      <li><a href="#546-methods" id="markdown-toc-546-methods">5.4.6 Methods</a></li>
+      <li><a href="#547-events" id="markdown-toc-547-events">5.4.7 Events</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="536-methods">5.3.6 Methods</h3>
+
+<blockquote>
+  <p>The operator contains all of the service methods IN-/INOUT-parameters as INparameters. That means INOUT-parameters in the abstract service method description
+are split in a pair of IN and OUT parameters in the ara::com API.</p>
+</blockquote>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>服务接口中的每一个method都对应一个实现了<code class="language-plaintext highlighter-rouge">()</code>操作符的类。<code class="language-plaintext highlighter-rouge">()</code>操作符的入参就是method的In+In/Out参数；返回值是<code class="language-plaintext highlighter-rouge">ara::core::Future</code>类型，其模板参数类型是一个封装了这个method所有的Out+In/Out类型的结构体。关于In/Out类型，AUTOSAR规定要将其分别放在入参和返回值中，而不是通过非常量引用或者指针形式传入参数，然后通过引用或者指针原地返回结果。也就是说In/Out method参数类型，只是一个语法糖，等同于分别在In,Out中分别增加一个相同类型的参数。不支持通过引用或者指针原地返回结果的原因也很简单：method的返回类型是一个<code class="language-plaintext highlighter-rouge">future</code>，且必须马上返回，而不是block等待；如果入参是一个非常量引用或者指针，则method的调用依赖于周围的环境，则必须block等待，失去了method调用的异步特性。</p>
+
+<hr />
+
+<h4 id="5361-one-way-aka-fire-and-forget-methods">5.3.6.1 One-Way aka Fire-and-Forget Methods</h4>
+
+<p>fire-and-forget模式返回类型为<code class="language-plaintext highlighter-rouge">void</code>，但是返回<code class="language-plaintext highlighter-rouge">void</code>的方法不一定是fire-and-forget:</p>
+
+<ul>
+  <li>fire-and-forget method的Proxy端不会等待Skeleton端的返回结果，而是在讲数据发送到网络后直接在本地的<code class="language-plaintext highlighter-rouge">promise</code>中<code class="language-plaintext highlighter-rouge">set_value</code></li>
+  <li>返回值为<code class="language-plaintext highlighter-rouge">void</code>但不是fire-and-forget的method，即便返回值是<code class="language-plaintext highlighter-rouge">void</code>，Proxy端也要在接收到Skeleton端的通知后才会讲<code class="language-plaintext highlighter-rouge">promise</code>设置值，即便这个值是<code class="language-plaintext highlighter-rouge">void</code></li>
+</ul>
+
+<h4 id="5362-event-driven-vs-polling-access-to-method-results">5.3.6.2 Event-Driven vs Polling access to method results</h4>
+
+<p>AUTOSAR method对事件event-driven和polling的支持是通过对<a href="https://en.cppreference.com/w/cpp/thread/future">std::future</a>的扩展实现的:</p>
+
+<ul>
+  <li>event-driven: AUTOSAR的<code class="language-plaintext highlighter-rouge">ara::core::Future</code>实现了如下接口，使<code class="language-plaintext highlighter-rouge">future</code>可以注册一个callback，当数据可用时直接异步回调</li>
+</ul>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">F</span><span class="p">&gt;</span>
+<span class="k">auto</span> <span class="n">then</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Future</span><span class="o">&lt;</span><span class="n">SEE_COMMENT_ABOVE</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div></div>
+<p>这个callback被调用的线程可能是<code class="language-plaintext highlighter-rouge">then</code>被调用的线程；也可能是<code class="language-plaintext highlighter-rouge">promise</code>的<code class="language-plaintext highlighter-rouge">set_value</code>线程</p>
+
+<ul>
+  <li>polling: AUTOSAR的<code class="language-plaintext highlighter-rouge">ara::core::Future</code>提供<code class="language-plaintext highlighter-rouge">bool is_ready() const;</code>，这个接口是non-blocking的，如果返回<code class="language-plaintext highlighter-rouge">true</code>，则<code class="language-plaintext highlighter-rouge">wait</code>肯定不会block</li>
+</ul>
+
+<h4 id="5363-canceling-method-result">5.3.6.3 Canceling Method Result</h4>
+
+<p><code class="language-plaintext highlighter-rouge">promise/future</code> 是 <em>DefaultContructible</em> 和 <em>MoveConstructible</em>, 但不是<em>CopyConstructible</em> 或者 <em>CopyAssignable</em>的，所以如果想要放弃method结果，需要使用拷贝复制给<code class="language-plaintext highlighter-rouge">future</code>一个空的<code class="language-plaintext highlighter-rouge">ara::com::Future</code>，这样当<code class="language-plaintext highlighter-rouge">promise/future</code>的<code class="language-plaintext highlighter-rouge">shared state</code>就会只有<code class="language-plaintext highlighter-rouge">promise</code>的引用，当<code class="language-plaintext highlighter-rouge">promise</code>调用了<code class="language-plaintext highlighter-rouge">set_value</code>且生命周期结束后，<code class="language-plaintext highlighter-rouge">shared state</code>会自动释放。</p>
+
+<h3 id="537-fields">5.3.7 Fields</h3>
+
+<p>fields是event和method的集合，可以用如下几条总结fields的特点:</p>
+
+<ul>
+  <li>与event不同的时，一旦Proxy订阅了一个field，Skeleton会自动发送当前的值给Proxy</li>
+  <li><code class="language-plaintext highlighter-rouge">Get()/Set()</code>可以用来获取或者设定当前的field值，就是普通的method</li>
+</ul>
+
+<p>除此之外，field与event一样，也有<code class="language-plaintext highlighter-rouge">Subscribe</code>,<code class="language-plaintext highlighter-rouge">GetSubscriptionState</code>,<code class="language-plaintext highlighter-rouge">SetReceiveHandler</code>等方法。</p>
+
+<h3 id="538-triggers">5.3.8 Triggers</h3>
+
+<p>trigger是一个特殊的event，它没有数据，所以不需要<code class="language-plaintext highlighter-rouge">local cache</code>。除了<code class="language-plaintext highlighter-rouge">GetNewSamples</code>方法变成<code class="language-plaintext highlighter-rouge">size_t GetNewTriggers()</code>以外，其他都与event相同。</p>
+
+<h2 id="54-skeleton-class">5.4 Skeleton Class</h2>
+
+<h3 id="543-instantiation-constructors">5.4.3 Instantiation (Constructors)</h3>
+
+<blockquote>
+  <p>Exactly for this reason the skeleton class (just like the proxy class) does neither support
+copy construction nor copy assignment! Otherwise two “identical” instances would exist
+for some time with the same instance identifier and routing of method calls would be
+non-deterministic.</p>
+</blockquote>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>每一个Skeleton和Proxy的<em>实例</em>都是全局唯一的，所以Skeleton和Proxy类都不是<em>CopyConstructible</em>和<em>CopyAssignable</em>的:</p>
+
+<ul>
+  <li>Skeleton的实例通过Instance ID唯一确定，全局唯一</li>
+  <li>Proxy通过Skeleton的Instance ID实例化，与对应的Skeleton创建链接</li>
+</ul>
+
+<p>面对不同通信协议，binding层需要根据各个协议的特点适配，从而在ComAPI层看起来有一致的行为：</p>
+
+<ul>
+  <li>Skeleton的实例必须是全局唯一的，且能够接收不同Proxy实例的连接，对它们提供服务</li>
+  <li>Proxy的实例必须能够与Skeleton进行一对一的通信，且要保证event订阅能够准确发送到Proxy实例；method的response能够和request准确配对，不能出现错乱</li>
+</ul>
+
+<hr />
+
+<p>Skeleton有三种类型的构造函数，分别接收：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifier</code>: 一个确定的服务Instance, 需要包含ID，底层通信协议等信息；Skeleton类可以通过它来实例化底层的通信协议</li>
+  <li><code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifierContainer</code>: 一组服务Instance；Skeleton会实例化其中所有的服务实例；称为multi-binding</li>
+  <li><code class="language-plaintext highlighter-rouge">ara::core::InstanceSpecifier</code>: 首先通过它来解析manifest，获取<code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifier</code>，然后再通过<code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifier</code>实例化Skeleton；根据manifest，也可能是multi-binding</li>
+</ul>
+
+<h3 id="544-offering-service-instance">5.4.4 Offering Service instance</h3>
+
+<blockquote>
+  <p>From this point in time, where you call it, method calls might be dispatched to your
+service instance — even if the call to OfferService() has not yet returned.</p>
+</blockquote>
+
+<p>在<code class="language-plaintext highlighter-rouge">OfferService()</code>内部，对外提供服务需要的系统资源，例如uds socket、共享内存、TCP/UDP监听端口，开始分配，并对外发送当前服务实例的存在；在<code class="language-plaintext highlighter-rouge">OfferService()</code>还未返回的时候，可能已经有Proxy的实例与当前Skeleton实例创建链接并发送订阅、method请求；Skeleton析构函数会间接停止对外提供服务，释放系统资源；也可以主动调用<code class="language-plaintext highlighter-rouge"> StopOfferService()</code>主动停止对外提供服务。</p>
+
+<h3 id="545-polling-and-event-driven-processing-modes">5.4.5 Polling and event-driven processing modes</h3>
+
+<p>Skeleton端的polling和event-driven主要体现在对method请求的处理上；Proxy端的polling和event-driven主要体现在对订阅的event数据处理上。在Skeleton的构造函数中，第二个参数用于指定method请求的处理方式： kPoll, kEvent, kEventSingleThread：</p>
+
+<ul>
+  <li>同一个Skeleton实例，其提供的所有方法都共用同一个处理方式</li>
+  <li>当Skeleton实例是multi-binding时，Skeleton实例包含的所有服务实例的所有method都共用同一个处理方式</li>
+  <li>默认是kEvent方式</li>
+</ul>
+
+<h4 id="5451-polling-mode">5.4.5.1 Polling Mode</h4>
+
+<p>polling模式通过<code class="language-plaintext highlighter-rouge">ara::core::Future&lt;bool&gt; ProcessNextMethodCall();</code>接口实现。在polling模式下当method的request请求到达后，不会触发method的处理，而是将请求以队列的形式缓存；等待用户主动调用<code class="language-plaintext highlighter-rouge">ara::core::Future&lt;bool&gt; ProcessNextMethodCall();</code>。这个方法返回一个Future，包含了一个布尔值，表示队列中是否包含下一个待处理的method请求。</p>
+
+<ul>
+  <li>在Skeleton API中用户的method实现虚接口的返回值类型是<code class="language-plaintext highlighter-rouge">ara::core::Future</code>：这表示用户的方法可能是异步的</li>
+  <li>在ProcessNextMethodCall方法中，根据底层通信协议的不同，一般应包含如下步骤：
+    <ul>
+      <li>将method请求数据反序列化</li>
+      <li>将反序列化后的参数列表传入用户的method实现，得到一个Future：在用户的方法实现可能是同步的；也可能是异步的</li>
+      <li>通过用户method实现返回的Future拿到处理结果</li>
+      <li>将这个结果序列化成response，发送给Proxy</li>
+      <li>检查是否存在下一个method请求，如果是返回true，否则返回false</li>
+    </ul>
+  </li>
+</ul>
+
+<p>在以上的步骤中，有两次返回Future：用户method处理实现返回和<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>返回，这两处只要有一处是异步的，则整个method请求的处理就是异步的。序列化、反序列化、检查是否有下一个请求等步骤可以在<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>的当前线程，也可以异步执行；用户method处理方法中，可以先返回Future，然后异步执行处理，也可以在<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>同一个线程中同步完成。<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>所在的线程、序列化/反序列化/调用用户实现/返送返回值的线程、用户实际处理method的线程，这三个上下文可以是同一个线程，可以是两个线程，也可以是三个不同的线程。</p>
+
+<h4 id="5452-event-driven-mode">5.4.5.2 Event-Driven Mode</h4>
+
+<p>kEvent模式和kEventSingleThread模式下，当通信协议接收到method的request请求后，会异步触发相关method处理，例如将任务放入线程池执行。kEvent模式下，请求到达后直接放入线程池处理；kEventSingleThread模式下只有一个线程，method的request按照先后顺序在同一个线程中执行。</p>
+
+<h3 id="546-methods">5.4.6 Methods</h3>
+
+<p>在Skeleton端用户的method实现返回一个Future这意味着，用户可以选择同步或者异步处理请求，例如用户可以在其中开启异步线程或者放入线程池，然后马上返回一个Future</p>
+
+<h3 id="547-events">5.4.7 Events</h3>
+
+<p>第一个发送接口使用拷贝的方式将用户数据拷贝到底层通信协议：<code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Send(const SampleType &amp;data);</code>; 为了减少拷贝AUTOSAR提供了另外一个发送接口：<code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Send(ara::com::SampleAllocateePtr&lt;SampleType&gt;data);</code>，其中<code class="language-plaintext highlighter-rouge">ara::com::SampleAllocateePtr&lt;SampleType&gt;</code>的行为可以当成<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>，在调用这个发送接口前可以通过使用<code class="language-plaintext highlighter-rouge">ara::core::Result&lt;ara::com::SampleAllocateePtr&lt;SampleType&gt;&gt; Allocate();</code>接口向ComAPI层申请空间，申请到后用户将数据填充，然后调用<code class="language-plaintext highlighter-rouge">Send</code>，加入ComAPI在共享内存中开辟这些空间，则在同一个机器上的不同进程可以在Sender和Reciever之间实现<code class="language-plaintext highlighter-rouge">zero copy</code>。</p>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">pimpl vs virtual class: binary difference</title><link href="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" rel="alternate" type="text/html" title="pimpl vs virtual class: binary difference" /><published>2024-05-25T10:22:46+08:00</published><updated>2024-05-25T10:22:46+08:00</updated><id>http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff</id><content type="html" xml:base="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"><![CDATA[<p>Both pimpl and pure abstract class can achieve compilation firewall, but they are different in theory and used in different scenarios in the real world</p>
 
 <h3 id="technical-difference-under-the-hood">Technical difference under the hood</h3>
 
 <h4 id="pimpl">pimpl</h4>
 
-<p>The core of pimpl is opaque pointer. The user only know the public APIs plus opaque pointer. During compiling time, the user code can complile only depending on the client lib through the pointer, because the pointer size is known for the user, so the user lib does not <em>directly</em> depend on the client lib binary, namely, the <em>implementation</em> details. Whether the user is shared lib or executable, there is no need for recompile or relink needed when the client side changes, because the user side only refer to implementation through pointer and this pointer <em>binding</em> will be done during runtime by dynamic linker. The client lib developer can write a dummy implementation of the client APIs for the purpose of debuging and isolation of working with the user side and there are no needs for recompile or link when the dummy implementation lib is replaced with the real client lib. The development for user side and client side can be isolated this way. The core reason why pimpl works is the dynamic linker, which can reallocate symbols during runtime.</p>
+<p>The core of pimpl is opaque pointer. The user only knows the public APIs plus opaque pointer. During compiling time, the user code can complile only depending on the client lib through the pointer, because the pointer size is known for the user, so the user lib does not <em>directly</em> depend on the client lib binary, namely, the <em>implementation</em> details. Whether the user is shared lib or executable, there is no need for recompile or relink needed when the client side changes, because the user side only refer to implementation through pointer and this pointer <em>binding</em> will be done during runtime by dynamic linker. The client lib developer can write a dummy implementation of the client APIs for the purpose of debuging and isolation of working with the user side and there is no need for recompile or link when the dummy implementation lib is replaced with the real client lib. The development for user side and client side can be isolated this way. The core reason why pimpl works is the dynamic linker, which can resolve symbols during runtime.</p>
 
-<p>There is additional method to achieve more efficiency, such as <code class="language-plaintext highlighter-rouge">lazy binding</code> in the process of dynamic linking.</p>
+<p>There is additional method to achieve more efficiency, such as <code class="language-plaintext highlighter-rouge">lazy binding</code> during the process of dynamic linking.</p>
 
-<p>Note: no additional CPU instructions are generated for using pimpl, overhead comes from the pointer access of the opaque pointer.</p>
+<p>Note: no additional CPU instructions are generated for using pimpl, the overhead comes from the access of the opaque pointer.</p>
 
 <h4 id="pure-abstract-class">pure abstract class</h4>
 
-<p>Pure abstract class use virtual table as the media to achieve compile isolation. It’s a process called <code class="language-plaintext highlighter-rouge">late binding</code></p>
+<p>Pure abstract class use virtual table as the medium to achieve compile isolation. It’s a process called <code class="language-plaintext highlighter-rouge">late binding</code></p>
 
 <p>Late binding, also known as dynamic binding or runtime binding, refers to the process of determining the specific function implementation to be called at runtime, based on the actual type of the object being referred to. It is typically associated with polymorphism and virtual function dispatch.</p>
 
 <p>In languages like C++, when a virtual function is called on a pointer or reference to a base class, late binding ensures that the appropriate function implementation is selected based on the runtime type of the object. This allows different derived classes to have their own implementations of the same virtual function, providing flexibility and extensibility.</p>
 
-<p>Note: The user use the base pure virtual class and the APIs and when the user’s code are actually executed, the API implementation is decided by the actual derived subclasses that is passed into the user’s function. At compile time the user’s code only knows the base class and will generate the CPU instructions for how to get relevent function address based on the virtual table, but at runtime, the passed instance is subclass of base class, which has a different virtual table address(but the instrunctions for finding functions are the same); This way the functions found is the implementation of the subclass. This behavior decides that if the base class’s member or methods are changed (whether it’s quantity or appearance squences, because these all influence the CPU instructions generated from the compiler), the user code need to be compiled again, while pimpl do not have this problem.</p>
+<p>Note: The user use the base pure virtual class and the APIs and when the user’s code are actually executed, the API implementation is decided by the actual derived subclasses that is passed into the user’s function. At compile time the user’s code only knows the base class and will generate the CPU instructions for how to get relevent function address based on the virtual table, but at runtime, the passed instance is subclass of base class, which has a different virtual table address(but the instrunctions for finding functions are the same); This way the functions found is the implementation of the subclass. This behavior decides that if the base class’s member or methods are changed (whether it’s quantity or appearance squences, because these all influence the CPU instructions generated from the compiler), the user code need to be compiled again, while pimpl does not have this problem.</p>
 
 <p>Note: The overhead of pure abstract class is in the access of the virtual tables. CPU instructions will be generated by the compiler to navigate to the desired implementation through pointer, with the help of the virtual table.</p>
 
@@ -48,13 +263,13 @@
 
 <h3 id="use-case">Use case</h3>
 
-<p>Pure abstract class is mainly used as interface. Namely, a group of clients has the same API and the user side only need to use the common interfaces that are shared by all the clients. It’s one to more mapping between the user and the client. The actualization is achieved by passing different client instances into the user.</p>
+<p>A pure abstract class is mainly used as interface. Namely, a group of clients has the same API and the user side only need to use the common interfaces that are shared by all the clients. It’s one to more mapping between the user and the client. The actualization is achieved by passing different client instances into the user.</p>
 
 <p>Pimpl is mainly used for encapsulation. Namely, a class or lib is exposed to user as standard APIs(only public api that will be used by user) and the private implementations are hidden by the opaque pointer. It’s more to one mapping between user and client. The actualization is achieved by user use the standard API provided by client and link to the client lib.</p>
 
 <h3 id="compile-fire-wall-and-linking">Compile fire wall and linking</h3>
 
-<p>Compile isolation means there is no need for <code class="language-plaintext highlighter-rouge">static</code> recompiling and relinking during compilation time, only runtime dynamic linking(pimpl) or runtime virtual table handling(pure abstract class) is required for the client’s new implementation to take effect.</p>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[Both pimpl and pure abstract class can achieve compile firewall, but they are different in theory and used in different scenarios in real world]]></summary></entry><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
+<p>Compile isolation means there is no need for <code class="language-plaintext highlighter-rouge">static</code> recompiling and relinking during compilation time, only runtime dynamic linking(pimpl) or runtime virtual table handling(pure abstract class) is required for the client’s new implementation to take effect.</p>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[Both pimpl and pure abstract class can achieve compilation firewall, but they are different in theory and used in different scenarios in the real world]]></summary></entry><entry><title type="html">I/O Buffers</title><link href="http://localhost:4000/2024/05/19/IO-Buffers.html" rel="alternate" type="text/html" title="I/O Buffers" /><published>2024-05-19T13:22:46+08:00</published><updated>2024-05-19T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/19/IO-Buffers</id><content type="html" xml:base="http://localhost:4000/2024/05/19/IO-Buffers.html"><![CDATA[<p>本篇文章是<a href="https://man7.org/tlpi/">The Linux Programming Interface</a>(<em>published in October 2010, No Starch Press, ISBN 978-1-59327-220-3</em>)这本书第13章：<em>File I/O Buffering</em>的阅读总结及翻译。</p>
 
 <ul id="markdown-toc">
   <li><a href="#io缓存原理图" id="markdown-toc-io缓存原理图">I/O缓存原理图</a></li>
@@ -245,7 +460,7 @@
 
 <p>The whole picture:</p>
 
-<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[This article iterate the process from write to a TCP socket, to the read from a TCP socket.]]></summary></entry><entry><title type="html">ara::com API 解读[Part 2]</title><link href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 2]" /><published>2024-05-12T13:22:46+08:00</published><updated>2024-05-12T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/12/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-2</id><content type="html" xml:base="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
+<p><img src="/assets/images/tcp_segmentation.png" alt="Alt text" /></p>]]></content><author><name></name></author><category term="system_programming" /><summary type="html"><![CDATA[This article iterate the process from write to a TCP socket, to the read from a TCP socket.]]></summary></entry><entry><title type="html">ara::com API[Part 2]</title><link href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" rel="alternate" type="text/html" title="ara::com API[Part 2]" /><published>2024-05-12T13:22:46+08:00</published><updated>2024-05-12T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/12/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-2</id><content type="html" xml:base="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
 
 <hr />
 <p><strong>NOTE</strong></p>
@@ -526,7 +741,7 @@ maxSampleCount, which it had committed in Subscribe().</li>
 <ul>
   <li>不同Proxy实例会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy实例之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy实例可能会因为消费慢的Proxy实例而牺牲掉获取数据的机会；相比较而言，如果每个Proxy实例都有自己的缓冲copy，则不会出现这个问题</li>
   <li>不同的进程对数据的存储可能有不同的对齐要求，如果使用共享内存，则必须要考虑这个问题</li>
-</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">ara::com API 解读[Part 1]</title><link href="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html" rel="alternate" type="text/html" title="ara::com API 解读[Part 1]" /><published>2024-05-05T13:22:46+08:00</published><updated>2024-05-05T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/05/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-1</id><content type="html" xml:base="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
+</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">ara::com API[Part 1]</title><link href="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html" rel="alternate" type="text/html" title="ara::com API[Part 1]" /><published>2024-05-05T13:22:46+08:00</published><updated>2024-05-05T13:22:46+08:00</updated><id>http://localhost:4000/2024/05/05/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-1</id><content type="html" xml:base="http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
 
 <hr />
 <p><strong>NOTE</strong></p>
@@ -576,7 +791,7 @@ there has to be flexibility to exchange that.</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见<a href="https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html">SOME/IP Service Discovery解读</a>, <a href="https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html">SOME/IP 解读</a></p>
+<p>ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见<a href="https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html">SOME/IP Service Discovery</a>, <a href="https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html">SOME/IP</a></p>
 
 <hr />
 
@@ -758,7 +973,7 @@ manifest, which maps the same ara::core::InstanceSpecifier differently</p>
 
 <p>Instance Identifier和Instance Specifier都是<em>部署</em>阶段的模型元素，代码引擎会根据不同的部署模型生成不同的部署配置文件清单（例如json），在配置清单中会详细的包含Instance Specifier与Instance Identifier的对应关系。这就是文中从Instance Specifier解析Instance Identifier的信息来源：解析配置清单，获取对应信息。</p>
 
-<hr />]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">condition_variable fully explained</title><link href="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html" rel="alternate" type="text/html" title="condition_variable fully explained" /><published>2024-04-27T19:22:46+08:00</published><updated>2024-04-27T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/27/condition_variable%20-fully-explained</id><content type="html" xml:base="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"><![CDATA[<p>This post tries to enumerate the pitfalls that might happen in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>. First I will explain scenarios in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging <code class="language-plaintext highlighter-rouge">condition_variable</code>.</p>
+<hr />]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry><entry><title type="html">std::condition_variable: a deeper look</title><link href="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html" rel="alternate" type="text/html" title="std::condition_variable: a deeper look" /><published>2024-04-27T19:22:46+08:00</published><updated>2024-04-27T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/27/condition_variable%20-fully-explained</id><content type="html" xml:base="http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"><![CDATA[<p>This post tries to enumerate the pitfalls that might happen in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>. First I will explain scenarios in the use of <code class="language-plaintext highlighter-rouge">condition_variable</code>; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging <code class="language-plaintext highlighter-rouge">condition_variable</code>.</p>
 
 <ul id="markdown-toc">
   <li><a href="#thread-flow" id="markdown-toc-thread-flow">Thread flow</a>    <ul>
@@ -1453,796 +1668,4 @@ A destructor
 
 <p><img src="/assets/images/memory.png" alt="Alt text" /></p>
 
-<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在<a href="https://shan-weiqiang.github.io/2024/04/21/smartPtr-%E6%9E%84%E9%80%A0-%E6%9E%90%E6%9E%84%E8%A1%8C%E4%B8%BA.html">smartPtr构造&amp;析构行为</a>详细分析。</p>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。]]></summary></entry><entry><title type="html">SOME/IP 解读</title><link href="http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP 解读" /><published>2024-04-19T19:22:46+08:00</published><updated>2024-04-19T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p>标准链接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPProtocol.pdf">SOME/IP</a>(Scalable service-Oriented MiddlewarE over IP)。</p>
-
-<ul id="markdown-toc">
-  <li><a href="#12-applicability-of-the-protocol" id="markdown-toc-12-applicability-of-the-protocol">1.2 Applicability of the protocol</a></li>
-  <li><a href="#4-protocol-specification" id="markdown-toc-4-protocol-specification">4 Protocol Specification</a>    <ul>
-      <li><a href="#41-specification-of-someip-message-format-serialization" id="markdown-toc-41-specification-of-someip-message-format-serialization">4.1 Specification of SOME/IP Message Format (Serialization)</a>        <ul>
-          <li><a href="#412-header" id="markdown-toc-412-header">4.1.2 Header</a>            <ul>
-              <li><a href="#4121-message-id-32-bit" id="markdown-toc-4121-message-id-32-bit">4.1.2.1 Message ID [32 Bit]</a></li>
-              <li><a href="#4124-request-id-32-bit" id="markdown-toc-4124-request-id-32-bit">4.1.2.4 Request ID [32 Bit]</a></li>
-            </ul>
-          </li>
-        </ul>
-      </li>
-      <li><a href="#42-specification-of-someip-protocol" id="markdown-toc-42-specification-of-someip-protocol">4.2 Specification of SOME/IP Protocol</a>        <ul>
-          <li><a href="#421-transport-protocol-bindings" id="markdown-toc-421-transport-protocol-bindings">4.2.1 Transport Protocol Bindings</a>            <ul>
-              <li><a href="#4211-udp-binding" id="markdown-toc-4211-udp-binding">4.2.1.1 UDP Binding</a></li>
-              <li><a href="#4212-tcp-binding" id="markdown-toc-4212-tcp-binding">4.2.1.2 TCP Binding</a></li>
-              <li><a href="#4213-multiple-service-instances" id="markdown-toc-4213-multiple-service-instances">4.2.1.3 Multiple Service-Instances</a></li>
-              <li><a href="#4214-transporting-large-someip-messages-of-udp-someip-tp" id="markdown-toc-4214-transporting-large-someip-messages-of-udp-someip-tp">4.2.1.4 Transporting large SOME/IP messages of UDP (SOME/IP-TP)</a></li>
-            </ul>
-          </li>
-          <li><a href="#422-requestresponse-communication" id="markdown-toc-422-requestresponse-communication">4.2.2 Request/Response Communication</a></li>
-          <li><a href="#423-fireforget-communication" id="markdown-toc-423-fireforget-communication">4.2.3 Fire&amp;Forget Communication</a></li>
-          <li><a href="#424-notification-events" id="markdown-toc-424-notification-events">4.2.4 Notification Events</a>            <ul>
-              <li><a href="#4241-strategy-for-sending-notifications" id="markdown-toc-4241-strategy-for-sending-notifications">4.2.4.1 Strategy for sending notifications</a></li>
-            </ul>
-          </li>
-          <li><a href="#425-fields" id="markdown-toc-425-fields">4.2.5 Fields</a></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li><a href="#6-protocol-usage-and-guidelines" id="markdown-toc-6-protocol-usage-and-guidelines">6 Protocol usage and guidelines</a>    <ul>
-      <li><a href="#61-choosing-the-transport-protocol" id="markdown-toc-61-choosing-the-transport-protocol">6.1 Choosing the transport protocol</a></li>
-    </ul>
-  </li>
-</ul>
-
-<h2 id="12-applicability-of-the-protocol">1.2 Applicability of the protocol</h2>
-
-<blockquote>
-  <p>SOME/IP shall be used for inter-ECU Client/Server Serialization.</p>
-</blockquote>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>SOME/IP协议是为跨主机的Server/Client SOA架构设计的，包括对应的服务发现协议SOME/IP-SD也是只对跨主机的服务发现进行了规定，对主机内的Server/Client通信方式、服务发现都没有定义</p>
-
-<hr />
-
-<h1 id="4-protocol-specification">4 Protocol Specification</h1>
-
-<table>
-  <thead>
-    <tr>
-      <th style="text-align: center"><img src="/assets/images/SOMEIPProtocol.jpg" alt="Alt text" /></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="text-align: center"><em>Server/Client 交互模式；图片来源：<a href="https://github.com/COVESA/vsomeip/wiki/vsomeip-in-10-minutes">vsomeip</a></em></td>
-    </tr>
-  </tbody>
-</table>
-
-<ul>
-  <li>Server与Client之间通过TCP/UDP直接建立链接通信</li>
-  <li>每个Server可以同时与多个Client建立连接</li>
-  <li>Server通过[sourceIP, sourcePort, dstIP, dstPort, Protocol]五元组确定Client，每个Client可以与Server以TCP和UDP建立两个通道</li>
-  <li>Client负责发起所有TCP链接；Client负责将TCP链接的随机端口号和UDP的端口号发送给Server</li>
-  <li>Server负责主动通过TCP和UDP发送数据给Client</li>
-  <li>Server收到eventgroup的订阅后，就会将event数据主动通过已经建立的TCP或者已知的UDP端口号发给Client
-    <ul>
-      <li>Server发送的Client地址是在SubscribeEventGroup服务发现消息中由Client告知Server的</li>
-    </ul>
-  </li>
-  <li>Server收到method的Request请求，处理请求，原路通过通信链接返回结果</li>
-  <li>Server没有Client的概念，它只知道有通信连接和订阅信息
-    <ul>
-      <li>从Server的角度看，一个Server，即一个Service Instance，对外监听了两个传输层端口(也可以只监听一个)，一个TCP端口，用于接收Client的连接请求；一个UDP端口，用于向Client的UDP端口发送数据</li>
-      <li>Server中的每个event，method只能选择TCP或者UDP通道(<a href="https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP-SD 5.1.2.6</a>)</li>
-    </ul>
-  </li>
-</ul>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<ul>
-  <li>具体的实现中Server/Client可以是不同的实体，例如在vsomeip中，一个vsomeip的<em>application</em>类中可以offer多个、request多个服务的实例</li>
-  <li>协议只规定<em>服务</em>相关的概念，以及与底层传输层<em>TCP</em>,<em>UDP</em>的绑定关系，具体的实现可以不同；但是都需要对TCP，UDP链接进行管理</li>
-</ul>
-
-<hr />
-
-<hr />
-<p>Server提供的Service由events、methods、fields组成：</p>
-
-<ul>
-  <li>
-    <p>event：Client订阅event，Server接收到订阅后，当条件满足会主动将event群发给订阅方；Client只能通过eventgroup的形式订阅event；一个eventgroup可以包含一个或者多个当前Service下的event</p>
-  </li>
-  <li>
-    <p>method：Client向Server发起Request，包含参数；Server收到Request后，接收参数，执行相关逻辑，得到返回结果，将返回结果以Response的形式返回给Client</p>
-  </li>
-  <li>
-    <p>field：event和method的组合。包含一个值，当这个值满足某些条件时Server群发该值给所有订阅者（event）；这个值可以被set，Client可以调用setter方法设定这个值（method）；也可以通过getter方法获取这个值（method）</p>
-  </li>
-</ul>
-
-<h2 id="41-specification-of-someip-message-format-serialization">4.1 Specification of SOME/IP Message Format (Serialization)</h2>
-
-<h3 id="412-header">4.1.2 Header</h3>
-
-<h4 id="4121-message-id-32-bit">4.1.2.1 Message ID [32 Bit]</h4>
-
-<ul>
-  <li>消息ID全局唯一，唯一的确定一个event或者method</li>
-  <li>由两部分组成，分别占[16 bits]：
-    <ul>
-      <li>Service ID：所属的service ID</li>
-      <li>Method ID：这里Method ID可以是服务内部的method或者event的ID。</li>
-    </ul>
-  </li>
-</ul>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>注意没有Instance ID</p>
-
-<hr />
-
-<h4 id="4124-request-id-32-bit">4.1.2.4 Request ID [32 Bit]</h4>
-
-<p>这个字段跟method，field中的setter，getter(特殊的methods)相关，用于在client所在的机器上唯一的确定<em>当前client的一次</em>method的调用：</p>
-
-<ul>
-  <li>这个字段只有在client的机器上才有意义，server不关心这个字段，server只是将该字段拷贝到response消息头中</li>
-  <li>client与server建立TCP/UDP连接后，每一个method都只能在一个通信连接上通信，那么在client这一侧，可能有多个调用方同时在这个连接上发送method请求；在server端，它不关心这个是谁的请求，它只是负责处理这个请求并将结果从收到请求的TCP/UDP链接发送出去；在client这一侧，则需要Request ID来区分收到的来自server的回复是哪一个请求的，这样才能把收到的回复结果放入相应的<em>promise</em>中</li>
-</ul>
-
-<p>这个ID由两部分组成，分别占[16 bits]：</p>
-
-<ul>
-  <li>Client ID [16 Bits]：这个<em>Client ID</em>不是当前server/client服务中的<em>client</em>，而是服务client中的<em>使用方</em>：
-    <ul>
-      <li>服务client可以理解为一个TCP/UDP链接通道；Client ID中的client可以理解为向这个TCP/UDP链接发送的一个method请求message的唯一标识符；这个标识符用于把收到的server的response与一次请求唯一对应起来</li>
-      <li>每一个服务client下的每一个method（即每一个Message ID)，都有自己独立的Client ID范围：Client ID唯一性的适用范围是Message ID</li>
-    </ul>
-  </li>
-  <li>Session ID [16 Bits]：当前Client ID下当前method请求消息的计数器</li>
-</ul>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>这里Client ID<strong>不是</strong>与Service ID对应的Client一方的ID，而是Client的<em>一个用户</em>的ID</p>
-
-<hr />
-
-<h2 id="42-specification-of-someip-protocol">4.2 Specification of SOME/IP Protocol</h2>
-
-<h3 id="421-transport-protocol-bindings">4.2.1 Transport Protocol Bindings</h3>
-
-<blockquote>
-  <p>[PRS_SOMEIP_00138] If a server runs different instances of the same service, messages belonging to different service instances shall be mapped to the service instance by the transport protocol port on the server side.c(RS_SOMEIP_00015)</p>
-</blockquote>
-
-<ul>
-  <li>SOME/IP支持TCP或者UDP传输层协议</li>
-  <li>如果一个Machine上同时提供多个同一个Service ID的不同Instance，则这些Instance必须被绑定到不同的Port口，无论是TCP还是UDP，详细原因分析看4.2.1.3</li>
-  <li>一个Service Instance可以使用的传输层通信方式：
-    <ul>
-      <li>TCP单播</li>
-      <li>UDP单播</li>
-      <li>UDP组播</li>
-    </ul>
-  </li>
-</ul>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>这三个Port口是可以同时存在的，但是每一个最多只能有一个；对于服务下面的Event或者Method，只能同时对应一个TCP单播或者UDP单播，不能同时使用两个，这点在<a href="https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP-SD 5.1.2.6</a>中有规定</p>
-
-<hr />
-
-<h4 id="4211-udp-binding">4.2.1.1 UDP Binding</h4>
-
-<blockquote>
-  <p>[PRS_SOMEIP_00943] The client and server shall use a single UDP unicast connection for all methods, events, and notifications of a Service-Instance which are configured to be communicated using UDP unicast.c(RS_SOMEIP_00010)</p>
-
-</blockquote>
-
-<p>server和client之间一旦建立了TCP/UDP的通道（UDP没有connection，但是此处我们认为相互发现后即是<em>链接</em>），TCP通道负责当前服务下所有配置为使用TCP的event，method，field；UDP通道负责当前服务下所有配置为使用UDP的event，method，field</p>
-
-<blockquote>
-  <p>[PRS_SOMEIP_00942] The client and server may use a single UDP multicast address per each Service-Instance which are configured to be communicated using UDP multicast.c(RS_SOMEIP_00010)</p>
-</blockquote>
-
-<p>如果server/client之间配置了UDP组播通信，则所有的配置为UDP通信方式的event，method，field都<em>可能</em>通过这个组播地址通信, 在<a href="https://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP-SD</a>中：</p>
-
-<blockquote>
-  <p>[PRS_SOMEIPSD_00134] Unicast/Multicast switching for event and notification event transmission via UDP dFor events and notification events which are configured to be transmitted via UDP (see [PRS_SOMEIPSD_00802]) SOME/IP-SD shall support automated switching from unicast to multicast communication if a configured threshold of the numbers of subscribers was reached.c(RS_SOMEIPSD_00025, RS_-SOMEIPSD_00016)</p>
-</blockquote>
-
-<h4 id="4212-tcp-binding">4.2.1.2 TCP Binding</h4>
-
-<blockquote>
-  <p>[PRS_SOMEIP_00707] The client and server shall use a single TCP connection for all methods, events, and notifications of a Service-Instance which are configured to be communicated using TCP.c(RS_SOMEIP_00010)</p>
-</blockquote>
-
-<p>server和client之间一旦建立了TCP/UDP的通道（UDP没有connection，但是此处我们认为相互发现后即是<em>链接</em>），TCP通道负责当前服务下所有配置为使用TCP的event，method，field；UDP通道负责当前服务下所有配置为使用UDP的event，method，field</p>
-
-<p>在使用TCP传输层协议时，必须关闭Nagle算法，保证每次数据发送都必须马上打包成一个TCP segment发送出去，目的是保证消息消息实时性。</p>
-
-<blockquote>
-  <p>Nagle算法将多个TCP发送积累成一个大的TCP segment发送的算法，目的是提高TCP数据包的payload比例；因为一个TCP报文的头部占40-Byte，如果单个segment的payload过小，则发送的数据大部分都是头部信息，降低了报文的利用率，增加了线上阻塞的风险</p>
-</blockquote>
-
-<p>TCP的链接发起、重连、关闭都是由client端决定的</p>
-<ul>
-  <li>当server端调用了StopOfferService接口停止服务后，不能自行终断TCP链接，而应该是client端来操作，否则client端会进行重连，造成资源浪费</li>
-</ul>
-
-<h4 id="4213-multiple-service-instances">4.2.1.3 Multiple Service-Instances</h4>
-
-<ul>
-  <li>首先一个机器上，可以针对同一个Service提供多个不同的Service Instance，即服务的实例</li>
-  <li>每一个Service Instance在一个Service ID下有一个全局唯一的Instance ID</li>
-  <li>已知SOME/IP的消息头是不包含Service Instance ID信息的（SOME/IP-SD的消息中是包含Instance ID信息的）</li>
-  <li>以上就会导致一个问题：client如何通过SOME/IP消息头来判断这个消息来自同一个机器上的哪一个Instance</li>
-</ul>
-
-<p>无论是UDP还是TCP都有一个(srcIP, srcPort, dstIP, dstPort)的tuple来表示一个通信链接：</p>
-
-<ul>
-  <li>不同机器上的服务实例，无论是同一个服务还是不同的服务，都可以通过通信链接来区分不同的Instance</li>
-  <li>同一个机器上的不同的Service，可以通过其唯一的Service ID来区分</li>
-  <li>同一个机器上的相同的Service，因为它们有相同的Service ID，而且SOME/IP消息头不包含Instance ID的信息，只能通过通信链接来区分不同的Instance；从client的视角来看srcIP, dstIP是不能变动的，那么能区分的就只有srcPort或者dstPort，而Instance ID是由服务的提供方，即server侧定义的，所以区分也自然应该由server端来区分：
-    <ul>
-      <li>同一个Host上相同的Service的不同Instance需要绑定到不同的Port端口</li>
-    </ul>
-  </li>
-</ul>
-
-<h4 id="4214-transporting-large-someip-messages-of-udp-someip-tp">4.2.1.4 Transporting large SOME/IP messages of UDP (SOME/IP-TP)</h4>
-
-<p>针对一个UDP报文放不下的数据，SOME/IP使用SOME/IP-TP（SOME/IP Transport Protocol）来分成多个UDP报文发送，基本的原理就是每一个分割后的UDP报文都自带一个Session ID接收端通过Session ID来进行组装。SOME/IP标准的建议是能使用UDP的地方尽量使用UDP，只有在传输很大的数据，且没有严格的延迟要求的情况下才使用TCP</p>
-
-<h3 id="422-requestresponse-communication">4.2.2 Request/Response Communication</h3>
-
-<ul>
-  <li>所有Request的参数必须按照在函数调用中的实际参数位置顺序进行序列化</li>
-</ul>
-
-<h3 id="423-fireforget-communication">4.2.3 Fire&amp;Forget Communication</h3>
-
-<ul>
-  <li>与普通Request/Response的区别在与不会等待Response</li>
-</ul>
-
-<blockquote>
-  <p>Fire&amp;Forget不是返回值为<code class="language-plaintext highlighter-rouge">void</code> 的特殊情况，当然Fire&amp;Forget返回值类型是<code class="language-plaintext highlighter-rouge">void</code>，但是与普通Request/Response返回值是<code class="language-plaintext highlighter-rouge">void</code>不同，Fire/Forget不会等待，所以无法确定，其请求的任务是否执行完毕。但是普通的返回<code class="language-plaintext highlighter-rouge">void</code>的情况下，虽然返回值是<code class="language-plaintext highlighter-rouge">void</code>，但是可以通过<code class="language-plaintext highlighter-rouge">std::future</code>的<code class="language-plaintext highlighter-rouge">get()</code>方法来判断服务方是否已经执行完毕，这种情况往往需要服务方发送完成的标志位给到请求方。而Fire&amp;Forget情况下，服务提供方是不会发送任何回复给请求方的，这也是为什么Fire&amp;Forget的请求永远不会返回错误码。</p>
-
-</blockquote>
-
-<h3 id="424-notification-events">4.2.4 Notification Events</h3>
-
-<blockquote>
-  <p>[PRS_SOMEIP_00930] When more than one subscribed client on the same ECU exists, the system shall handle the replication of notifications in order to save transmissions on the communication medium.c(RS_SOMEIP_00042) 
-This is especially important, when notifications are transported using multicast messages.</p>
-</blockquote>
-
-<p>AUTOSAR要求当一个client机器上有多个订阅同一个服务ID的Client时，实现上需要考虑降低网络流量，这其实确定了SOME/IP的实现往往需要一个中心节点。只有通过这个中心节点，做统一的收发管理，才能最大程度的优化网络流量。</p>
-
-<h4 id="4241-strategy-for-sending-notifications">4.2.4.1 Strategy for sending notifications</h4>
-
-<p>订阅发送的三种模式：</p>
-
-<ul>
-  <li>周期发送</li>
-  <li>事件触发发送</li>
-  <li>值变化超过某个范围发送</li>
-</ul>
-
-<h3 id="425-fields">4.2.5 Fields</h3>
-
-<p>Fields是Events和Methods的融合体，具体表现在：</p>
-
-<ul>
-  <li>一个Fields需要至少包含一个<code class="language-plaintext highlighter-rouge">getter</code>，一个<code class="language-plaintext highlighter-rouge">setter</code>，一个<code class="language-plaintext highlighter-rouge">notifier</code></li>
-  <li><code class="language-plaintext highlighter-rouge">getter</code>和<code class="language-plaintext highlighter-rouge">setter</code>，本质就是Methods</li>
-  <li><code class="language-plaintext highlighter-rouge">notifier</code>，本质就是Event</li>
-</ul>
-
-<h1 id="6-protocol-usage-and-guidelines">6 Protocol usage and guidelines</h1>
-
-<h2 id="61-choosing-the-transport-protocol">6.1 Choosing the transport protocol</h2>
-
-<p>SOME/IP的传输层协议是具体到一个消息的：</p>
-
-<ul>
-  <li>每一个Event，Method等都可以配置自己的传输层协议</li>
-</ul>
-
-<p>在UDP和TCP的选择上，建议如下：</p>
-
-<ul>
-  <li>
-    <blockquote>
-      <p>1400Bytes，且在错误发生时没有严格实时性要求的，使用TCP</p>
-    </blockquote>
-  </li>
-  <li>如果在错误发生时实时性要求&lt;100ms，使用UDP</li>
-  <li>如果错误发生时实时性要求&lt;100ms，且消息&gt;1400 Bytes，使用SOME/IP-TP</li>
-</ul>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准链接：SOME/IP(Scalable service-Oriented MiddlewarE over IP)。]]></summary></entry><entry><title type="html">SOME/IP Service Discovery解读</title><link href="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html" rel="alternate" type="text/html" title="SOME/IP Service Discovery解读" /><published>2024-04-08T19:22:46+08:00</published><updated>2024-04-08T19:22:46+08:00</updated><id>http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB</id><content type="html" xml:base="http://localhost:4000/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html"><![CDATA[<p>标准连接：<a href="hhttps://www.autosar.org/fileadmin/standards/R23-11/FO/AUTOSAR_FO_PRS_SOMEIPServiceDiscoveryProtocol.pdf">SOME/IP SD</a></p>
-
-<ul id="markdown-toc">
-  <li><a href="#1-introduction-and-overview" id="markdown-toc-1-introduction-and-overview">1 Introduction and overview</a>    <ul>
-      <li><a href="#13-dependencies" id="markdown-toc-13-dependencies">1.3 Dependencies</a>        <ul>
-          <li><a href="#131-dependencies-to-other-protocol-layers" id="markdown-toc-131-dependencies-to-other-protocol-layers">1.3.1 Dependencies to other protocol layers</a></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-  <li><a href="#5-protocol-specification" id="markdown-toc-5-protocol-specification">5 Protocol specification</a>    <ul>
-      <li><a href="#51-someip-service-discovery-someip-sd" id="markdown-toc-51-someip-service-discovery-someip-sd">5.1 SOME/IP Service Discovery (SOME/IP-SD)</a>        <ul>
-          <li><a href="#511-general" id="markdown-toc-511-general">5.1.1 General</a></li>
-          <li><a href="#512-someip-sd-message-format" id="markdown-toc-512-someip-sd-message-format">5.1.2 SOME/IP-SD Message Format</a>            <ul>
-              <li><a href="#5121-general-requirements" id="markdown-toc-5121-general-requirements">5.1.2.1 General Requirements</a></li>
-              <li><a href="#5122-someip-sd-header" id="markdown-toc-5122-someip-sd-header">5.1.2.2 SOME/IP-SD Header</a></li>
-              <li><a href="#5123-entry-format" id="markdown-toc-5123-entry-format">5.1.2.3 Entry Format</a></li>
-              <li><a href="#5124-options-format" id="markdown-toc-5124-options-format">5.1.2.4 Options Format</a></li>
-              <li><a href="#5125-service-entries" id="markdown-toc-5125-service-entries">5.1.2.5 Service Entries</a>                <ul>
-                  <li><a href="#51251-find-service-entry" id="markdown-toc-51251-find-service-entry">5.1.2.5.1 Find Service Entry</a></li>
-                  <li><a href="#51252-offer-service-entry" id="markdown-toc-51252-offer-service-entry">5.1.2.5.2 Offer Service Entry</a></li>
-                  <li><a href="#51253-stop-offer-service-entry" id="markdown-toc-51253-stop-offer-service-entry">5.1.2.5.3 Stop Offer Service Entry</a></li>
-                </ul>
-              </li>
-              <li><a href="#5126-endpoint-handling-for-services-and-events" id="markdown-toc-5126-endpoint-handling-for-services-and-events">5.1.2.6 Endpoint Handling for Services and Events</a></li>
-            </ul>
-          </li>
-          <li><a href="#513-service-discovery-messages" id="markdown-toc-513-service-discovery-messages">5.1.3 Service Discovery Messages</a>            <ul>
-              <li><a href="#5131-eventgroup-entry" id="markdown-toc-5131-eventgroup-entry">5.1.3.1 Eventgroup Entry</a></li>
-            </ul>
-          </li>
-          <li><a href="#514-service-discovery-communication-behavior" id="markdown-toc-514-service-discovery-communication-behavior">5.1.4 Service Discovery Communication Behavior</a>            <ul>
-              <li><a href="#5141-startup-behavior" id="markdown-toc-5141-startup-behavior">5.1.4.1 Startup Behavior</a></li>
-              <li><a href="#5144-state-machines" id="markdown-toc-5144-state-machines">5.1.4.4 State Machines</a></li>
-            </ul>
-          </li>
-          <li><a href="#516-publishsubscribe-with-someip-and-someip-sd" id="markdown-toc-516-publishsubscribe-with-someip-and-someip-sd">5.1.6 Publish/Subscribe with SOME/IP and SOME/IP-SD</a></li>
-        </ul>
-      </li>
-    </ul>
-  </li>
-</ul>
-
-<h1 id="1-introduction-and-overview">1 Introduction and overview</h1>
-
-<h2 id="13-dependencies">1.3 Dependencies</h2>
-
-<h3 id="131-dependencies-to-other-protocol-layers">1.3.1 Dependencies to other protocol layers</h3>
-
-<p>SOME/IP-SD是基于SOME/IP协议，且底层的传输层协议使用UDP</p>
-
-<h1 id="5-protocol-specification">5 Protocol specification</h1>
-
-<h2 id="51-someip-service-discovery-someip-sd">5.1 SOME/IP Service Discovery (SOME/IP-SD)</h2>
-
-<h3 id="511-general">5.1.1 General</h3>
-
-<p>SOME/IP-SD完成三个方面的功能：</p>
-
-<ul>
-  <li>确定服务实例的位置</li>
-  <li>确定服务实例的状态</li>
-  <li>发布/订阅处理</li>
-</ul>
-
-<p>服务实例的位置一般都是由静态的配置文件定义的，运行时只需要解析相关配置文件即可；确定服务实例的状态才是服务发现的重要步骤。</p>
-
-<h3 id="512-someip-sd-message-format">5.1.2 SOME/IP-SD Message Format</h3>
-
-<p>SOME/IP-SD是一个普通SOME/IP消息的payload，也就是说SD是基于SOME/IP协议进行的。可以将SOME/IP-SD协议理解为基于SOME/IP协议之上的一个应用层协议。</p>
-
-<p><img src="/assets/images/some_ip_sd_pdu.jpg" alt="Untitled" /></p>
-
-<h4 id="5121-general-requirements">5.1.2.1 General Requirements</h4>
-
-<p>首先SOME/IP-SD的消息只是一个特殊的SOME/IP消息，格式需要符合SOME/IP消息头的布局，与普通SOME/IP消息的区别在与其内容：</p>
-
-<ul>
-  <li>Service-ID是固定值0xFFFF</li>
-  <li>Method-ID是固定值0x8100</li>
-  <li>Client-ID是固定值0x0000</li>
-</ul>
-
-<p>其他字段，例如版本信息，消息类型，返回码等都是固定值。</p>
-
-<h4 id="5122-someip-sd-header">5.1.2.2 SOME/IP-SD Header</h4>
-
-<p>SOME/IP-SD整个是SOME/IP消息的payload，这个payload有自己的协议规范，这里介绍它的头部信息。</p>
-
-<ul>
-  <li>前8bits称为<code class="language-plaintext highlighter-rouge">flags</code>，其中第一个bit为1表示Reboot；当Host启动后开始发送的所有SOME/IP-SD消息都将这个bit设为1，表示Host正在启动；当session ID自增超过16 bits的最大值，重新从1开始自增时，将这个bit设置为0，表示Host启动完成</li>
-  <li>对于发送方：这个重启bit和session的counter是针对每一个多播和单播</li>
-  <li>针对接收方：这个重启bit和session counter是针对每一个[srcIP, srcPort, dstIP, dstPort]通信链接</li>
-</ul>
-
-<p>SOME/IP-SD通过如下条件判断消息的发送方是否重启：</p>
-
-<ul>
-  <li>if old.reboot==0 and new.reboot==1</li>
-  <li>if old.reboot==1 and new.reboot==1 and old.session_id&gt;=new.session_id</li>
-</ul>
-
-<h4 id="5123-entry-format">5.1.2.3 Entry Format</h4>
-
-<p>Entry类型：</p>
-
-<hr />
-
-<ul>
-  <li>一个SOME/IP-SD消息可以包含多个服务实例的信息(Entry)</li>
-  <li>实际发现内容分为两类：
-    <ul>
-      <li>服务发现类型：包含当前Host提供的Service ID， Instance ID， 版本信息等</li>
-    </ul>
-
-    <p><img src="/assets/images/some_ip_service_enty_type.jpg" alt="Untitled" /></p>
-
-    <blockquote>
-      <p>注意这里包含Instance ID信息，但是是作为SOME/IP的payload，不是SOME/IP头部的一部分</p>
-
-      <ul>
-        <li>EventGroup类型：除了包含服务发现类型以外，最后包含了EventGroupID信息</li>
-      </ul>
-    </blockquote>
-
-    <p><img src="/assets/images/some_ip_event_group_entry_type.jpg" alt="Untitled" /></p>
-  </li>
-</ul>
-
-<p>Type:</p>
-
-<hr />
-
-<p>这两类信息消息类型的第一个部分都是Type，这是每条Entry都包含的信息，表示了当前条目是需要发现的、对外提供的、还是停止提供的。对于Service Entry有如下选项：</p>
-
-<ul>
-  <li>FindService (0x00)</li>
-  <li>OfferService (0x01)</li>
-  <li>StopOfferService (0x01)</li>
-</ul>
-
-<p>对于EventGroupEntry，有如下选项：</p>
-
-<ul>
-  <li>SubscribeEventGroup (0x06)</li>
-  <li>StopSubscribeEventgroup (0x06)</li>
-  <li>SubscribeEventGroupAck (0x07)</li>
-  <li>SubscribeEventgroupNack (0x07)</li>
-</ul>
-
-<blockquote>
-  <p>ID来源于文档，但是待确认。AUTOSAR官方文档有很多笔误</p>
-
-</blockquote>
-
-<p>Option位置：</p>
-
-<hr />
-
-<p>IP地址，Port端口，传输层协议是通过Options来包含的。每个条目有两段，每段有连续的多个Options组成，原因如下：</p>
-
-<ul>
-  <li>第一段中的Options是所有SOME/IP-SD共有的Options</li>
-  <li>第二段是当前SOME/IP-SD独有的Options</li>
-</ul>
-
-<p>在每个Entry的头部消息中有如下字段引导至第一段Options和第二段Options：[Index 1st Options, Index 2nd Options, number of 1st Options, number of 2nd Options]， 这样做的目的是最快的找到Option所在的位置.</p>
-
-<h4 id="5124-options-format">5.1.2.4 Options Format</h4>
-
-<p>每一个Option都必须以如下格式开头：</p>
-
-<p><img src="/assets/images/some_ip_option_header.jpg" alt="Untitled" /></p>
-
-<p>Configuration Option（Type 0x01）</p>
-
-<hr />
-
-<p>简单理解为一组键：值对，且符合<a href="https://www.cloudflare.com/zh-cn/learning/dns/dns-records/dns-txt-record/">DNS TXT</a>和<a href="http://www.dns-sd.org/">DNS SD</a>记录格式</p>
-
-<p><img src="/assets/images/some_ip_configuration_option.jpg" alt="Untitled" /></p>
-
-<p>Load Balancing Option（Type 0x02）</p>
-
-<hr />
-
-<p>这个选项在OfferService 时有用，目的是为每一个Instance提供优先级，client端可以根据这个选项提供的信息选择Instance</p>
-
-<p><img src="/assets/images/some_ip_load_balancing_option.jpg" alt="Untitled" /></p>
-
-<p>IPv4 Endpoint Option（Type 0x04）</p>
-
-<hr />
-
-<p>IPv4选项用于指定当前Entry的IPv4地址信息，包括IP地址，传输层协议，Port端口号。注意这是一个server和client都可能需要的选项：</p>
-
-<ul>
-  <li>对于client，在OfferService Entry中提供Instance的源地址信息
-    <ul>
-      <li>一个Instance可以在TCP和UDP上分别占用一个Port口，且至少有一个。也就是说，一个服务实例可以同时在TCP和UDP传输协议上提供服务</li>
-      <li>Instance内部的元素，例如Event，Method必须指定是在TCP还是在UDP上通信，也就是说，服务内具体的Event，Method的通信都是唯一确定的</li>
-      <li>一个Host上相同Service的不同Instance必须使用不同的TCP和UDP的Port；不同的Service的Instance可以使用同一个TCP和UDP的Port</li>
-    </ul>
-  </li>
-  <li>对于client，在SubscribeEventGroup Entry中使用这个选项来传递client实例已经准备好的，用于接收Events的IPv4链接信息
-    <ul>
-      <li>Client端可以有0~2个单播EndPoint，如果是2个，则TCP和UDP各一个</li>
-      <li>Client端还有至多1个组播接收地址</li>
-    </ul>
-  </li>
-</ul>
-
-<blockquote>
-  <p>当client对外提供准备好接收的EventGroup信息时，所有通信资源例如socket等都已准备完毕</p>
-</blockquote>
-
-<p><img src="/assets/images/some_ip_endpoint_option.jpg" alt="Untitled" /></p>
-
-<p>IPv4 Multicast Option（Type 0x14）</p>
-
-<hr />
-
-<p>该选项可以被server或者client端组播发送：</p>
-
-<ul>
-  <li>server组播发送自己提供Instance的组播地址，端口号</li>
-  <li>client组播发送自己接收服务的组播地址，端口号</li>
-</ul>
-
-<p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
-
-<p>组播只能在Entry类型为 SubscribeEventgroup，StopSubscribeEventgroup，SubscribeEventgroupAck中被使用，引用一次或者零次：</p>
-
-<ul>
-  <li>当被SubscribeEventgroup引用，表示Client端接收组播Events的地址</li>
-  <li>当被StopSubscribeEventgroup引用，表示Client端停止接收组播Events的地址</li>
-  <li>当被SubscribeEventgroupAck引用，表示Server端发送组播Events的地址</li>
-</ul>
-
-<blockquote>
-  <p>EventGroup分为三种：单播EventGroup，即所有Events都是通过一个单播通信链接（EndPoint pair）发送；组播EventGroup，即所有Events都被发送到一个组播EndPoint上，注意这是从Server的角度来说的，如果Server端通过单播提供服务，但是Client端在SubscribeEventGroup时提供了组播的地址，Server也会通过该组播地址发送给改Client；自适应EventGroup，即其中的Events的发送方式是根据运行时订阅状态在组播和单播之间切换的。所以，无论是SubscribeEventgroup，还是SubscribeEventgroupAck引用的组播地址，都是Server或者Client指明自己发送或者接收这个EventGroup的EndPoint</p>
-
-</blockquote>
-
-<h4 id="5125-service-entries">5.1.2.5 Service Entries</h4>
-
-<h5 id="51251-find-service-entry">5.1.2.5.1 Find Service Entry</h5>
-
-<ul>
-  <li>在FindServiceEntry中可以选择发现所有当前服务ID下的实例，也可以具体制定实例ID</li>
-  <li>同样也可以发现所有版本的服务，和具体指定某个版本信息</li>
-</ul>
-
-<blockquote>
-  <p>FindService Entry中不包含通信EndPoint的Option；如果包含了，接收方应当忽略这些信息</p>
-
-</blockquote>
-
-<h5 id="51252-offer-service-entry">5.1.2.5.2 Offer Service Entry</h5>
-
-<p>与FindServiceEntry不同，OfferServiceEntry需要：</p>
-
-<ul>
-  <li>写明服务ID，实例ID，版本信息</li>
-  <li>如果支持IPv4/IPv6传输层协议，则必须在Option中包含具体的通信EndPoint信息</li>
-</ul>
-
-<h5 id="51253-stop-offer-service-entry">5.1.2.5.3 Stop Offer Service Entry</h5>
-
-<p>除了Entry的Type和TTL等信息不同外，与StartOfferService所包含的信息相同</p>
-
-<p>各种Type的Entry的option使用矩阵表格：</p>
-
-<p><img src="/assets/images/some_ip_sd_allowed_entry.jpg" alt="Untitled" /></p>
-
-<blockquote>
-  <p>SubscribeEventgroup和StopSubscribeEventgroup至少需要指定一个Unicast或者Multicast EndPoint</p>
-
-</blockquote>
-
-<h4 id="5126-endpoint-handling-for-services-and-events">5.1.2.6 Endpoint Handling for Services and Events</h4>
-
-<ul>
-  <li>一个Service Instance的OfferService Entry信息中可以包含至多两个，至少一个通信EndPoint信息
-    <ul>
-      <li>如果是两个则必须一个是TCP，一个是UDP</li>
-    </ul>
-  </li>
-  <li>Service中不同的Event，Method可以使用这两个EndPoint中的一个作为底层通信通道，但是只能选择其中一个
-    <ul>
-      <li>一个Event和Method不能同时在两个EndPoint发送</li>
-    </ul>
-  </li>
-  <li>每个Event，Method等的通信EndPoint信息都是静态配置的，例如在json配置文件中</li>
-</ul>
-
-<p>一个完整的服务发现和订阅流程图：</p>
-
-<p><img src="/assets/images/some_ip_sd_flow.jpg" alt="Untitled" /></p>
-
-<ul>
-  <li>如果服务以TCP方式提供，Client端在收到OfferService的SOME/IP-SD信息后负责发起TCP链接</li>
-  <li>在SubscribeEventGroup时，Client端会把上一步创建的TCP链接信息以及UDP信息发给Server</li>
-  <li>Server主动发送第一个初始Events消息</li>
-  <li>如果是组播EventGroup或者是自适应EventGroup，Server也会通过SubscribeEventgroupAck返回通过组播发送的Events的组播地址，Client端要尽快开启监听这个端口，避免错过这些通过组播发送的Events</li>
-</ul>
-
-<blockquote>
-  <p>TCP的Event可以在SubscribeEventGroup发送前就已经开始发送；且Initial Event必须从Server到Client以Unicast的通信发送</p>
-
-</blockquote>
-
-<h3 id="513-service-discovery-messages">5.1.3 Service Discovery Messages</h3>
-
-<ul>
-  <li>所有SD的消息，无论单播还是组播，都需要发送到<code class="language-plaintext highlighter-rouge">SD_PORT</code></li>
-  <li>所有组播的SD消息，都需要使用<code class="language-plaintext highlighter-rouge">SD_MULTICAST_IP</code></li>
-</ul>
-
-<h4 id="5131-eventgroup-entry">5.1.3.1 Eventgroup Entry</h4>
-
-<p>SubscribeEventgroup Entry</p>
-
-<hr />
-
-<p>它可以引用Client端的EndPoint，用于指定Client端接收Events的通信端口信息：</p>
-
-<ul>
-  <li>可以引用至多两个单播地址，至多一个组播地址</li>
-  <li>如果是单播地址，要么是IPv4，要么是IPv6</li>
-  <li>单播地址TCP和UDP可以分别有一个EndPoint</li>
-  <li>组播地址要么是IPv4，或者IPv6</li>
-</ul>
-
-<blockquote>
-  <p>SubscribeEventGroup中单播和组播是二选一的关系；单播可以有UDP和TCP两个EndPoint</p>
-
-</blockquote>
-
-<p>SubscribeEventgroupAck Entry</p>
-
-<hr />
-
-<p>如果组播EventGroup或者自适应EventGroup, 在这个Ack中应该引用一个组播地址：</p>
-
-<ul>
-  <li>该组播地址可以是IPv4或者IPv6，且只能有一个</li>
-</ul>
-
-<blockquote>
-  <p>单播EventGroup，发送和接收地址是Client和Server握手决定的；对于组播EventGroup或自适应EventGroup，如果是Server仅支持组播发送，则通过SubscribeEventGroupAck通知Client，如果是Client仅支持组播接收则通过SubscribeEventGroup通知Server</p>
-
-</blockquote>
-
-<h3 id="514-service-discovery-communication-behavior">5.1.4 Service Discovery Communication Behavior</h3>
-
-<p>SOME/IP-SD应尽量将Entry放在一个SOME/IP 消息中：</p>
-
-<ul>
-  <li>不同服务Instance的Entry可以放在一个SD消息中</li>
-  <li>相同服务Instance的不同Entry可以放在一个SD消息中</li>
-</ul>
-
-<h4 id="5141-startup-behavior">5.1.4.1 Startup Behavior</h4>
-
-<p>无论是Server的Instance还是Client端的实例，在启动阶段都需要经过如下三个阶段：</p>
-
-<ul>
-  <li>Initial Wait Phase
-    <ul>
-      <li>Client端进入该状态的条件是：UDP广播端口资源已经就绪且应用调用了FindService</li>
-      <li>Server端进入该状态的条件是：UDP广播端口资源已经就绪且对外提供服务的条件已经具备</li>
-    </ul>
-  </li>
-  <li>Repetition Phase</li>
-  <li>Main Phase</li>
-</ul>
-
-<blockquote>
-  <p>虽然阶段名称相同，但是Server端和Client端在每个阶段的动作是不同的；在具体实现中状态机不仅会有这三个阶段，还会有其他状态</p>
-
-</blockquote>
-
-<h4 id="5144-state-machines">5.1.4.4 State Machines</h4>
-
-<p>Server的状态机</p>
-
-<hr />
-
-<p><img src="/assets/images/some_ip_server_statemachine.jpg" alt="Untitled" /></p>
-
-<p>说明如下：</p>
-
-<ul>
-  <li>状态机进入Initial Wait Phase阶段后需要在<code class="language-plaintext highlighter-rouge">INITIAL_DELAY_MIN</code>和<code class="language-plaintext highlighter-rouge">INITIAL_DELAY_MAX</code>区间随机的等待一段时间，等待完成后直接进入下一个阶段</li>
-  <li>在Repetition Phase阶段，从<code class="language-plaintext highlighter-rouge">REPETITION_BASE_DELAY</code>间隔值开始，每发送一次，间隔时间扩大一倍，直到发送次数达到<code class="language-plaintext highlighter-rouge">REPETITION_MAX</code>次，进入下一个阶段</li>
-  <li>在Maint Phase，按照<code class="language-plaintext highlighter-rouge">CYCLIC_ANNOUNCE_DELAY</code>周期性的间隔发送</li>
-  <li>在Repetition Phase和Main Phase阶段，如果收到FindService请求，等待一个在<code class="language-plaintext highlighter-rouge">RequestResponseMaxDelay</code>和<code class="language-plaintext highlighter-rouge">RequestResponseMinDelay</code>的随机值后发送一次</li>
-</ul>
-
-<blockquote>
-  <p>Server侧的服务发现信息一直是周期性发送的</p>
-
-</blockquote>
-
-<p>Client端的状态机</p>
-
-<hr />
-
-<p><img src="/assets/images/some_ip_client_statemachine.jpg" alt="Untitled" /></p>
-
-<p>说明如下：</p>
-
-<ul>
-  <li>同样有三个阶段，但是与sever端不同，FindService不会一直发送，而是通过收到的OfferService中的TTL来更新当前已发现的服务的有效性</li>
-  <li>如果有效性失效，或者需要发现新的服务，才会调用FindService</li>
-  <li>调用FindService的，而不是默认等待下一个OfferService的原因是，在Server端一旦受到FindService就会触发一次OfferService的发送，而不是要等到下一个发送周期</li>
-</ul>
-
-<blockquote>
-  <p>SOME/IP-SD的服务发现是一种需要一直刷新来保持发现信息有效性的协议，这个刷新是由Server端的OfferService来负责主动发送的</p>
-
-</blockquote>
-
-<h3 id="516-publishsubscribe-with-someip-and-someip-sd">5.1.6 Publish/Subscribe with SOME/IP and SOME/IP-SD</h3>
-
-<ul>
-  <li>如果Client端订阅了多个EventGroup，这些EventGroup包含了相同的Events，那么这些Events不会被重复发送，但是这个要求不适用于Initial Events，即第一次初始发送</li>
-</ul>
-
-<p>SOME/IP SD发布订阅流程图如下：</p>
-
-<p><img src="/assets/images/some_ip_pub_sub_flow.jpg" alt="Untitled" /></p>
-
-<p>单播EventGroup Server端状态机</p>
-
-<hr />
-
-<p><img src="/assets/images/some_ip_state_unicast.jpg" alt="Untitled" /></p>
-
-<p>组播EventGroup Server端状态机</p>
-
-<hr />
-
-<p><img src="/assets/images/some_ip_multicast_option.jpg" alt="Untitled" /></p>
-
-<ul>
-  <li>单播和组播状态机最重要的区别是组播需要维护订阅数量，当订阅数为零时停止发送</li>
-</ul>
-
-<p>自适应单播/组播EventGroup</p>
-
-<hr />
-
-<p><img src="/assets/images/some_ip_state_adaptive.jpg" alt="Untitled" /></p>
-
-<p>对于配置为UDP协议的Event，SOME/IP支持在到达单播使用上限时自动在单播和组播之间切换；切换逻辑通过<code class="language-plaintext highlighter-rouge">MULTICAST_THRESHOLD</code>来控制，具体的切换逻辑用伪代码表示为：</p>
-
-<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">n</span> <span class="o">=</span> <span class="n">MULTICAST_THRESHOLD</span>
-<span class="n">subCnt</span> <span class="o">=</span> <span class="n">subscribe</span> <span class="n">counter</span>
-<span class="n">unicastLimit</span> <span class="o">=</span> <span class="nb">max</span> <span class="n">number</span> <span class="n">of</span> <span class="n">subscribtion</span> <span class="n">to</span> <span class="n">switch</span> <span class="k">from</span> <span class="n">unicast</span> <span class="n">to</span> <span class="n">multicast</span>
-<span class="n">when</span> <span class="n">new</span> <span class="n">subCnt</span><span class="p">:</span>
-	<span class="k">if</span> <span class="n">n</span> <span class="o">==</span><span class="mi">0</span><span class="p">:</span>
-		<span class="n">unicast</span> <span class="ow">or</span> <span class="n">multicast</span> <span class="n">depends</span> <span class="n">on</span> <span class="n">Client</span> <span class="n">Subscribe</span> <span class="n">info</span>
-	<span class="k">elif</span> <span class="n">n</span><span class="o">==</span><span class="mi">1</span><span class="p">:</span>
-		<span class="n">multicast</span> <span class="n">only</span> <span class="n">to</span> <span class="n">Server</span> <span class="n">multicast</span> <span class="n">EndPoint</span>
-	<span class="k">elif</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">subCnt</span> <span class="o">&gt;=</span> <span class="n">unicastLimit</span><span class="p">:</span>
-		<span class="n">switch</span> <span class="n">to</span> <span class="n">Server</span> <span class="n">multicast</span> <span class="n">EndPoint</span>
-	<span class="k">elif</span> <span class="n">n</span><span class="o">&gt;</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">subCnt</span> <span class="o">&lt;</span> <span class="n">unicastLimit</span><span class="p">:</span>
-		<span class="n">unicast</span> <span class="ow">or</span> <span class="n">multicast</span> <span class="n">depends</span> <span class="n">on</span> <span class="n">Client</span> <span class="n">Subscribe</span> <span class="n">info</span>
-</code></pre></div></div>
-
-<blockquote>
-  <p>SOME/IP-SD服务发现提供在没有静态配置的情况下在运行时发现所需要的服务以及其EndPoint信息；但是它可以被纯静态的配置替代，比如可以使用配置文件静态的将所有的通信配置，EndPoint信息定义好，只需要在运行时解析配置文件获取相关通信配置即可，这些都不是SOME/IP-SD协议的一部分。</p>
-</blockquote>]]></content><author><name></name></author><category term="AUTOSAR" /><summary type="html"><![CDATA[标准连接：SOME/IP SD]]></summary></entry></feed>
+<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在<a href="https://shan-weiqiang.github.io/2024/04/21/smartPtr-%E6%9E%84%E9%80%A0-%E6%9E%90%E6%9E%84%E8%A1%8C%E4%B8%BA.html">smartPtr构造&amp;析构行为</a>详细分析。</p>]]></content><author><name></name></author><category term="C++" /><summary type="html"><![CDATA[shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。]]></summary></entry></feed>

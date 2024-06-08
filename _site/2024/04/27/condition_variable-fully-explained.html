@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>condition_variable fully explained | Shan Weiqiang’s blog</title>
+<title>std::condition_variable: a deeper look | Shan Weiqiang’s blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="condition_variable fully explained" />
+<meta property="og:title" content="std::condition_variable: a deeper look" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable." />
 <meta property="og:description" content="This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable." />
@@ -15,9 +15,9 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-04-27T19:22:46+08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="condition_variable fully explained" />
+<meta property="twitter:title" content="std::condition_variable: a deeper look" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-27T19:22:46+08:00","datePublished":"2024-04-27T19:22:46+08:00","description":"This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable.","headline":"condition_variable fully explained","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"},"url":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-27T19:22:46+08:00","datePublished":"2024-04-27T19:22:46+08:00","description":"This post tries to enumerate the pitfalls that might happen in the use of condition_variable. First I will explain scenarios in the use of condition_variable; then give a summary about tips of using it; At the end of the post, a live example is given to demonstrate what have been talked about in this post. Hope this will help someone to spent one less miniute debugging condition_variable.","headline":"std::condition_variable: a deeper look","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"},"url":"http://localhost:4000/2024/04/27/condition_variable-fully-explained.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,7 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">condition_variable fully explained</h1>
+    <h1 class="post-title p-name" itemprop="name headline">std::condition_variable: a deeper look</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2024-04-27T19:22:46+08:00" itemprop="datePublished">Apr 27, 2024
       </time></p>

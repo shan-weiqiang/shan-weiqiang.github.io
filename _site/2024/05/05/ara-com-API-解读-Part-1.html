@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>ara::com API 解读[Part 1] | Shan Weiqiang’s blog</title>
+<title>ara::com API[Part 1] | Shan Weiqiang’s blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="ara::com API 解读[Part 1]" />
+<meta property="og:title" content="ara::com API[Part 1]" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="标准连接：ara::com API" />
 <meta property="og:description" content="标准连接：ara::com API" />
@@ -15,9 +15,9 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-05-05T13:22:46+08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="ara::com API 解读[Part 1]" />
+<meta property="twitter:title" content="ara::com API[Part 1]" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-05T13:22:46+08:00","datePublished":"2024-05-05T13:22:46+08:00","description":"标准连接：ara::com API","headline":"ara::com API 解读[Part 1]","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"},"url":"http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-05T13:22:46+08:00","datePublished":"2024-05-05T13:22:46+08:00","description":"标准连接：ara::com API","headline":"ara::com API[Part 1]","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"},"url":"http://localhost:4000/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="Shan Weiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -40,7 +40,7 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">ara::com API 解读[Part 1]</h1>
+    <h1 class="post-title p-name" itemprop="name headline">ara::com API[Part 1]</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2024-05-05T13:22:46+08:00" itemprop="datePublished">May 5, 2024
       </time></p>
@@ -97,7 +97,7 @@ there has to be flexibility to exchange that.</p>
 <hr />
 <p><strong>NOTE</strong></p>
 
-<p>ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见<a href="https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html">SOME/IP Service Discovery解读</a>, <a href="https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html">SOME/IP 解读</a></p>
+<p>ComAPI应当支持多种底层通信协议。这个特征在其他API中也有支持，比如ROS API。目前AUTOSAR AP规范中提供了两种协议绑定支持：SOME/IP，DDS。在AUTOSAR的模型中，主线是按照SOME/IP规范设计的，DDS的绑定模型多数是为了跟SOME/IP的模型对称。相比SOME/IP，DDS协议对底层传输层的封装更彻底，用户无需指定具体的传输层端口号，协议等也可以按照标准的xml文件指定。服务发现方面，DDS只需要Domain ID和Topic名称即可在VLAN中通信，而SOME/IP需要通过具体的组播发现和EventGroup等概念来进行服务发现，详细可见<a href="https://shan-weiqiang.github.io/2024/04/08/SOME-IP-SD-%E8%A7%A3%E8%AF%BB.html">SOME/IP Service Discovery</a>, <a href="https://shan-weiqiang.github.io/2024/04/19/SOME-IP-%E8%A7%A3%E8%AF%BB.html">SOME/IP</a></p>
 
 <hr />
 
