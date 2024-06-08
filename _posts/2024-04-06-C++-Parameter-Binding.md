@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++ parameter binding rules"
+title:  "c++ parameter binding rules"
 date:   2024-04-05 19:22:46 +0800
 tags: [C++]
 ---
