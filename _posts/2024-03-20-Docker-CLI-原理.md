@@ -2,7 +2,7 @@
 layout: post
 title:  "docker CLI: a guess"
 date:   2024-03-20 19:22:46 +0800
-tags: [system_programming]
+tags: [linux-programming]
 ---
 
 * toc

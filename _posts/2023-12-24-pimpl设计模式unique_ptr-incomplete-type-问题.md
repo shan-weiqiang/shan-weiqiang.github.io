@@ -2,7 +2,7 @@
 layout: post
 title:  "pimpl: unique_ptr incomplete type problem"
 date:   2023-12-24 19:22:46 +0800
-tags: [C++]
+tags: [c++]
 ---
 
 

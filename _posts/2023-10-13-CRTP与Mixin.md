@@ -2,7 +2,7 @@
 layout: post
 title:  "c++: crtp and mixin"
 date:   2023-10-13 19:22:46 +0800
-tags: [C++]
+tags: [c++]
 ---
 
 * toc

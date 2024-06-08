@@ -2,7 +2,7 @@
 layout: post
 title:  "i/o buffers: kernel vs user space"
 date:   2024-05-19 13:22:46 +0800
-tags: [system_programming]
+tags: [linux-programming]
 ---
 
 本篇文章是[The Linux Programming Interface](https://man7.org/tlpi/)(*published in October 2010, No Starch Press, ISBN 978-1-59327-220-3*)这本书第13章：*File I/O Buffering*的阅读总结及翻译。
