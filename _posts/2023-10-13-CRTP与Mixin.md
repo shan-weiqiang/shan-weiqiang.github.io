@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++: crtp and mixin"
+title:  "c++: crtp and mixin"
 date:   2023-10-13 19:22:46 +0800
 tags: [C++]
 ---
