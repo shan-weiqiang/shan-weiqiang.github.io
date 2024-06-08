@@ -1,4 +1,47 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-06-08T11:01:11+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">shanweiqiang’s blog</title><subtitle></subtitle><entry><title type="html">AUTOSAR service model: a big picture</title><link href="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html" rel="alternate" type="text/html" title="AUTOSAR service model: a big picture" /><published>2024-06-08T09:22:46+08:00</published><updated>2024-06-08T09:22:46+08:00</updated><id>http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture</id><content type="html" xml:base="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html"><![CDATA[<p>The design phase of AUTOSAR communication management can be generalized as following steps: First, a <em>methodology</em> is chosen. According to the methodology, <em>standards</em> and <em>protocols</em> are designed, specifying detailed <em>behavior</em>. AUTOSAR vendors and open source organizations <em>implement</em> these <em>standards</em> and <em>protocol</em>.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-06-08T19:21:58+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">shanweiqiang’s blog</title><subtitle></subtitle><entry><title type="html">futex: foundation of linux synchronization</title><link href="http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html" rel="alternate" type="text/html" title="futex: foundation of linux synchronization" /><published>2024-06-08T19:20:46+08:00</published><updated>2024-06-08T19:20:46+08:00</updated><id>http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore</id><content type="html" xml:base="http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html"><![CDATA[<p>In linux, pthread mutex <code class="language-plaintext highlighter-rouge">pthread_mutex_t</code>(on which <code class="language-plaintext highlighter-rouge">std::mutex</code> is based),  and <code class="language-plaintext highlighter-rouge">pthread_cond_t</code>(on which <code class="language-plaintext highlighter-rouge">std::condition_variable</code> is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it.</p>
+
+<p>Reference: 
+<a href="https://www.man7.org/linux/man-pages/man2/futex.2.html">futex</a>
+<a href="https://man7.org/linux/man-pages/man2/syscalls.2.html">syscall</a></p>
+
+<h2 id="futex-behavior">futex behavior</h2>
+
+<p>futex is called fast user-space locking. At first glampse it’s confusing since futex is a syscall with following signature:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">long</span> <span class="nf">syscall</span><span class="p">(</span><span class="n">SYS_futex</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="o">*</span><span class="n">uaddr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">futex_op</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">val</span><span class="p">,</span>
+                    <span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="o">*</span><span class="n">timeout</span><span class="p">,</span>   <span class="cm">/* or: uint32_t val2 */</span>
+                    <span class="kt">uint32_t</span> <span class="o">*</span><span class="n">uaddr2</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">val3</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Why it is called <em>user-space</em> locking when it needs kernel support? The answer is the second parameter <code class="language-plaintext highlighter-rouge">uaddr</code>, which is a user space 32-bit word. <code class="language-plaintext highlighter-rouge">uaddr</code> is a user space address inside the calling process, it serves two purposes:</p>
+
+<ul>
+  <li>threads do compare-and-swap operations on this integer to change the value, in user mode; threads do futex syscall operations through this address, which <strong>is used to connect the synchronization in user space with the implementation of blocking by the kernel</strong>.</li>
+  <li>kernel transform this userspace <code class="language-plaintext highlighter-rouge">uaddr</code> into a unique identifier and use it to maintain a unique threads waiting list; kernel accept user space syscalls which pass <code class="language-plaintext highlighter-rouge">uaddr</code> into kernel space, then kernel does corresponding operations, such as put thread into waiting list, or wake up specific number of threads in the waiting list. There are mainly two operations the kernel does:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">FUTEX_WAIT</code>: put the calling thread into the waiting list uniquely identified by <code class="language-plaintext highlighter-rouge">uaddr</code>, if and only if the value in <code class="language-plaintext highlighter-rouge">uaddr</code> is equal to <code class="language-plaintext highlighter-rouge">val</code>; if <code class="language-plaintext highlighter-rouge">uaddr</code> is not equal to <code class="language-plaintext highlighter-rouge">val</code>, the syscall returns immediately. Above operations are done atomically.</li>
+      <li><code class="language-plaintext highlighter-rouge">FUTEX_WAKE</code>: wake up <code class="language-plaintext highlighter-rouge">val</code> number of threads in the waiting list uniquely identified by <code class="language-plaintext highlighter-rouge">uaddr</code>. There is no operations on the value in <code class="language-plaintext highlighter-rouge">uaddr</code></li>
+    </ul>
+  </li>
+</ul>
+
+<p>The functionality futex provides is basically a threads queue and dequeue mechanism. Even though mutex, condition variable, semaphore are all implemented on top of futex, the kernel knows nothing about the real usage of these concept. What the kernel knows is when to put a thread into a unique waiting list and when to remove a thread from a unique waiting list, all of which are provoked by user. Kernel provides a <em>service</em>, it’s up to user for how to used it and what it is used for.</p>
+
+<p>It’s useful to rethink about what exactly is a lock. At it’s simplest form, lock is a binary flag, 0 or 1. What is special about locks is that they should be operated atomically. At user space, atomicity can be achieved through compare-and-swap operation. So the spinlock can be implemented without any kernel support. However, what if we want to put thread into waiting state if it currently can not get the lock to optimize the CPU resources? How to wake up threads when lock is free to use? These scheduling of threads need kernel support. futex is in the position to fulfil these needs.</p>
+
+<p>Take the simplest binary lock for example, if one thread is competing for the lock, what it should do is to firstly do atomic operation to decide whether the lock is free, if it’s free, the binary is flipped and the lock is aquired by this specific thread. Please note that during this process, no kernel support is needed. Since the switch from user mode to kernel mode is a costly action, the user space fast locking functionality provided by futex is indeed <em>fast</em>. If unluckily, the lock is not available after the atomic check operation, a futex syscall is required to put the calling thread into waiting list for this lock, this is when a costly kernel mode switching is needed.</p>
+
+<h2 id="intra-process-and-inter-process-synchronization">intra-process and inter-process synchronization</h2>
+
+<p>From the perspective of a process the futex word is in the address space of current process. If two threads come from this same process, it is obviously no problem if the same futex word is used, since they shared the futex in the same address space. futex word can be a global variable in this scenario.</p>
+
+<p>What if threads from two different process want to do synchronization using futex? It’s intuitive to think that the futex word should be in a shared memroy region. This is indeed the solution. If the futex word is in a shared memroy region from different processes, <em>inter-process</em> synchronization can be achieved. It is rather easy from the user side, since what the user need to do is simply create a shared memroy region and put the futex word in there and share it across processes. The usage of the futex is totally the same as in non-shared memory scenario. However, the kernel now has a headache to solve: how to uniquely identify inter-process futex？</p>
+
+<p>In intra-process scenario, the kernel can use PID plus the virtual address of the futex word to uniquely identify a futex inside the kernel. In inter-process scenario, this is invalid since the futex word have different virtual address in each processes. The requirement is that kernel need to find a way to uniquely identify a futex, even across different virtual address space. One possible solution is to use the physical address to uniquely identify the futex, since the physical address is the same across all processes in this situation. However, the futex might be swapped out of RAM during runtime and every kernel have it’s own page replacement algorithm. After the memroy region containing the futex is swapped in, it might have a different physical address with the previous one. At the end, for a inter-process futex to work, it’s kernel’s job to ensure:
+    - every process that use this futex must share the same waiting list for blocking thread
+    - all processes’s futex syscall works atomically on this futex word inside the kernel(user space operation on this futex word is assured by user)</p>
+
+<p><code class="language-plaintext highlighter-rouge">pthread_mutex_t</code> and named semaphores in POSIX can be used to achieve inter-process synchronization. The C++ <code class="language-plaintext highlighter-rouge">std::mutex</code> is only designed for intra-process usage.</p>]]></content><author><name></name></author><category term="linux-programming" /><summary type="html"><![CDATA[In linux, pthread mutex pthread_mutex_t(on which std::mutex is based), and pthread_cond_t(on which std::condition_variable is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it.]]></summary></entry><entry><title type="html">AUTOSAR service model: a big picture</title><link href="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html" rel="alternate" type="text/html" title="AUTOSAR service model: a big picture" /><published>2024-06-08T09:22:46+08:00</published><updated>2024-06-08T09:22:46+08:00</updated><id>http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture</id><content type="html" xml:base="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html"><![CDATA[<p>The design phase of AUTOSAR communication management can be generalized as following steps: First, a <em>methodology</em> is chosen. According to the methodology, <em>standards</em> and <em>protocols</em> are designed, specifying detailed <em>behavior</em>. AUTOSAR vendors and open source organizations <em>implement</em> these <em>standards</em> and <em>protocol</em>.</p>
 
 <p>AUTOSAR Service Model is based on SOA(service-oriented architecture). According to this service model, AUTOSAR designs the user level API, aka the ara::com::API and the low level communication protocol SOME/IP. ara::com::API and SOME/IP both inherit concept from AUTOSAR service model, so they both have similar concept like service,event, method, etc, even though the meaning of these names varies in its own context. ara::com API can be implemented on other communication protocols, like DDS, instead of SOME/IP. (Interestingly, DDS is not service-oriented.).</p>
 
@@ -1384,288 +1427,4 @@ manifest, which maps the same ara::core::InstanceSpecifier differently</p>
     <span class="p">}</span>
 <span class="p">}</span>
 
-</code></pre></div></div>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[在smartPtr内存模型文章中，介绍了std::shared_ptr和std::unique_ptr的内存模型区别，这篇文章介绍它们的构造和析构的行为区别。]]></summary></entry><entry><title type="html">smart pointers: memory model</title><link href="http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html" rel="alternate" type="text/html" title="smart pointers: memory model" /><published>2024-04-20T12:22:46+08:00</published><updated>2024-04-20T12:22:46+08:00</updated><id>http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B</id><content type="html" xml:base="http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"><![CDATA[<p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器默认为<code class="language-plaintext highlighter-rouge">delete</code>操作符，但是由于<code class="language-plaintext highlighter-rouge">shared_ptr</code>指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。</p>
-
-<ul id="markdown-toc">
-  <li><a href="#参考文章" id="markdown-toc-参考文章">参考文章</a></li>
-  <li><a href="#shared指针行为" id="markdown-toc-shared指针行为">shared指针行为</a>    <ul>
-      <li><a href="#shared_ptr内存布局" id="markdown-toc-shared_ptr内存布局">shared_ptr内存布局</a></li>
-      <li><a href="#指针位置相同类型不同" id="markdown-toc-指针位置相同类型不同">指针位置相同，类型不同</a></li>
-      <li><a href="#aliasing-constructor" id="markdown-toc-aliasing-constructor">aliasing constructor</a></li>
-      <li><a href="#get的返回值类型" id="markdown-toc-get的返回值类型"><code class="language-plaintext highlighter-rouge">get()</code>的返回值类型</a></li>
-      <li><a href="#cast操作" id="markdown-toc-cast操作">Cast操作</a></li>
-    </ul>
-  </li>
-  <li><a href="#unique指针行为" id="markdown-toc-unique指针行为">unique指针行为</a>    <ul>
-      <li><a href="#unique_ptr内存布局" id="markdown-toc-unique_ptr内存布局">unique_ptr内存布局</a></li>
-    </ul>
-  </li>
-</ul>
-
-<h1 id="参考文章">参考文章</h1>
-
-<p>本文参考了如下文章：</p>
-
-<ol>
-  <li><a href="https://en.cppreference.com/w/cpp/memory/shared_ptr/shared_ptr">shared_ptr</a></li>
-  <li><a href="https://www.nextptr.com/tutorial/ta1358374985/shared_ptr-basics-and-internals-with-examples">shared_ptr - basics and internals with examples</a></li>
-  <li><a href="https://www.nextptr.com/question/qa1355324734/aliasing-constructed-shared_ptr-as-key-of-map-or-set">Aliasing constructed shared_ptr as key of map or set</a></li>
-  <li><a href="https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast">pointer_cast</a></li>
-</ol>
-
-<h1 id="shared指针行为">shared指针行为</h1>
-
-<h2 id="shared_ptr内存布局">shared_ptr内存布局</h2>
-
-<p>如下图是<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>指针的内存layout：</p>
-
-<p><img src="/assets/images/control.png" alt="Alt text" /></p>
-
-<p><code class="language-plaintext highlighter-rouge">shared_ptr</code>的删除器是通过构造函数的方式传入的，不是<code class="language-plaintext highlighter-rouge">shared_ptr</code>智能指针类型的一部分。所以不同删除器的管理相同类型的智能指针可以放在同一个容器中(因为管理对象有相同的类型)。如果不提供删除器，则使用默认的<code class="language-plaintext highlighter-rouge">delete</code>操作符删除对象。</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// file: /usr/include/c++/11/bits/shared_ptr_base.h</span>
-  <span class="c1">// Counted ptr with no deleter or allocator support</span>
-  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">_Ptr</span><span class="p">,</span> <span class="n">_Lock_policy</span> <span class="n">_Lp</span><span class="p">&gt;</span>
-    <span class="k">class</span> <span class="nc">_Sp_counted_ptr</span> <span class="k">final</span> <span class="o">:</span> <span class="k">public</span> <span class="n">_Sp_counted_base</span><span class="o">&lt;</span><span class="n">_Lp</span><span class="o">&gt;</span>
-    <span class="p">{</span>
-<span class="p">...</span>
-      <span class="k">virtual</span> <span class="kt">void</span>
-      <span class="n">_M_dispose</span><span class="p">()</span> <span class="k">noexcept</span>
-      <span class="p">{</span> <span class="k">delete</span> <span class="n">_M_ptr</span><span class="p">;</span> <span class="p">}</span> <span class="c1">// 默认直接调用delete</span>
-<span class="p">...</span>
-      <span class="k">virtual</span> <span class="kt">void</span><span class="o">*</span>
-      <span class="n">_M_get_deleter</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">type_info</span><span class="o">&amp;</span><span class="p">)</span> <span class="k">noexcept</span>
-      <span class="p">{</span> <span class="k">return</span> <span class="nb">nullptr</span><span class="p">;</span> <span class="p">}</span> <span class="c1">// deleter 返回空指针</span>
-<span class="p">...</span>
-    <span class="k">private</span><span class="o">:</span>
-      <span class="n">_Ptr</span>             <span class="n">_M_ptr</span><span class="p">;</span>
-    <span class="p">};</span>
-
-    <span class="p">...</span>
-
-  <span class="c1">// Support for custom deleter and/or allocator</span>
-  <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">_Ptr</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">_Deleter</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">_Alloc</span><span class="p">,</span> <span class="n">_Lock_policy</span> <span class="n">_Lp</span><span class="p">&gt;</span>
-    <span class="k">class</span> <span class="nc">_Sp_counted_deleter</span> <span class="k">final</span> <span class="o">:</span> <span class="k">public</span> <span class="n">_Sp_counted_base</span><span class="o">&lt;</span><span class="n">_Lp</span><span class="o">&gt;</span>
-    <span class="p">{</span>
-      <span class="k">class</span> <span class="nc">_Impl</span> <span class="o">:</span> <span class="n">_Sp_ebo_helper</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="n">_Deleter</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_Sp_ebo_helper</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span> <span class="n">_Alloc</span><span class="o">&gt;</span>
-      <span class="p">{</span>
-<span class="p">...</span>
-	<span class="n">_Deleter</span><span class="o">&amp;</span> <span class="n">_M_del</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_Del_base</span><span class="o">::</span><span class="n">_S_get</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">);</span> <span class="p">}</span>
-	<span class="n">_Alloc</span><span class="o">&amp;</span> <span class="n">_M_alloc</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_Alloc_base</span><span class="o">::</span><span class="n">_S_get</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">);</span> <span class="p">}</span>
-	<span class="n">_Ptr</span> <span class="n">_M_ptr</span><span class="p">;</span>
-      <span class="p">};</span>
-<span class="p">...</span>
-      <span class="k">virtual</span> <span class="kt">void</span>
-      <span class="nf">_M_dispose</span><span class="p">()</span> <span class="k">noexcept</span>
-      <span class="p">{</span> <span class="n">_M_impl</span><span class="p">.</span><span class="n">_M_del</span><span class="p">()(</span><span class="n">_M_impl</span><span class="p">.</span><span class="n">_M_ptr</span><span class="p">);</span> <span class="p">}</span> <span class="c1">// 先获取deleter，然后将指针传入</span>
-<span class="p">...</span>
-    <span class="k">private</span><span class="o">:</span>
-      <span class="n">_Impl</span> <span class="n">_M_impl</span><span class="p">;</span>
-    <span class="p">};</span>
-</code></pre></div></div>
-
-<p>下面这个例子说明了<code class="language-plaintext highlighter-rouge">deleter</code>的行为：</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
-</span>
-<span class="k">struct</span> <span class="nc">SampleType</span> <span class="p">{</span>
-    <span class="n">SampleType</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Constructor called</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="o">~</span><span class="n">SampleType</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Destructor called</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SampleType</span><span class="o">&gt;</span> <span class="n">ptr</span><span class="p">(</span><span class="k">new</span> <span class="n">SampleType</span><span class="p">(),</span> <span class="p">[](</span><span class="n">SampleType</span> <span class="o">*</span><span class="n">p</span><span class="p">)</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Custom deleter called</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-        <span class="k">delete</span> <span class="n">p</span><span class="p">;</span>
-    <span class="p">});</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SampleType</span><span class="o">&gt;</span> <span class="n">normal_ptr</span><span class="p">(</span><span class="k">new</span> <span class="nf">SampleType</span><span class="p">());</span>
-
-    <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">SampleType</span><span class="o">&gt;&gt;</span> <span class="n">vec</span><span class="p">;</span>
-    <span class="n">vec</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">ptr</span><span class="p">);</span>
-    <span class="n">vec</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">normal_ptr</span><span class="p">);</span>
-
-    <span class="c1">// ptr and normal_ptr are of the same type</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"total:"</span> <span class="o">&lt;&lt;</span> <span class="n">vec</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
-    <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
-<span class="p">}</span>
-</code></pre></div></div>
-
-<p>输出：</p>
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Constructor called
-Constructor called
-total:2
-Destructor called
-Custom deleter cal
-</code></pre></div></div>
-
-<blockquote>
-  <p>注意：<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>的<code class="language-plaintext highlighter-rouge">deleter</code>是模板参数，是其类型的一部分</p>
-</blockquote>
-
-<h2 id="指针位置相同类型不同">指针位置相同，类型不同</h2>
-
-<p>这种情况对应的是图中的<code class="language-plaintext highlighter-rouge">shared_ptr&lt;B&gt; three</code>，下面是一个例子说明其行为：</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
-</span>
-<span class="k">struct</span> <span class="nc">BaseType</span> <span class="p">{</span>
-    <span class="n">BaseType</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"BaseType constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="k">virtual</span> <span class="o">~</span><span class="n">BaseType</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"BaseType destructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="k">struct</span> <span class="nc">DerivedType</span> <span class="o">:</span> <span class="k">public</span> <span class="n">BaseType</span> <span class="p">{</span>
-    <span class="n">DerivedType</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"DerivedType constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="o">~</span><span class="n">DerivedType</span><span class="p">()</span> <span class="k">override</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"DerivedType destructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// 尽管ptr是std::shared_ptr&lt;BaseType&gt;类型，但是因为control block指向的是DerivedType对象，所以DerivedType的析构函数会被调用</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">BaseType</span><span class="o">&gt;</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">DerivedType</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="p">}</span>
-</code></pre></div></div>
-<p>输出：</p>
-
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>BaseType constructor
-DerivedType constructor
-DerivedType destructor
-BaseType destructor
-</code></pre></div></div>
-
-<h2 id="aliasing-constructor">aliasing constructor</h2>
-
-<p>对应图中<code class="language-plaintext highlighter-rouge">shared_ptr&lt;C&gt; four</code>的情况，这种情况下其指向的对象不会在智能指针析构时释放资源。</p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
-#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
-</span>
-<span class="k">struct</span> <span class="nc">A</span> <span class="p">{</span>
-    <span class="n">A</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"A constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="o">~</span><span class="n">A</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"A destructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="k">struct</span> <span class="nc">B</span> <span class="p">{</span>
-    <span class="n">B</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"B constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="o">~</span><span class="n">B</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"B destructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-<span class="p">};</span>
-
-<span class="k">struct</span> <span class="nc">C</span> <span class="p">{</span>
-    <span class="n">C</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"C constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-
-    <span class="o">~</span><span class="n">C</span><span class="p">()</span> <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"C destructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-    <span class="p">}</span>
-    <span class="n">A</span> <span class="n">a</span><span class="p">;</span>
-    <span class="n">B</span> <span class="n">b</span><span class="p">;</span>
-<span class="p">};</span>
-
-<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span> <span class="n">a_ptr</span><span class="p">;</span>
-    <span class="p">{</span>
-        <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span> <span class="n">ptr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">C</span><span class="o">&gt;</span><span class="p">();</span>
-        <span class="c1">// a_ptr shared ref count with ptr, but point to ptr.a</span>
-        <span class="n">a_ptr</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">A</span><span class="o">&gt;</span><span class="p">{</span><span class="n">ptr</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">ptr</span><span class="o">-&gt;</span><span class="n">a</span><span class="p">};</span>
-    <span class="p">}</span>
-    <span class="c1">// ptr is out of scope, but object it points to is not destructed yet,since a_ptr still holds a reference to ptr.a</span>
-    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"C's construct should not be destructed yet</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
-<span class="p">}</span>
-
-</code></pre></div></div>
-
-<p>输出：</p>
-
-<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>A constructor
-B constructor
-C constructor
-C's construct should not be destructed yet
-C destructor
-B destructor
-A destructor
-</code></pre></div></div>
-
-<h2 id="get的返回值类型"><code class="language-plaintext highlighter-rouge">get()</code>的返回值类型</h2>
-
-<ul>
-  <li><code class="language-plaintext highlighter-rouge">shared_ptr&lt;A&gt;</code>的<code class="language-plaintext highlighter-rouge">get()</code>返回值类型是<code class="language-plaintext highlighter-rouge">A</code>的指针类型，不一定是Control Block指向的地址</li>
-  <li>智能指针的共享所有权与其存储的具体的指向的类型与地址，是独立的，虽然大部分情况下它们是一样的</li>
-</ul>
-
-<h2 id="cast操作">Cast操作</h2>
-
-<p>有了上面的理解基础，即智能指针的共享对象和其存储的具体对象类型和地址是独立的，就很自然的会碰到如下情况：</p>
-
-<ul>
-  <li>想共享Control Block，但是希望存储的指针被当做另外一个类型</li>
-</ul>
-
-<p><code class="language-plaintext highlighter-rouge">std::static_pointer_cast，std::dynamic_pointer_cast，std::const_pointer_cast，std::reinterpret_pointer_cast</code> 用户实现以上操作，其各自的用法与对应的<code class="language-plaintext highlighter-rouge">std::static_cast，std::dynamic_cast，std::const_cast，std::reinterpret_cast</code> 相同，只不过这里是对<code class="language-plaintext highlighter-rouge">shared_ptr</code>类型<code class="language-plaintext highlighter-rouge">get()</code>返回的类型进行操作。</p>
-
-<p><a href="https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast">https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast</a></p>
-
-<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// static_pointer_cast</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">U</span><span class="p">&gt;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">static_pointer_cast</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">r</span><span class="p">)</span> <span class="k">noexcept</span>
-<span class="p">{</span>
-    <span class="k">auto</span> <span class="n">p</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">element_type</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
-    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">{</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="p">};</span>
-<span class="p">}</span>
-<span class="c1">// dynamic_pointer_cast</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">U</span><span class="p">&gt;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">dynamic_pointer_cast</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">r</span><span class="p">)</span> <span class="k">noexcept</span>
-<span class="p">{</span>
-    <span class="k">if</span> <span class="p">(</span><span class="k">auto</span> <span class="n">p</span> <span class="o">=</span> <span class="k">dynamic_cast</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">element_type</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">get</span><span class="p">()))</span>
-        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">{</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="p">};</span>
-    <span class="k">else</span>
-        <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">{};</span>
-<span class="p">}</span>
-<span class="c1">// const_pointer_cast</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">U</span><span class="p">&gt;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">const_pointer_cast</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">r</span><span class="p">)</span> <span class="k">noexcept</span>
-<span class="p">{</span>
-    <span class="k">auto</span> <span class="n">p</span> <span class="o">=</span> <span class="k">const_cast</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">element_type</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
-    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">{</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="p">};</span>
-<span class="p">}</span>
-<span class="c1">// reinterpret_pointer_cast</span>
-<span class="k">template</span><span class="o">&lt;</span><span class="k">class</span> <span class="nc">T</span><span class="p">,</span> <span class="k">class</span> <span class="nc">U</span><span class="p">&gt;</span>
-<span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">reinterpret_pointer_cast</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">U</span><span class="o">&gt;&amp;</span> <span class="n">r</span><span class="p">)</span> <span class="k">noexcept</span>
-<span class="p">{</span>
-    <span class="k">auto</span> <span class="n">p</span> <span class="o">=</span> <span class="k">reinterpret_cast</span><span class="o">&lt;</span><span class="k">typename</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">element_type</span><span class="o">*&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
-    <span class="k">return</span> <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span><span class="p">{</span><span class="n">r</span><span class="p">,</span> <span class="n">p</span><span class="p">};</span>
-<span class="p">}</span>
-
-</code></pre></div></div>
-
-<h1 id="unique指针行为">unique指针行为</h1>
-
-<h2 id="unique_ptr内存布局">unique_ptr内存布局</h2>
-
-<p><img src="/assets/images/memory.png" alt="Alt text" /></p>
-
-<p><code class="language-plaintext highlighter-rouge">std::unique_ptr</code>指针的删除器是其类型的一部分，这与<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>是有区别的，并且其内存布局非常简单，没有共享控制块的原子操作。由于删除器是其类型的一部分，且内存模型不同，它和<code class="language-plaintext highlighter-rouge">std::shared_ptr</code>有很多区别，将在<a href="https://shan-weiqiang.github.io/2024/04/21/smartPtr-%E6%9E%84%E9%80%A0-%E6%9E%90%E6%9E%84%E8%A1%8C%E4%B8%BA.html">smartPtr构造&amp;析构行为</a>详细分析。</p>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。]]></summary></entry></feed>
+</code></pre></div></div>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[在smartPtr内存模型文章中，介绍了std::shared_ptr和std::unique_ptr的内存模型区别，这篇文章介绍它们的构造和析构的行为区别。]]></summary></entry></feed>
