@@ -11,7 +11,9 @@ AUTOSAR Service Model is based on SOA(service-oriented architecture). According 
 
 These steps can be illustrated in the following diagram:
 
-![Alt text](/assets/images/autosar_service_model.png)
+| ![Alt text](/assets/images/autosar_service_model.png) | 
+|:--:| 
+| *AUTOSAR Service Model* |
 
 The soul of the software is the AUTOSAR service model, which defines *service description*:
 
