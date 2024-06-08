@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python Decorator"
+title:  "python decorators"
 date:   2023-05-02 19:22:46 +0800
 tags: [python]
 ---

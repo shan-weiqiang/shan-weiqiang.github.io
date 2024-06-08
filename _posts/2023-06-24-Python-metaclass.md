@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python metaclass"
+title:  "python metaclass"
 date:   2023-06-24 19:22:46 +0800
 tags: [python]
 ---

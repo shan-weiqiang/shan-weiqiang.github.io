@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "pimpl设计模式unique_ptr incomplete type问题"
+title:  "pimpl: unique_ptr incomplete type problem"
 date:   2023-12-24 19:22:46 +0800
 tags: [C++]
 ---
