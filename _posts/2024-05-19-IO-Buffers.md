@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "I/O Buffers"
+title:  "i/o buffers: kernel vs user space"
 date:   2024-05-19 13:22:46 +0800
 tags: [system_programming]
 ---

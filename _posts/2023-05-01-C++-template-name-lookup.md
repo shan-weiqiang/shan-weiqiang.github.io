@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++ template name lookup"
+title:  "C++ template name lookup rules"
 date:   2023-05-01 19:22:46 +0800
 tags: [C++]
 ---

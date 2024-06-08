@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "AUTOSAR Service Model: a big picture"
+title:  "AUTOSAR service model: a big picture"
 date:   2024-06-08 9:22:46 +0800
 tags: [AUTOSAR]
 ---
