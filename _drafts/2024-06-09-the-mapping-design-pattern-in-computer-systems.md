@@ -48,3 +48,8 @@ The ideology behind virtual memory design and the logical block address design i
 - physical memory can be mapped to multi logical/virtual memory, thus shared by them
 - logical/virtual memory is continuous, while the actual storage in physical memory is not. This is a huge advantage, since physical memory unit might be corrupted. With the help of mapping table, the corrupted memory unit can be remapped to a good one and the logical memory need not to know anything about it
 
+
+It is indeed true that：
+
+> "We can solve any problem by introducing an extra level of indirection."
+
