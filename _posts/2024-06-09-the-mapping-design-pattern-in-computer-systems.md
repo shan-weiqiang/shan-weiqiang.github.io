@@ -1,11 +1,11 @@
 ---
 layout: post
 title:  "the mapping design pattern in storage management"
-date:   2024-06-09 19:20:46 +0800
+date:   2024-06-09 9:20:46 +0800
 tags: [operating-system]
 ---
 
-It's fun to observe and generalize the similarities between different systems. In computer storage management systems, the virtual memory design in RAM management and the logical block design in mass storage management shares the same pattern: mapping.
+It's fun to observe and generalize the similarities between different systems. In computer storage, the virtual memory design in RAM management and the logical block design in mass storage management shares the same pattern: mapping of logical/virtual memory to physical memory.
 
 Reference: [Managed Flash Background Operations Series](https://americas.kioxia.com/content/dam/kioxia/en-us/business/memory/mlc-nand/asset/KIOXIA_Managed_Flash_BOS_P5_Understanding_L2P_Block_Address_Translation_Tech_Brief.pdf)
 

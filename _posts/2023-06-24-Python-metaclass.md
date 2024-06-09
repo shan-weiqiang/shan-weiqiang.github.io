@@ -7,9 +7,6 @@ tags: [python]
 
 This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.
 
-* toc
-{:toc}
-
 # Reference
 
 I reference following articles and some of the content derives from them, please read them first and credit goes for the writers too:
