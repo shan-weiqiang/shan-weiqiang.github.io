@@ -133,7 +133,6 @@ int clone_func(void *) {
 // created nested, they are peers with the thread that created them
 void level_two() {
   for (;;) {
-
     {
       std::lock_guard<std::mutex> lck{mtx};
       std::cout << "POSIX thread, id: " << std::this_thread::get_id()
@@ -174,7 +173,6 @@ int main(int argc, char *argv[]) {
 
   // use `ps --pid <pid> -O tid,lwp,nlwp -L` to see the difference
   if (argc > 1) {
-
     // CLONE_THREAD flag prevent from creating new thread group ID(the same as
     // process ID); this thread will be peers to threads that are created by
     // std::thread
@@ -188,7 +186,6 @@ int main(int argc, char *argv[]) {
       exit(EXIT_FAILURE);
     }
   } else {
-
     // create new thread group ID, aka creating new process ID
     // emulate fork
     pid = clone(clone_func, stackTop, SIGCHLD, NULL);
