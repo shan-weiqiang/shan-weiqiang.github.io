@@ -75,6 +75,8 @@ Those are flags to support POSIX threads.
 - CLONE_CHILD_SETTID: `clone` write the ID of the newly created KSE into the child's memory location specified by argument `pid_t *ctid`.  Note that if CLONE_VM is specified, this will also affect the parent. For POSIX threads, CLONE_VM must be specified. So for the POSIX thread implmentation, CLONE_PARENT_SETTID and CLONE_CHILD_SETTID  overlapps in functionality
 - CLONE_CHILD_CLEARTID: `clone` zeros the memory pointed by `pid_t *ctid`
 
+## pthread_join under the hood
+
 In linux, the `pthread_join/pthread_create` is implemented based on these three flags. When `pthread_create` creates threads, CLONE_PARENT_SETTID and CLONE_CHILD_CLEARTID is used, `pid_t *ptid` and `pid_t *ctid` are set to point to the same location. CLONE_CHILD_SETTID is irrelevent because POSIX thread requires the CLONE_VM. Kernel does the following trick to support POSIX threads:
 
 - Kernel treat the memory pointed to by `pid_t *ptid` and `pid_t *ctid` as [futex](https://shan-weiqiang.github.io/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html)

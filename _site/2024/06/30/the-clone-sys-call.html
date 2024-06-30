@@ -136,6 +136,8 @@ between threads.</p>
   <li>CLONE_CHILD_CLEARTID: <code class="language-plaintext highlighter-rouge">clone</code> zeros the memory pointed by <code class="language-plaintext highlighter-rouge">pid_t *ctid</code></li>
 </ul>
 
+<h2 id="pthread_join-under-the-hood">pthread_join under the hood</h2>
+
 <p>In linux, the <code class="language-plaintext highlighter-rouge">pthread_join/pthread_create</code> is implemented based on these three flags. When <code class="language-plaintext highlighter-rouge">pthread_create</code> creates threads, CLONE_PARENT_SETTID and CLONE_CHILD_CLEARTID is used, <code class="language-plaintext highlighter-rouge">pid_t *ptid</code> and <code class="language-plaintext highlighter-rouge">pid_t *ctid</code> are set to point to the same location. CLONE_CHILD_SETTID is irrelevent because POSIX thread requires the CLONE_VM. Kernel does the following trick to support POSIX threads:</p>
 
 <ul>
