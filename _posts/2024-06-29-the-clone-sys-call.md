@@ -93,3 +93,123 @@ If specified, the argument `user_desc *tls` is used as thread-local storage. Thi
 
 - `fork` corresponds to flags combination: `CLONE_VM | CLONE_VFORK | SIGCHLD`
 - POSIX threads corresponds to flags combination: `CLONE_VM | CLONE_FILES | CLONE_FS | CLONE_SIGHAND | CLONE_THREAD | CLONE_SETTLS | CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM`
+
+```cpp
+// Demonstrate the use of the clone(..) to simulate fork and std::threads
+#include <chrono>
+#include <csignal>
+#include <cstddef>
+#include <ctime>
+#include <iostream>
+#include <mutex>
+#include <pthread.h>
+#include <sched.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <thread>
+#include <unistd.h>
+#include <vector>
+
+#define STACK_SIZE 65536
+
+void sig_handler(int) { exit(0); }
+
+// mutex to synchronize printf
+std::mutex mtx;
+
+// entry function for clone(..)
+int clone_func(void *) {
+  for (;;) {
+    {
+      std::lock_guard<std::mutex> lck{mtx};
+      std::cout << "clone thread: " << getpid() << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+// level two std::thread function, used to demonstrate that even they are
+// created nested, they are peers with the thread that created them
+void level_two() {
+  for (;;) {
+
+    {
+      std::lock_guard<std::mutex> lck{mtx};
+      std::cout << "POSIX thread, id: " << std::this_thread::get_id()
+                << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
+// level one std::thread function
+void level_one() {
+  auto t = std::thread(level_two);
+  t.join();
+}
+
+pid_t child_pid;
+pid_t parent_pid;
+
+int main(int argc, char *argv[]) {
+
+  std::signal(SIGINT, sig_handler);
+
+  // Stack for the new thread
+  char *stack;
+
+  // Top of the stack
+  char *stackTop;
+  pid_t pid;
+
+  // Allocate memory for the stack
+  stack = (char *)malloc(STACK_SIZE);
+  if (stack == NULL) {
+    exit(EXIT_FAILURE);
+  }
+
+  // Calculate the top of the stack
+  stackTop = stack + STACK_SIZE;
+
+  // use `ps --pid <pid> -O tid,lwp,nlwp -L` to see the difference
+  if (argc > 1) {
+
+    // CLONE_THREAD flag prevent from creating new thread group ID(the same as
+    // process ID); this thread will be peers to threads that are created by
+    // std::thread
+    // emulate the POSIX threads, like std::thread
+    pid = clone(clone_func, stackTop,
+                CLONE_VM | CLONE_FILES | CLONE_FS | CLONE_SIGHAND |
+                    CLONE_THREAD | CLONE_SETTLS | CLONE_PARENT_SETTID |
+                    CLONE_CHILD_CLEARTID | CLONE_SYSVSEM,
+                &parent_pid, NULL, &child_pid);
+    if (pid == -1) {
+      exit(EXIT_FAILURE);
+    }
+  } else {
+
+    // create new thread group ID, aka creating new process ID
+    // emulate fork
+    pid = clone(clone_func, stackTop, SIGCHLD, NULL);
+    if (pid == -1) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  {
+    std::lock_guard<std::mutex> lck{mtx};
+    printf("Parent process: Created child thread with PID = %d\n", pid);
+    printf("Parent process: PID = %d\n", getpid());
+  }
+
+  // standard POSIX comforming threads
+  std::vector<std::thread> threads;
+  for (int i = 0; i < 2; ++i) {
+    threads.push_back(std::thread(level_one));
+  }
+
+  // wait for signals
+  pause();
+}
+```
