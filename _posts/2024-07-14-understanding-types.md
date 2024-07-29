@@ -12,7 +12,33 @@ Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Pr
 
 ## Type Systems
 
-Language-specific syntax rules for defining data types. It consists of pre-defined basic types and rules to build complex customized data types. It is compiled into machine code for static-typed languages like C/C++, or dynamically loaded as types in dynamic-typed languages like Python.
+Syntax rules for defining data types. It consists of pre-defined basic types and rules to build complex customized data types. It is compiled into machine code for static-typed languages like C/C++, or dynamically loaded as types in dynamic-typed languages like Python.
+
+It includes language-specific type system and language-neutral type systems that are defined by interface definition languages, which we will have detailed discussion later.
+
+I categorize type system in following way, according to their runtime behavior: static type system, introspection type system, dynamic type system, dynamic data system.
+
+### Static
+
+The main characteristic of those type system is that after compiling, all type information is lost. Type information of a variable, like type name, type, member name, member type, are translated by compiler into machine code directly. Those types only lives *before* compilation. Representitives of this kind of types is C. 
+
+### Introspection
+
+*Introspection* means that type information can be retrieved at *runtime*. This means that type information of a variable lives at runtime. We can get the type information through specific API. To achieve this, static variables and functions are required for a specific type. Those *introspection* variables and codes are compiled into text and data segment of ELF file. At runtime, caller need to know the type name(string literal, for example) to get the relevent introspection information. An example is ROS2 type system. In ROS2, the ROS2 compiler will compile the *.msg* file into language-specific type representations. At the same time, introspection codes and static variables that store type information for every type are generated. Every type is identified by it's unique *path*(string literal) and at runtime, by using this *path*, the introspection information can be retrieved(this normally involves global function naming convention together with the type path, and the use of *dlopen* and *dlsym* to find symbols in shared libraries, which is how ROS2 support introspection). C++ is mostly static types, however it can use RTTI to support *introspection*.
+
+### Reflection
+
+*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* and *types* through *introspection*. 
+
+### Dynamic type
+
+Introspection and Reflection can be implemented *statically* or *dynamically*. Like we mentioned above, ROS2 supports *introspection* and *reflection* statically, since all the codes and static variables that contains type information are *statically* generated and compiled into machine code at compile time.
+
+What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* system and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types in more detail later, take the XTypes of OMG as example.
+
+### Dynamic data
+
+It's not enough to only have dynamic types. To dynamically represent *values* at runtime for a dynamic type, *dynamic data* system is required. Dynamic data system use dynamic type system and carries *values* for each type. Note that statically compiled data and dynamically created data of the same type often has different memory model. To illustrate this, let's consider one .idl struct *StructExample*. The *StructExample* should be compiled into C++ code by tools like *fastddsgen* and a C++ class is generated for this specific struct and have determined memory model at compile time. The same .idl *StructExample* can also be loaded at runtime by XTypes dynamic type system, without knowing the type at compile time. In both way, we can create the same value for *StructExample* type, but with very different memory layout. The statically generated C++ class will have memory layout according to the language specific rules. While the memory layout of the dynamic data will have memory layout according to the implementation of the dynamic type/data system. We will illustrate this points again in later chapter.
 
 ## Schema Language/Data Definition Languages
 
@@ -66,8 +92,3 @@ As for language bindings, Protocol Buffers supports plain language binding and l
 
 - Plain language binding: Protocol Buffers provide compiler to compile schema into language specific code representation, just like XTypes
 - Dynamic language binding: Compared with XTypes, Protocol Buffers' support for dynamic types is different and less complete. Protocol Buffers do have full representation at runtime using *Descriptor* class, but the dynamic type system is not hierarchically and recursively built like XTypes. Protocol Buffers use it's reflection system to support dynamic types. When building a dynamic type, Protocol Buffers does not hierarchically create dynamic data like XTypes, instead, it first allocate one chunk of memory, then recursively resolve *Descriptor* and use inplacement new operator to assign the position of every data member and create cooresponding *Field*, finally it use the reflection system to build a *Message*, which is *the same* type with the plain language binding. As we can see, the memory layout for plain language binding and dynamical language binding in Protocol Buffers is very similar. The most apparent difference compared with XTypes is that the dynamically created message and the plain language binding message is of the same type!
-
-
-## Introspection/Reflection
-
-*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, dynamic types support(or, at least equipped with the ability to support) reflection, since it can know it’s field at runtime and can change the value of it. Statically compiled types has no way of knowing itself at runtime. Dynamic type can be considered prerequisite for reflection, even though not inevitably result in reflection(by not providing corresponding API).
