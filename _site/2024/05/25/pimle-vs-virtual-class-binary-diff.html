@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>pimpl vs virtual class: binary difference | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="pimpl vs virtual class: binary difference" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Both pimpl and pure abstract class can achieve compilation firewall, but they are different in theory and used in different scenarios in the real world" />
+<meta property="og:description" content="Both pimpl and pure abstract class can achieve compilation firewall, but they are different in theory and used in different scenarios in the real world" />
+<link rel="canonical" href="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" />
+<meta property="og:url" content="http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-05-25T10:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="pimpl vs virtual class: binary difference" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-25T10:22:46+08:00","datePublished":"2024-05-25T10:22:46+08:00","description":"Both pimpl and pure abstract class can achieve compilation firewall, but they are different in theory and used in different scenarios in the real world","headline":"pimpl vs virtual class: binary difference","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"},"url":"http://localhost:4000/2024/05/25/pimle-vs-virtual-class-binary-diff.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">pimpl vs virtual class: binary difference</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2024-05-25T10:22:46+08:00" itemprop="datePublished">May 25, 2024
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>Both pimpl and pure abstract class can achieve compilation firewall, but they are different in theory and used in different scenarios in the real world</p>
+
+<h3 id="technical-difference-under-the-hood">Technical difference under the hood</h3>
+
+<h4 id="pimpl">pimpl</h4>
+
+<p>The core of pimpl is opaque pointer. The user only knows the public APIs plus opaque pointer. During compiling time, the user code can complile only depending on the client lib through the pointer, because the pointer size is known for the user, so the user lib does not <em>directly</em> depend on the client lib binary, namely, the <em>implementation</em> details. Whether the user is shared lib or executable, there is no need for recompile or relink needed when the client side changes, because the user side only refer to implementation through pointer and this pointer <em>binding</em> will be done during runtime by dynamic linker. The client lib developer can write a dummy implementation of the client APIs for the purpose of debuging and isolation of working with the user side and there is no need for recompile or link when the dummy implementation lib is replaced with the real client lib. The development for user side and client side can be isolated this way. The core reason why pimpl works is the dynamic linker, which can resolve symbols during runtime.</p>
+
+<p>There is additional method to achieve more efficiency, such as <code class="language-plaintext highlighter-rouge">lazy binding</code> during the process of dynamic linking.</p>
+
+<p>Note: no additional CPU instructions are generated for using pimpl, the overhead comes from the access of the opaque pointer.</p>
+
+<h4 id="pure-abstract-class">pure abstract class</h4>
+
+<p>Pure abstract class use virtual table as the medium to achieve compile isolation. It’s a process called <code class="language-plaintext highlighter-rouge">late binding</code></p>
+
+<p>Late binding, also known as dynamic binding or runtime binding, refers to the process of determining the specific function implementation to be called at runtime, based on the actual type of the object being referred to. It is typically associated with polymorphism and virtual function dispatch.</p>
+
+<p>In languages like C++, when a virtual function is called on a pointer or reference to a base class, late binding ensures that the appropriate function implementation is selected based on the runtime type of the object. This allows different derived classes to have their own implementations of the same virtual function, providing flexibility and extensibility.</p>
+
+<p>Note: The user use the base pure virtual class and the APIs and when the user’s code are actually executed, the API implementation is decided by the actual derived subclasses that is passed into the user’s function. At compile time the user’s code only knows the base class and will generate the CPU instructions for how to get relevent function address based on the virtual table, but at runtime, the passed instance is subclass of base class, which has a different virtual table address(but the instrunctions for finding functions are the same); This way the functions found is the implementation of the subclass. This behavior decides that if the base class’s member or methods are changed (whether it’s quantity or appearance squences, because these all influence the CPU instructions generated from the compiler), the user code need to be compiled again, while pimpl does not have this problem.</p>
+
+<p>Note: The overhead of pure abstract class is in the access of the virtual tables. CPU instructions will be generated by the compiler to navigate to the desired implementation through pointer, with the help of the virtual table.</p>
+
+<p>Note that pure abstract class does not prevent successuful building even if there are no implementations:</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">class</span> <span class="nc">VirtualClass</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="n">f</span><span class="p">()</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">void</span> <span class="nf">somefunc</span><span class="p">(</span><span class="n">VirtualClass</span> <span class="o">*</span><span class="n">cls</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="c1">/// This call be compiled successfully, but will have segmentation fault at</span>
+  <span class="c1">/// runtime</span>
+  <span class="n">cls</span><span class="o">-&gt;</span><span class="n">f</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="n">somefunc</span><span class="p">((</span><span class="n">VirtualClass</span> <span class="o">*</span><span class="p">)(</span><span class="n">ptr</span><span class="p">));</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Above code will compile successfully!</p>
+
+<h3 id="use-case">Use case</h3>
+
+<p>A pure abstract class is mainly used as interface. Namely, a group of clients has the same API and the user side only need to use the common interfaces that are shared by all the clients. It’s one to more mapping between the user and the client. The actualization is achieved by passing different client instances into the user.</p>
+
+<p>Pimpl is mainly used for encapsulation. Namely, a class or lib is exposed to user as standard APIs(only public api that will be used by user) and the private implementations are hidden by the opaque pointer. It’s more to one mapping between user and client. The actualization is achieved by user use the standard API provided by client and link to the client lib.</p>
+
+<h3 id="compile-fire-wall-and-linking">Compile fire wall and linking</h3>
+
+<p>Compile isolation means there is no need for <code class="language-plaintext highlighter-rouge">static</code> recompiling and relinking during compilation time, only runtime dynamic linking(pimpl) or runtime virtual table handling(pure abstract class) is required for the client’s new implementation to take effect.</p>
+
+  </div><a class="u-url" href="/2024/05/25/pimle-vs-virtual-class-binary-diff.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

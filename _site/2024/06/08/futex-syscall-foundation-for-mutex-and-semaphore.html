@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>futex: foundation of linux synchronization | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="futex: foundation of linux synchronization" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="In linux, pthread mutex pthread_mutex_t(on which std::mutex is based), and pthread_cond_t(on which std::condition_variable is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it." />
+<meta property="og:description" content="In linux, pthread mutex pthread_mutex_t(on which std::mutex is based), and pthread_cond_t(on which std::condition_variable is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it." />
+<link rel="canonical" href="http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html" />
+<meta property="og:url" content="http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-06-08T19:20:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="futex: foundation of linux synchronization" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-06-08T19:20:46+08:00","datePublished":"2024-06-08T19:20:46+08:00","description":"In linux, pthread mutex pthread_mutex_t(on which std::mutex is based), and pthread_cond_t(on which std::condition_variable is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it.","headline":"futex: foundation of linux synchronization","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html"},"url":"http://localhost:4000/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">futex: foundation of linux synchronization</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2024-06-08T19:20:46+08:00" itemprop="datePublished">Jun 8, 2024
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>In linux, pthread mutex <code class="language-plaintext highlighter-rouge">pthread_mutex_t</code>(on which <code class="language-plaintext highlighter-rouge">std::mutex</code> is based),  and <code class="language-plaintext highlighter-rouge">pthread_cond_t</code>(on which <code class="language-plaintext highlighter-rouge">std::condition_variable</code> is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it.</p>
+
+<p>Reference: 
+<a href="https://www.man7.org/linux/man-pages/man2/futex.2.html">futex</a>
+<a href="https://man7.org/linux/man-pages/man2/syscalls.2.html">syscall</a></p>
+
+<h2 id="futex-behavior">futex behavior</h2>
+
+<p>futex is called fast user-space locking. At first glampse it’s confusing since futex is a syscall with following signature:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">long</span> <span class="nf">syscall</span><span class="p">(</span><span class="n">SYS_futex</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="o">*</span><span class="n">uaddr</span><span class="p">,</span> <span class="kt">int</span> <span class="n">futex_op</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">val</span><span class="p">,</span>
+                    <span class="k">const</span> <span class="k">struct</span> <span class="n">timespec</span> <span class="o">*</span><span class="n">timeout</span><span class="p">,</span>   <span class="cm">/* or: uint32_t val2 */</span>
+                    <span class="kt">uint32_t</span> <span class="o">*</span><span class="n">uaddr2</span><span class="p">,</span> <span class="kt">uint32_t</span> <span class="n">val3</span><span class="p">);</span>
+</code></pre></div></div>
+
+<p>Why it is called <em>user-space</em> locking when it needs kernel support? The answer is the second parameter <code class="language-plaintext highlighter-rouge">uaddr</code>, which is a user space 32-bit word. <code class="language-plaintext highlighter-rouge">uaddr</code> is a user space address inside the calling process, it serves two purposes:</p>
+
+<ul>
+  <li>threads do compare-and-swap operations on this integer to change the value, in user mode; threads do futex syscall operations through this address, which <strong>is used to connect the synchronization in user space with the implementation of blocking by the kernel</strong>.</li>
+  <li>kernel transform this userspace <code class="language-plaintext highlighter-rouge">uaddr</code> into a unique identifier and use it to maintain a unique threads waiting list; kernel accept user space syscalls which pass <code class="language-plaintext highlighter-rouge">uaddr</code> into kernel space, then kernel does corresponding operations, such as put thread into waiting list, or wake up specific number of threads in the waiting list. There are mainly two operations the kernel does:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">FUTEX_WAIT</code>: put the calling thread into the waiting list uniquely identified by <code class="language-plaintext highlighter-rouge">uaddr</code>, if and only if the value in <code class="language-plaintext highlighter-rouge">uaddr</code> is equal to <code class="language-plaintext highlighter-rouge">val</code>; if <code class="language-plaintext highlighter-rouge">uaddr</code> is not equal to <code class="language-plaintext highlighter-rouge">val</code>, the syscall returns immediately. Above operations are done atomically.</li>
+      <li><code class="language-plaintext highlighter-rouge">FUTEX_WAKE</code>: wake up <code class="language-plaintext highlighter-rouge">val</code> number of threads in the waiting list uniquely identified by <code class="language-plaintext highlighter-rouge">uaddr</code>. There is no operations on the value in <code class="language-plaintext highlighter-rouge">uaddr</code></li>
+    </ul>
+  </li>
+</ul>
+
+<p>The functionality futex provides is basically a threads queue and dequeue mechanism. Even though mutex, condition variable, semaphore are all implemented on top of futex, the kernel knows nothing about the real usage of these concept. What the kernel knows is when to put a thread into a unique waiting list and when to remove a thread from a unique waiting list, all of which are provoked by user. Kernel provides a <em>service</em>, it’s up to user for how to used it and what it is used for.</p>
+
+<p>It’s useful to rethink about what exactly is a lock. At it’s simplest form, lock is a binary flag, 0 or 1. What is special about locks is that they should be operated atomically. At user space, atomicity can be achieved through compare-and-swap operation. So the spinlock can be implemented without any kernel support. However, what if we want to put thread into waiting state if it currently can not get the lock to optimize the CPU resources? How to wake up threads when lock is free to use? These scheduling of threads need kernel support. futex is in the position to fulfil these needs.</p>
+
+<p>Take the simplest binary lock for example, if one thread is competing for the lock, what it should do is to firstly do atomic operation to decide whether the lock is free, if it’s free, the binary is flipped and the lock is aquired by this specific thread. Please note that during this process, no kernel support is needed. Since the switch from user mode to kernel mode is a costly action, the user space fast locking functionality provided by futex is indeed <em>fast</em>. If unluckily, the lock is not available after the atomic check operation, a futex syscall is required to put the calling thread into waiting list for this lock, this is when a costly kernel mode switching is needed.</p>
+
+<h2 id="intra-process-and-inter-process-synchronization">intra-process and inter-process synchronization</h2>
+
+<p>From the perspective of a process the futex word is in the address space of current process. If two threads come from this same process, it is obviously no problem if the same futex word is used, since they shared the futex in the same address space. futex word can be a global variable in this scenario.</p>
+
+<p>What if threads from two different process want to do synchronization using futex? It’s intuitive to think that the futex word should be in a shared memory region. This is indeed the solution. If the futex word is in a shared memory region from different processes, <em>inter-process</em> synchronization can be achieved. It is rather easy from the user side, since what the user need to do is simply create a shared memory region and put the futex word in there and share it across processes. The usage of the futex is totally the same as in non-shared memory scenario. However, the kernel now has a headache to solve: how to uniquely identify inter-process futex？</p>
+
+<p>In intra-process scenario, the kernel can use PID plus the virtual address of the futex word to uniquely identify a futex inside the kernel. In inter-process scenario, this is invalid since the futex word have different virtual address in each processes. The requirement is that kernel need to find a way to uniquely identify a futex, even across different virtual address space. One possible solution is to use the physical address to uniquely identify the futex, since the physical address is the same across all processes in this situation. However, the futex might be swapped out of RAM during runtime and every kernel have it’s own page replacement algorithm. After the memory region containing the futex is swapped in, it might have a different physical address with the previous one. The kernel might be implemented that the page that contains any futex word must not be swapped out. We wont’ go further about the kernel implementations here, but at the end, for a inter-process futex to work, it’s kernel’s job to ensure:</p>
+
+<ul>
+  <li>every process that use this futex must share the same waiting list for blocking thread</li>
+  <li>all processes’s futex syscall works atomically on this futex word inside the kernel(user space operation on this futex word is assured by user)</li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">pthread_mutex_t</code> and named semaphores in POSIX can be used to achieve inter-process synchronization. The C++ <code class="language-plaintext highlighter-rouge">std::mutex</code> is only designed for intra-process usage.</p>
+
+  </div><a class="u-url" href="/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

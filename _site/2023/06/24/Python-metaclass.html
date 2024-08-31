@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>python metaclass | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="python metaclass" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself." />
+<meta property="og:description" content="This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself." />
+<link rel="canonical" href="http://localhost:4000/2023/06/24/Python-metaclass.html" />
+<meta property="og:url" content="http://localhost:4000/2023/06/24/Python-metaclass.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-06-24T19:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="python metaclass" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-06-24T19:22:46+08:00","datePublished":"2023-06-24T19:22:46+08:00","description":"This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.","headline":"python metaclass","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2023/06/24/Python-metaclass.html"},"url":"http://localhost:4000/2023/06/24/Python-metaclass.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">python metaclass</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2023-06-24T19:22:46+08:00" itemprop="datePublished">Jun 24, 2023
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.</p>
+
+<h1 id="reference">Reference</h1>
+
+<p>I reference following articles and some of the content derives from them, please read them first and credit goes for the writers too:</p>
+
+<p><a href="https://blog.ionelmc.ro/2015/02/09/understanding-python-metaclasses/#prior-articles">Understanding Python metaclasses - … and Python objects in general</a></p>
+
+<p><a href="https://stackoverflow.com/questions/76413508/why-keyword-argument-are-not-passed-into-init-subclass/76414882?noredirect=1#comment134772711_76414882">why keyword argument are not passed into <strong>init_subclass</strong>(..)</a></p>
+
+<p><a href="https://docs.python.org/3/reference/datamodel.html">3. Data model</a></p>
+
+<p>The reason I write this article is because none of these articles can fully express my understanding of metaclass(or I cannot fully understand these articles myself…), so I express my notion of metaclass by myself.</p>
+
+<p>Basic concepts will not be explained here, I go directly into the instance and class creation process. At the end of the article, a fully example will be given and detailed comments will explain the code.</p>
+
+<h1 id="instance-creation">Instance creation</h1>
+
+<p>The creation process of Python class instance can be summarized in following diagram:</p>
+
+<p><img src="/assets/images/PythonObjectCreation.drawio.png" alt="PythonObjectCreation.drawio.png" /></p>
+
+<ol>
+  <li>When instance of a class is created, <code class="language-plaintext highlighter-rouge">__call__</code> of the class’s metaclass is called, with the class object as the first parameter <code class="language-plaintext highlighter-rouge">self</code> and all other user defined positional and keyword arguments</li>
+  <li>Inside <code class="language-plaintext highlighter-rouge">__call__</code> method, class’s <code class="language-plaintext highlighter-rouge">__new__</code> method will be called to return the created instance object</li>
+  <li>If success, <code class="language-plaintext highlighter-rouge">__call__</code> will call <code class="language-plaintext highlighter-rouge">__init__</code> to initialize the created instance and return the created instance</li>
+</ol>
+
+<h1 id="class-creation">Class creation</h1>
+
+<p>The creation process of Python class is more complex and can be summarized in following diagram:</p>
+
+<p><img src="/assets/images/PythonObjectCreation.drawio-2.png" alt="PythonObjectCreation.drawio-2.png" /></p>
+
+<ol>
+  <li>First the Python runtime will call <code class="language-plaintext highlighter-rouge">__prepare__</code> of metaclass to return a namespace dict</li>
+  <li><code class="language-plaintext highlighter-rouge">__call__</code> of the class’s meta-metaclass is called, passing following arguments
+    <ol>
+      <li>Metaclass</li>
+      <li>Class name to be created</li>
+      <li>A tuple containing all base classes</li>
+      <li>Dict containing namespace key value patterns(created by <code class="language-plaintext highlighter-rouge">__prepare__</code> )</li>
+      <li>Any other user defined keyword arguments</li>
+    </ol>
+  </li>
+  <li><code class="language-plaintext highlighter-rouge">__call__</code> calls <code class="language-plaintext highlighter-rouge">__new__</code> of metaclass, passing all above arguments</li>
+  <li>Inside <code class="language-plaintext highlighter-rouge">__new__</code> , <code class="language-plaintext highlighter-rouge">__init_subclass__</code> of the nearest base class will be called, passing only keywords arguments</li>
+  <li><code class="language-plaintext highlighter-rouge">__new__</code> return the created class object</li>
+  <li><code class="language-plaintext highlighter-rouge">__call__</code> call <code class="language-plaintext highlighter-rouge">__init__</code> of metaclass to do initialization, arguments are the same with <code class="language-plaintext highlighter-rouge">__new__</code> except that the first argument now is the newly created class object</li>
+  <li><code class="language-plaintext highlighter-rouge">__call__</code> return the  class object</li>
+</ol>
+
+<h1 id="full-example">Full example</h1>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="sh">"""</span><span class="s">
+Preface
+    Before we go into detail about these special methods, one thing has to be clarified about arguments:
+        1. For these methods inside a class(subclass of object)
+            a. The first positional arguments: 
+                __call__: instance object
+                __new__: class of instance that about to be created; by default object only accept this arguments
+                __init__: instance object
+            b. The rest of positional arguments and keyword arguments
+                The rest of positional arguments and keyword arguments will be passed to __new__ and __init__ by 
+                metaclass of this class</span><span class="sh">'</span><span class="s">s __call__
+        2. For these methods inside a metaclass(subclass of type):
+            a. The first positional arguments:
+                The same as those inside a class
+            b. The rest of positional arguments and keyword arguments:
+                classname
+                base class tuple
+                namespace dict
+                any keyword arguments
+            c. metaclass of this metaclass(normally type itself)</span><span class="sh">'</span><span class="s">s __call__ have all those arguments
+                __call__ pass arguments in b to __new__
+                __new__ pass any keywords arguments to __init_subclass__ of the most close base class
+                __call__ pass arguments in b to __init__
+                
+
+About __call__ instance method:
+    1. __call__ method make instances of the owner class callable
+    2. This applies to class and metaclass, and meta-metaclass. 
+    3. __call__ is instance method, the first argument is the object who calls this method, whether it</span><span class="sh">'</span><span class="s">s class instance or class
+    4. ALL creation of class and variable starts from type.__call__(*args, **kwargs)
+        a. For metameta class it returns a class object
+        b. For metaclass it returns a variable abject
+    5. Whenever a(), a.__class__.__call__ is called, inside this call, type.__call__ is called 
+    6. For __call__ of metaclass(subclass of type), should return super().__call__,since the object of metaclass is to create class
+    7. For __call__ of class, no requirement on return value
+    8. Arguments of __call__ for metaclass:
+        a. The first argument is the instance(class object) which calls the method
+        b. followed by three positional arguments: class name, base class tuple, namespace dict
+        c. followed by any keyword arguments
+    9. Arguments of __call__ for class:
+        a. The first arguments is the variable instance which calls the method
+        b. followed by any positional and keyword arguments that __call__ method defines
+
+About __prepare__ class method(must be explicitly declared using @classmethod):
+    When create class using class keyword, __prepare__ method of the metaclass is used to return a namspace dict
+    ! No __prepare__ called when creating class dynamically
+
+From https://docs.python.org/3/reference/datamodel.html#object.__new__
+
+About __new__ static method:
+    object.__new__(cls[, ...])
+    Called to create a new instance of class cls. __new__() is a static method (special-cased so you need not declare it as
+    such) that takes the class of which an instance was requested as its first argument. 
+    The remaining arguments are those passed to the object constructor expression (the call to the class). 
+    The return value of __new__() should be the new object instance (usually an instance of cls).
+
+About __init__ instance method:
+    object.__init__(self[, ...])
+    Called after the instance has been created (by __new__()), but before it is returned to the caller. 
+    The arguments are those passed to the class constructor expression. If a base class has an __init__() method, 
+    the derived class’s __init__() method, if any, must explicitly call it to ensure proper initialization of the 
+    base class part of the instance; for example: super().__init__([args...]).
+</span><span class="sh">"""</span>
+
+<span class="k">class</span> <span class="nc">MetaMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+    <span class="sh">"""</span><span class="s">
+    Normally this should be type itself, here just used to print info
+    </span><span class="sh">"""</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">base_class_tuple</span><span class="p">,</span> <span class="n">namespace_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nf">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="sh">"</span><span class="s">MetaMeta __call__ with </span><span class="si">{</span><span class="n">self</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s">,</span><span class="si">{</span><span class="n">base_class_tuple</span><span class="si">}</span><span class="s">,</span><span class="si">{</span><span class="n">namespace_dict</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+        <span class="c1"># if MetaMeta is used as metaclass for another metaclass, this returns a class object
+</span>        <span class="n">ret</span> <span class="o">=</span> <span class="nf">super</span><span class="p">().</span><span class="nf">__call__</span><span class="p">(</span><span class="n">class_name</span><span class="p">,</span> <span class="n">base_class_tuple</span><span class="p">,</span> <span class="n">namespace_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">MetaMeta __call__ return</span><span class="sh">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+<span class="k">class</span> <span class="nc">Meta</span><span class="p">(</span><span class="nb">type</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">MetaMeta</span><span class="p">):</span>
+    <span class="sh">"""</span><span class="s">
+    This is a metaclass, because it</span><span class="sh">'</span><span class="s">s subclass of type; also it use MetaMeta as metaclass, so metaclass can also has metaclass, but normally
+    metaclass</span><span class="sh">'</span><span class="s">s metaclass is type, here just to print infomation; if we change to metaclass=type, it</span><span class="sh">'</span><span class="s">s also ok:
+    Meta(type, metaclass=MetaMeta) == Meta(type) == Meta(type, metaclass=type)
+    We can see that metaclass do not have multiple hierachy, since all metaclass directly subclass type itself
+    </span><span class="sh">"""</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">__prepare__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">base_class</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nf">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="sh">"</span><span class="s">Meta __prepare__ with </span><span class="si">{</span><span class="n">cls</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s">,</span><span class="si">{</span><span class="n">base_class</span><span class="si">}</span><span class="s"> </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+        <span class="k">class</span> <span class="nc">VerboseDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                <span class="n">self</span><span class="p">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+            <span class="k">def</span> <span class="nf">__setitem__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+                <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="si">{</span><span class="n">self</span><span class="p">.</span><span class="n">name</span><span class="si">}</span><span class="s"> assignment </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s">=</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="sh">"</span><span class="s">__annotations__</span><span class="sh">"</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="nc">VerboseDict</span><span class="p">(</span><span class="sh">"</span><span class="s">   annotations</span><span class="sh">"</span><span class="p">)</span>
+                <span class="nf">super</span><span class="p">().</span><span class="nf">__setitem__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Meta __prepare__ return</span><span class="sh">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nc">VerboseDict</span><span class="p">(</span><span class="sh">"</span><span class="s">ns</span><span class="sh">"</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sh">"""</span><span class="s">
+        Always return a instance of class(which is instance of Meta), since the instance of metaclass is class, class are callable to return
+        a class instance
+        </span><span class="sh">"""</span>
+        <span class="nf">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="sh">'</span><span class="s">Meta class __call__ with </span><span class="si">{</span><span class="n">self</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">'</span><span class="p">)</span>
+        <span class="c1"># when class created by Meta is instantiated, this line return the created variable
+</span>        <span class="n">ret</span> <span class="o">=</span> <span class="nf">super</span><span class="p">().</span><span class="nf">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">'</span><span class="s">Meta __call__ method return</span><span class="sh">'</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">base_class_tuple</span><span class="p">,</span> <span class="n">namespace_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nf">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="sh">"</span><span class="s">Meta __new__ with </span><span class="si">{</span><span class="n">cls</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">base_class_tuple</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">namespace_dict</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nf">super</span><span class="p">().</span><span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">base_class_tuple</span><span class="p">,</span> <span class="n">namespace_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Meta __new__ return</span><span class="sh">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">base_class_tuple</span><span class="p">,</span> <span class="n">namespace_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sh">"""</span><span class="s">
+        Unlike __init__ of class object, __init__ of metaclass</span><span class="sh">'</span><span class="s">s positional arguments is fixed:
+            1. self: class being created
+            2. args:
+                class name
+                base class tuple
+                namespace dict
+            3. keyword argument provided by user class definition
+        </span><span class="sh">"""</span>
+        <span class="nf">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="sh">"</span><span class="s">Meta __init__ with </span><span class="si">{</span><span class="n">self</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">base_class_tuple</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">namespace_dict</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Meta __init__ return</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">Base</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sh">"""</span><span class="s">
+        This is classmethod, when subclass are created, type.__call__ method will call this method and pass class object created as cls
+        </span><span class="sh">"""</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Base __init_subclass__ with </span><span class="si">{</span><span class="n">cls</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+        <span class="nf">super</span><span class="p">().</span><span class="nf">__init_subclass__</span><span class="p">()</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">Base __init_subclass__ return</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">&gt;&gt;&gt;&gt;&gt;&gt;&gt; dynamcally creating class&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span><span class="sh">"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="sh">'</span><span class="se">\n\n</span><span class="sh">'</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">f</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">someclass __init__ with </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s"> </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="n">SomeClass</span> <span class="o">=</span> <span class="nc">Meta</span><span class="p">(</span><span class="sh">'</span><span class="s">SomeClass</span><span class="sh">'</span><span class="p">,</span> <span class="p">(</span><span class="n">Base</span><span class="p">,),</span> <span class="p">{</span><span class="sh">'</span><span class="s">x</span><span class="sh">'</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="sh">'</span><span class="s">__init__</span><span class="sh">'</span><span class="p">:</span> <span class="n">f</span><span class="p">},</span> <span class="n">foo</span><span class="o">=</span><span class="sh">'</span><span class="s">bar</span><span class="sh">'</span><span class="p">)</span>
+<span class="sh">"""</span><span class="s">
+This line dynamically create class SomeClass, this will call MetaMeta.__call__ and pass all arguments to it:
+Parameters：
+    positional arguments:
+        </span><span class="sh">'</span><span class="s">SomeClass</span><span class="sh">'</span><span class="s">:            class name
+        (Base,):                tuple containing all base classes
+        {</span><span class="sh">'</span><span class="s">x</span><span class="sh">'</span><span class="s">:..}:               namespace dict containing all class variables and methods
+
+    keyword arguments:
+        foo=</span><span class="sh">'</span><span class="s">bar</span><span class="sh">'</span><span class="s">
+    
+    The number and meaning of positional arguments is fixed for metaclass</span><span class="sh">'</span><span class="s">s __call__
+    keywords parameter can be user defined. __call__ will pass these positional and keyword arguments to __new__
+    and __init__, and inside __new__,  keyword arguments will be passed to __init_subclass__ in base class
+
+    Meta.__prepare__ will NOT be called in dynamically created class!!
+</span><span class="sh">"""</span>
+
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">&gt;&gt;&gt;&gt;&gt;&gt;&gt; using class keyword creating class&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span><span class="sh">"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="sh">'</span><span class="se">\n\n</span><span class="sh">'</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">MyClass</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">Meta</span><span class="p">,</span> <span class="n">bar</span><span class="o">=</span><span class="sh">'</span><span class="s">foo</span><span class="sh">'</span><span class="p">):</span>
+    <span class="sh">"""</span><span class="s">
+    Equals to MyClass = Meta(</span><span class="sh">'</span><span class="s">MyClass</span><span class="sh">'</span><span class="s">, (</span><span class="sh">'</span><span class="s">Base</span><span class="sh">'</span><span class="s">,),{</span><span class="sh">'</span><span class="s">data</span><span class="sh">'</span><span class="s">:10, </span><span class="sh">'</span><span class="s">__call__</span><span class="sh">'</span><span class="s">:...},{</span><span class="sh">'</span><span class="s">bar</span><span class="sh">'</span><span class="s">:</span><span class="sh">'</span><span class="s">foo</span><span class="sh">'</span><span class="s">})
+    </span><span class="sh">"""</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sh">"""</span><span class="s">
+        Might not return a value, since instance of class is normal variable, callable variable might not need to return
+        anything
+        </span><span class="sh">"""</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">'</span><span class="s">MyClass __call__ with </span><span class="si">{</span><span class="n">self</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">'</span><span class="p">)</span>
+        <span class="sh">"""</span><span class="s">
+        For normal classes, whose base class is </span><span class="sh">'</span><span class="s">object</span><span class="sh">'</span><span class="s">, which does not have __call__ method
+        For metaclass, whose base class is </span><span class="sh">'</span><span class="s">type</span><span class="sh">'</span><span class="s">, the __call__ method must be called to return a class instance
+        </span><span class="sh">"""</span>
+        <span class="c1"># Cannot access member "__call__" for type "object"   Member "__call__" is unknown
+</span>        <span class="c1"># ret = super().__call__(*args, **kwargs)
+</span>        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">'</span><span class="s">MyClass __call__ method return</span><span class="sh">'</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">MyClass __new__ with </span><span class="si">{</span><span class="n">cls</span><span class="si">}</span><span class="s"> </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s"> </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nf">super</span><span class="p">().</span><span class="nf">__new__</span><span class="p">(</span><span class="n">cls</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">MyClass __new__ return</span><span class="sh">"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="n">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sh">"""</span><span class="s">
+        Will be called by Meta.__call__ method, and pass all user arguments inside MyClass(..) to this
+        If there there are no matching __init__ to accept these arguments there will be TypeError
+        </span><span class="sh">"""</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">MyClass __init__ with </span><span class="si">{</span><span class="n">self</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s">, </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="sh">"</span><span class="p">)</span>
+        <span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">MyClass __init__ return</span><span class="sh">"</span><span class="p">)</span>
+
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">&gt;&gt;&gt;&gt;&gt;&gt;&gt; class instantiation&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span><span class="sh">"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="sh">'</span><span class="se">\n\n</span><span class="sh">'</span><span class="p">)</span>
+<span class="c1"># This calls __call__ of Meta, since the __class__ of MyClass is Meta, and pass instance MyClass as first argument
+</span><span class="n">a</span> <span class="o">=</span> <span class="nc">MyClass</span><span class="p">(</span><span class="sh">'</span><span class="s">Bonjure</span><span class="sh">'</span><span class="p">,</span> <span class="n">foo</span><span class="o">=</span><span class="sh">'</span><span class="s">Nihao</span><span class="sh">'</span><span class="p">)</span>
+<span class="nf">print</span><span class="p">(</span><span class="sa">f</span><span class="sh">"</span><span class="s">&gt;&gt;&gt;&gt;&gt;&gt;&gt; callable instance&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span><span class="sh">"</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="sh">'</span><span class="se">\n\n</span><span class="sh">'</span><span class="p">)</span>
+<span class="c1"># This calls __call__ of MyClass, since the __class__ of a is MyClass, and pass instance a as first argument
+</span><span class="nf">a</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="sh">'</span><span class="s">Hello</span><span class="sh">'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>Output:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="o">&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span> <span class="n">dynamcally</span> <span class="n">creating</span> <span class="n">class</span><span class="o">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span>
+
+<span class="n">MetaMeta</span> <span class="n">__call__</span> <span class="k">with</span> <span class="o">&lt;</span><span class="k">class</span> <span class="err">'</span><span class="nc">__main__</span><span class="p">.</span><span class="n">Meta</span><span class="sh">'</span><span class="s">&gt;, SomeClass,(&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,),{</span><span class="sh">'</span><span class="n">x</span><span class="sh">'</span><span class="s">: 10, </span><span class="sh">'</span><span class="n">__init__</span><span class="sh">'</span><span class="s">: &lt;function f at 0x100cd2160&gt;}, {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">}
+Meta __new__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Meta</span><span class="sh">'</span><span class="s">&gt;, SomeClass, (&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,), {</span><span class="sh">'</span><span class="n">x</span><span class="sh">'</span><span class="s">: 10, </span><span class="sh">'</span><span class="n">__init__</span><span class="sh">'</span><span class="s">: &lt;function f at 0x100cd2160&gt;}, {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">}
+Base __init_subclass__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">SomeClass</span><span class="sh">'</span><span class="s">&gt;, {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">}
+Base __init_subclass__ return
+Meta __new__ return
+Meta __init__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">SomeClass</span><span class="sh">'</span><span class="s">&gt;, SomeClass, (&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,), {</span><span class="sh">'</span><span class="n">x</span><span class="sh">'</span><span class="s">: 10, </span><span class="sh">'</span><span class="n">__init__</span><span class="sh">'</span><span class="s">: &lt;function f at 0x100cd2160&gt;}, {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">}
+Meta __init__ return
+MetaMeta __call__ return
+</span><span class="gp">&gt;&gt;&gt;</span><span class="o">&gt;&gt;&gt;&gt;</span> <span class="n">using</span> <span class="k">class</span> <span class="nc">keyword</span> <span class="n">creating</span> <span class="n">class</span><span class="o">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span>
+
+<span class="s">Meta __prepare__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Meta</span><span class="sh">'</span><span class="s">&gt;, MyClass,(&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,) {</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">}
+Meta __prepare__ return
+ns assignment __module__=__main__
+ns assignment __qualname__=MyClass
+ns assignment __doc__=
+    Equals to MyClass = Meta(</span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, (</span><span class="sh">'</span><span class="n">Base</span><span class="sh">'</span><span class="s">,),{</span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">:10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">:...},{</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">:</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">})
+
+ns assignment data=10
+ns assignment __call__=&lt;function MyClass.__call__ at 0x100c044a0&gt;
+ns assignment __new__=&lt;function MyClass.__new__ at 0x100d7a020&gt;
+ns assignment __init__=&lt;function MyClass.__init__ at 0x100d7a200&gt;
+ns assignment __classcell__=&lt;cell at 0x100d87940: empty&gt;
+MetaMeta __call__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Meta</span><span class="sh">'</span><span class="s">&gt;, MyClass,(&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,),{</span><span class="sh">'</span><span class="n">__module__</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">__main__</span><span class="sh">'</span><span class="s">, </span><span class="sh">'</span><span class="n">__qualname__</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, </span><span class="sh">'</span><span class="n">__doc__</span><span class="sh">'</span><span class="s">: </span><span class="sh">"</span><span class="se">\n</span><span class="s">    Equals to MyClass = Meta(</span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, (</span><span class="sh">'</span><span class="n">Base</span><span class="sh">'</span><span class="s">,),{</span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">:10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">:...},{</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">:</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">})</span><span class="se">\n</span><span class="s">    </span><span class="sh">"</span><span class="s">, </span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">: 10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__call__ at 0x100c044a0&gt;, </span><span class="sh">'</span><span class="n">__new__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__new__ at 0x100d7a020&gt;, </span><span class="sh">'</span><span class="n">__init__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__init__ at 0x100d7a200&gt;, </span><span class="sh">'</span><span class="n">__classcell__</span><span class="sh">'</span><span class="s">: &lt;cell at 0x100d87940: empty&gt;}, {</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">}
+Meta __new__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Meta</span><span class="sh">'</span><span class="s">&gt;, MyClass, (&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,), {</span><span class="sh">'</span><span class="n">__module__</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">__main__</span><span class="sh">'</span><span class="s">, </span><span class="sh">'</span><span class="n">__qualname__</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, </span><span class="sh">'</span><span class="n">__doc__</span><span class="sh">'</span><span class="s">: </span><span class="sh">"</span><span class="se">\n</span><span class="s">    Equals to MyClass = Meta(</span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, (</span><span class="sh">'</span><span class="n">Base</span><span class="sh">'</span><span class="s">,),{</span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">:10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">:...},{</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">:</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">})</span><span class="se">\n</span><span class="s">    </span><span class="sh">"</span><span class="s">, </span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">: 10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__call__ at 0x100c044a0&gt;, </span><span class="sh">'</span><span class="n">__new__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__new__ at 0x100d7a020&gt;, </span><span class="sh">'</span><span class="n">__init__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__init__ at 0x100d7a200&gt;, </span><span class="sh">'</span><span class="n">__classcell__</span><span class="sh">'</span><span class="s">: &lt;cell at 0x100d87940: empty&gt;}, {</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">}
+Base __init_subclass__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">&gt;, {</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">}
+Base __init_subclass__ return
+Meta __new__ return
+Meta __init__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">&gt;, MyClass, (&lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">Base</span><span class="sh">'</span><span class="s">&gt;,), {</span><span class="sh">'</span><span class="n">__module__</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">__main__</span><span class="sh">'</span><span class="s">, </span><span class="sh">'</span><span class="n">__qualname__</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, </span><span class="sh">'</span><span class="n">__doc__</span><span class="sh">'</span><span class="s">: </span><span class="sh">"</span><span class="se">\n</span><span class="s">    Equals to MyClass = Meta(</span><span class="sh">'</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">, (</span><span class="sh">'</span><span class="n">Base</span><span class="sh">'</span><span class="s">,),{</span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">:10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">:...},{</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">:</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">})</span><span class="se">\n</span><span class="s">    </span><span class="sh">"</span><span class="s">, </span><span class="sh">'</span><span class="n">data</span><span class="sh">'</span><span class="s">: 10, </span><span class="sh">'</span><span class="n">__call__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__call__ at 0x100c044a0&gt;, </span><span class="sh">'</span><span class="n">__new__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__new__ at 0x100d7a020&gt;, </span><span class="sh">'</span><span class="n">__init__</span><span class="sh">'</span><span class="s">: &lt;function MyClass.__init__ at 0x100d7a200&gt;, </span><span class="sh">'</span><span class="n">__classcell__</span><span class="sh">'</span><span class="s">: &lt;cell at 0x100d87940: Meta object at 0x15b6505e0&gt;}, {</span><span class="sh">'</span><span class="n">bar</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">}
+Meta __init__ return
+MetaMeta __call__ return
+</span><span class="gp">&gt;&gt;&gt;</span><span class="o">&gt;&gt;&gt;&gt;</span> <span class="k">class</span> <span class="nc">instantiation</span><span class="o">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span>
+
+<span class="s">Meta class __call__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">&gt;, (</span><span class="sh">'</span><span class="n">Bonjure</span><span class="sh">'</span><span class="s">,), {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">Nihao</span><span class="sh">'</span><span class="s">}
+MyClass __new__ with &lt;class </span><span class="sh">'</span><span class="n">__main__</span><span class="p">.</span><span class="n">MyClass</span><span class="sh">'</span><span class="s">&gt; (</span><span class="sh">'</span><span class="n">Bonjure</span><span class="sh">'</span><span class="s">,) {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">Nihao</span><span class="sh">'</span><span class="s">}
+MyClass __new__ return
+MyClass __init__ with &lt;__main__.MyClass object at 0x100d7ef50&gt;, (</span><span class="sh">'</span><span class="n">Bonjure</span><span class="sh">'</span><span class="s">,), {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">Nihao</span><span class="sh">'</span><span class="s">}
+MyClass __init__ return
+Meta __call__ method return
+</span><span class="gp">&gt;&gt;&gt;</span><span class="o">&gt;&gt;&gt;&gt;</span> <span class="nb">callable</span> <span class="n">instance</span><span class="o">&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span>
+
+<span class="s">MyClass __call__ with &lt;__main__.MyClass object at 0x100d7ef50&gt;, (), {</span><span class="sh">'</span><span class="n">foo</span><span class="sh">'</span><span class="s">: </span><span class="sh">'</span><span class="n">Hello</span><span class="sh">'</span><span class="s">}
+MyClass __call__ method return
+</span></code></pre></div></div>
+
+  </div><a class="u-url" href="/2023/06/24/Python-metaclass.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>c++ 类成员方法重载优先级 | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="c++ 类成员方法重载优先级" />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="http://localhost:4000/2023/11/23/C++-%E7%B1%BB%E6%96%B9%E6%B3%95%E9%87%8D%E8%BD%BD.html" />
+<meta property="og:url" content="http://localhost:4000/2023/11/23/C++-%E7%B1%BB%E6%96%B9%E6%B3%95%E9%87%8D%E8%BD%BD.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-11-23T19:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="c++ 类成员方法重载优先级" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-11-23T19:22:46+08:00","datePublished":"2023-11-23T19:22:46+08:00","headline":"c++ 类成员方法重载优先级","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2023/11/23/C++-%E7%B1%BB%E6%96%B9%E6%B3%95%E9%87%8D%E8%BD%BD.html"},"url":"http://localhost:4000/2023/11/23/C++-%E7%B1%BB%E6%96%B9%E6%B3%95%E9%87%8D%E8%BD%BD.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">c++ 类成员方法重载优先级</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2023-11-23T19:22:46+08:00" itemprop="datePublished">Nov 23, 2023
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul id="markdown-toc">
+  <li><a href="#非静态成员函数重载问题" id="markdown-toc-非静态成员函数重载问题">非静态成员函数重载问题</a></li>
+  <li><a href="#无引用修饰符" id="markdown-toc-无引用修饰符">无引用修饰符</a></li>
+  <li><a href="#有引用修饰符" id="markdown-toc-有引用修饰符">有引用修饰符</a></li>
+  <li><a href="#const与const修饰的方法对比" id="markdown-toc-const与const修饰的方法对比"><code class="language-plaintext highlighter-rouge">const</code>与<code class="language-plaintext highlighter-rouge">const&amp;</code>修饰的方法对比</a></li>
+  <li><a href="#code-example" id="markdown-toc-code-example">Code Example</a></li>
+</ul>
+
+<h1 id="非静态成员函数重载问题">非静态成员函数重载问题</h1>
+
+<p>除构造函数、析构函数、自定义转换函数外，类的非静态成员函数第一个参数都是隐式的类对象本身。而对象的类型，决定了成员函数的重载。调用成员函数时，对象本身由三个维度确定具体类型：<code class="language-plaintext highlighter-rouge">const</code>与<code class="language-plaintext highlighter-rouge">non-const</code>, 左值与右值，引用与非引用，这些对象的实际类型与成员方法的定义类型，最终决定了重载方式。这个问题实则复杂，若要更精细的管理类的行为，有必要弄清楚详细的重载细则。本文试图在实验结果的基础上理清楚这个问题。</p>
+
+<p>三个原则：</p>
+<ul>
+  <li>方法重载的优先级。C++标准为各种成员方法的重载规定了<code class="language-plaintext highlighter-rouge">fallback</code>，这些<code class="language-plaintext highlighter-rouge">fallback</code>的行为增加了问题的复杂程度。同一个对象可以重载带不同修饰符的方法，区别在于优先级不同，本文也会搞清楚重载的优先级。</li>
+  <li>引用修饰符不能与不带引用修饰符的方法重载。一个类的方法要么带引用修饰符<code class="language-plaintext highlighter-rouge">&amp;</code>，或者<code class="language-plaintext highlighter-rouge">&amp;&amp;</code>，要么不带任何引用修饰符，二者不能共存；带<code class="language-plaintext highlighter-rouge">&amp;</code>和<code class="language-plaintext highlighter-rouge">&amp;&amp;</code>的同名方法可以重载。</li>
+  <li>非常量修饰的方法无法被任何常量修饰的对象调用。<code class="language-plaintext highlighter-rouge">const</code>修饰的方法可能被普通对象调用，反之不成立。</li>
+</ul>
+
+<h1 id="无引用修饰符">无引用修饰符</h1>
+
+<p>无引用修饰符的情况下只有<code class="language-plaintext highlighter-rouge">const</code>和非<code class="language-plaintext highlighter-rouge">const</code>两种情况：</p>
+
+<p><img src="/assets/images/noref.drawio.jpg" alt="Alt text" /></p>
+
+<ul>
+  <li>图中标号为重载时的优先级</li>
+  <li><code class="language-plaintext highlighter-rouge">const</code> 修饰的方法由于无法修改成员，当无非<code class="language-plaintext highlighter-rouge">const</code>的重载方法时，可以被普通非<code class="language-plaintext highlighter-rouge">const</code>对象调用；反之则不成立</li>
+  <li>在无引用修饰符的情况下，方法都可以被右值或者右值引用对象调用</li>
+</ul>
+
+<h1 id="有引用修饰符">有引用修饰符</h1>
+
+<p>有引用修饰符情况要更加复杂：</p>
+
+<p><img src="/assets/images/ref.drawio.jpg" alt="Alt text" /></p>
+
+<p>这个表中有几点要说明：</p>
+
+<ul>
+  <li>图中标号代表重载的优先级</li>
+  <li>带右值引用修饰符的方法只能被右值调用</li>
+  <li><strong>所有的引用</strong> 都是左值，所有的引用都会重载到左值修饰符的方法上</li>
+</ul>
+
+<h1 id="const与const修饰的方法对比"><code class="language-plaintext highlighter-rouge">const</code>与<code class="language-plaintext highlighter-rouge">const&amp;</code>修饰的方法对比</h1>
+
+<p>这两种方法是能被最大多数类型的对象重载的方法。如果仅有其中的一个，那么他们的功能相同；其他方法都是缩小范围的，或者重载优先级更高，也意味着使用范围更窄</p>
+
+<h1 id="code-example">Code Example</h1>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+</span>
+<span class="c1">//  成员非静态方法重载时要考虑const, non-const, ref-qualified,</span>
+<span class="c1">//  non-ref-qualified。 类本身作为第一个参数（implicit object parameter),</span>
+<span class="c1">//  以下简称IOP. 注意： constructor、destructor、conversion function没有</span>
+<span class="c1">//  implicit object parameter,所以不能使用const或者ref-qualifier.</span>
+<span class="c1">//</span>
+<span class="c1">//  带ref-qualifer与不带ref-qualifer的同名方法不能共存，带ref-qualifier的方法</span>
+<span class="c1">//  与不带ref-qualifier的方法不能相互重载，这包括带const和不带const的所有方法。</span>
+<span class="c1">//</span>
+<span class="c1">//  默认情况下，所有implicit object member</span>
+<span class="c1">//  function(https://en.cppreference.com/w/cpp/language/member_functions)</span>
+<span class="c1">//  都需要考虑const-qualifier|non-const-qualifier,</span>
+<span class="c1">//  non-ref-qualifer|(rvalue-ref-qualifier, lvalue-ref-qualifier),</span>
+<span class="c1">//  共计：2x1+2x2=6种情况：</span>
+<span class="c1">//</span>
+<span class="c1">//  A. non-const-qualifier：</span>
+<span class="c1">//     - IOP必须是non-const传入</span>
+<span class="c1">//     #1. 不带ref-qualifer的方法：</span>
+<span class="c1">//         - IOP可以是左值（引用），右值（引用）</span>
+<span class="c1">//     - 带ref-qualifer的方法，则：</span>
+<span class="c1">//       #2.带&amp;，则IOP只能以左值（引用），右值引用（右值引用没有完美转发，看作左值）</span>
+<span class="c1">//       #3. 带&amp;&amp;，则IOP只能以右值传入; 注意右值引用传入后被视为左值</span>
+<span class="c1">//</span>
+<span class="c1">//  B. const-qualifier：</span>
+<span class="c1">//     #4. 不带ref-qualifer:</span>
+<span class="c1">//         -</span>
+<span class="c1">//         IOP可以是常量左值（引用），非常量左值（引用），非常量右值（引用），也可以是常量右值，常量右值引用</span>
+<span class="c1">//           （常量右值引用没有完美转发，则被看作左值）</span>
+<span class="c1">//     - 带ref-qualifier的方法，则：</span>
+<span class="c1">//     #5.带&amp;，则IOP以常量左值(引用）、非常量左值（引用）、常量右值，常量右值引用（常量右值引用没有完美转发，</span>
+<span class="c1">//          则被看作左值），非常量右值引用，非常量右值（以上右值和右值引用重载优先级低于#6）</span>
+<span class="c1">//     #6.带&amp;&amp;，则IOP以非常量右值，常量右值传入；重载优先级高于#5；注意右值引用传入后被视为左值</span>
+<span class="c1">//  重要：常量右值引用是個左值;</span>
+
+<span class="k">class</span> <span class="nc">MemoryBlock</span>
+<span class="p">{</span>
+<span class="nl">public:</span>
+	<span class="c1">/// can not overload by ref-qualifier</span>
+	<span class="kt">void</span> <span class="n">non_const_non_ref_cant_overload</span><span class="p">()</span>
+	<span class="p">{</span>
+		<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">__LINE__</span> <span class="o">&lt;&lt;</span> <span class="s">" Non const non ref method called"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="c1">/// Cannot overload a member function with ref-qualifier '&amp;' with a member</span>
+	<span class="c1">/// function without a ref-qualifierclang(ref_qualifier_overload)</span>
+	<span class="c1">// void non_const_non_ref_cant_overload() &amp;{</span>
+	<span class="c1">//   std::cout &lt;&lt; "Non const non ref method called" &lt;&lt; std::endl;</span>
+	<span class="c1">// }</span>
+
+	<span class="c1">/// Cannot overload a member function with ref-qualifier '&amp;&amp;' with a member</span>
+	<span class="c1">/// function without a ref-qualifierclang(ref_qualifier_overload</span>
+	<span class="c1">// void non_const_non_ref_cant_overload() &amp;&amp; {</span>
+	<span class="c1">//   std::cout &lt;&lt; "Non const non ref method called" &lt;&lt; std::endl;</span>
+	<span class="c1">// }</span>
+	<span class="kt">void</span> <span class="n">non_const_can_overload</span><span class="p">()</span> <span class="o">&amp;</span>
+	<span class="p">{</span>
+		<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">__LINE__</span> <span class="o">&lt;&lt;</span> <span class="s">" Non const lvalue ref method called"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="kt">void</span> <span class="n">non_const_can_overload</span><span class="p">()</span> <span class="o">&amp;&amp;</span>
+	<span class="p">{</span>
+		<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">__LINE__</span> <span class="o">&lt;&lt;</span> <span class="s">" Non const rvalue ref method called"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="p">}</span>
+
+	<span class="kt">void</span> <span class="n">const_cant_overload</span><span class="p">()</span> <span class="k">const</span>
+	<span class="p">{</span>
+		<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">__LINE__</span> <span class="o">&lt;&lt;</span> <span class="s">" Const non ref method called"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="c1">/// Cannot overload a member function with ref-qualifier '&amp;' with a member</span>
+	<span class="c1">/// function without a ref-qualifierclang(ref_qualifier_overload)</span>
+	<span class="c1">// void const_cant_overload() const&amp; {</span>
+	<span class="c1">//   std::cout &lt;&lt; "Const non ref method called" &lt;&lt; std::endl;</span>
+	<span class="c1">// }</span>
+
+	<span class="c1">/// Cannot overload a member function with ref-qualifier '&amp;&amp;' with a member</span>
+	<span class="c1">/// function without a ref-qualifierclang(ref_qualifier_overload)</span>
+	<span class="c1">// void const_cant_overload() const&amp;&amp; {</span>
+	<span class="c1">//   std::cout &lt;&lt; "Const non ref method called" &lt;&lt; std::endl;</span>
+	<span class="c1">// }</span>
+
+	<span class="kt">void</span> <span class="n">const_can_overload</span><span class="p">()</span> <span class="k">const</span><span class="o">&amp;</span>
+	<span class="p">{</span>
+		<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">__LINE__</span> <span class="o">&lt;&lt;</span> <span class="s">" Const lvalue ref method called"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="p">}</span>
+	<span class="kt">void</span> <span class="n">const_can_overload</span><span class="p">()</span> <span class="k">const</span><span class="o">&amp;&amp;</span>
+	<span class="p">{</span>
+		<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">__LINE__</span> <span class="o">&lt;&lt;</span> <span class="s">" Const rvalue ref method called"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// Class and Array type can have const qualified rvalue in C++, this can be created</span>
+<span class="c1">// by function return a const qualified class or array type</span>
+<span class="c1">// https://timsong-cpp.github.io/cppwp/n4861/expr.type#2</span>
+
+<span class="k">const</span> <span class="n">MemoryBlock</span> <span class="nf">create_const_rvalue</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="k">const</span> <span class="n">MemoryBlock</span> <span class="n">cm</span> <span class="o">=</span> <span class="n">MemoryBlock</span><span class="p">();</span>
+	<span class="k">return</span> <span class="n">cm</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span>
+<span class="p">{</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"&lt;&lt;&lt;&lt; #1 &lt;&lt;&lt;&lt;"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+	<span class="n">MemoryBlock</span> <span class="n">m</span><span class="p">;</span>
+	<span class="c1">/// #1: ok, non-const lvalue</span>
+	<span class="n">m</span><span class="p">.</span><span class="n">non_const_non_ref_cant_overload</span><span class="p">();</span>
+	<span class="c1">/// #1: ok, non-const rvalue</span>
+	<span class="n">MemoryBlock</span><span class="p">().</span><span class="n">non_const_non_ref_cant_overload</span><span class="p">();</span>
+	<span class="n">MemoryBlock</span><span class="o">&amp;</span> <span class="n">mr</span> <span class="o">=</span> <span class="n">m</span><span class="p">;</span>
+	<span class="c1">/// #1: ok, lvalue reference</span>
+	<span class="n">mr</span><span class="p">.</span><span class="n">non_const_non_ref_cant_overload</span><span class="p">();</span>
+	<span class="n">MemoryBlock</span><span class="o">&amp;&amp;</span> <span class="n">m_rvalue_ref</span> <span class="o">=</span> <span class="n">MemoryBlock</span><span class="p">();</span>
+	<span class="c1">// #1: ok, rvalue reference</span>
+	<span class="n">m_rvalue_ref</span><span class="p">.</span><span class="n">non_const_non_ref_cant_overload</span><span class="p">();</span>
+	<span class="k">const</span> <span class="n">MemoryBlock</span> <span class="n">cm</span><span class="p">;</span>
+	<span class="c1">/// A: nok, only accept non const</span>
+	<span class="c1">// cm.non_const_non_ref();</span>
+	<span class="c1">// const MemoryBlock&amp;&amp; cmr=std::move(m);</span>
+	<span class="c1">/// A: nok, only accept non const</span>
+	<span class="c1">// cmr.non_const_non_ref();</span>
+	<span class="c1">// A: nok, only accept non const</span>
+	<span class="c1">// create_const_rvalue().non_const_non_ref_cant_overload();</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"&lt;&lt;&lt;&lt; #2 &lt;&lt;&lt;&lt;"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+	<span class="n">MemoryBlock</span> <span class="n">n</span><span class="p">;</span>
+	<span class="c1">/// #2: ok, non const lvalue, overload void non_const_can_overload() &amp;, if</span>
+	<span class="c1">/// only define void non_const_can_overload() &amp;&amp;, there will be overload</span>
+	<span class="c1">/// failure</span>
+	<span class="n">n</span><span class="p">.</span><span class="n">non_const_can_overload</span><span class="p">();</span>
+	<span class="n">MemoryBlock</span><span class="o">&amp;</span> <span class="n">n_lvalue_ref</span> <span class="o">=</span> <span class="n">n</span><span class="p">;</span>
+	<span class="c1">/// #2: ok, non const lvalue reference</span>
+	<span class="n">n_lvalue_ref</span><span class="p">.</span><span class="n">non_const_can_overload</span><span class="p">();</span>
+
+	<span class="c1">/// #2: ok, non const rvalue reference</span>
+	<span class="n">MemoryBlock</span><span class="o">&amp;&amp;</span> <span class="n">n_rvalue_ref</span> <span class="o">=</span> <span class="n">MemoryBlock</span><span class="p">();</span>
+	<span class="n">n_rvalue_ref</span><span class="p">.</span><span class="n">non_const_can_overload</span><span class="p">();</span>
+
+	<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"&lt;&lt;&lt;&lt; #3 &lt;&lt;&lt;&lt;"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+	<span class="c1">/// #3: ok, non const rvalue, overload void non_const_can_overload() &amp;&amp;, if</span>
+	<span class="c1">/// only define void non_const_can_overload() &amp;, there will be overload</span>
+	<span class="c1">/// failure</span>
+	<span class="n">MemoryBlock</span><span class="p">().</span><span class="n">non_const_can_overload</span><span class="p">();</span>
+
+	<span class="c1">/// A: nok, only accetp non const</span>
+	<span class="c1">/// cm.non_const_can_overload();</span>
+	<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"&lt;&lt;&lt;&lt; #4 &lt;&lt;&lt;&lt;"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+	<span class="c1">/// #4: ok, non-const lvalue</span>
+	<span class="n">m</span><span class="p">.</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="c1">/// #4: ok, non-const lvalue reference</span>
+	<span class="n">mr</span><span class="p">.</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="c1">/// #4: ok, const lvalue</span>
+	<span class="n">cm</span><span class="p">.</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="k">const</span> <span class="n">MemoryBlock</span><span class="o">&amp;</span> <span class="n">cons_lvalue_ref</span> <span class="o">=</span> <span class="n">m</span><span class="p">;</span>
+	<span class="c1">/// #4: ok, const lvalue reference</span>
+	<span class="n">cons_lvalue_ref</span><span class="p">.</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="c1">/// #4: ok, non-const rvalue</span>
+	<span class="n">MemoryBlock</span><span class="p">().</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="n">MemoryBlock</span><span class="o">&amp;&amp;</span> <span class="n">non_const_rvalue_ref</span> <span class="o">=</span> <span class="n">MemoryBlock</span><span class="p">();</span>
+	<span class="c1">/// #4: ok, non const rvalue reference</span>
+	<span class="n">non_const_rvalue_ref</span><span class="p">.</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="k">const</span> <span class="n">MemoryBlock</span><span class="o">&amp;&amp;</span> <span class="n">cmr</span> <span class="o">=</span> <span class="n">MemoryBlock</span><span class="p">();</span>
+	<span class="c1">/// #4: ok, const rvalue reference is lvalue, except using std::forward</span>
+	<span class="n">cmr</span><span class="p">.</span><span class="n">const_cant_overload</span><span class="p">();</span>
+	<span class="c1">// #4: ok, const rvalue</span>
+	<span class="n">create_const_rvalue</span><span class="p">().</span><span class="n">const_cant_overload</span><span class="p">();</span>
+
+	<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"&lt;&lt;&lt;&lt; #5 &lt;&lt;&lt;&lt;"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+	<span class="c1">/// #5: ok, const lvalue, overload void const_can_overload() const&amp;, if only</span>
+	<span class="c1">/// define void const_can_overload() const&amp;&amp;, there will be overload failure</span>
+	<span class="n">cm</span><span class="p">.</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">/// #5: ok, const lvalue reference</span>
+	<span class="n">cons_lvalue_ref</span><span class="p">.</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">/// #5: ok, non const lvalue reference</span>
+	<span class="n">n_lvalue_ref</span><span class="p">.</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">/// #5: ok, non const lvalue</span>
+	<span class="n">m</span><span class="p">.</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">/// #5: ok, const rvalue reference is lvalue, except using std::forward</span>
+	<span class="n">cmr</span><span class="p">.</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">/// #5: ok, non const rvalue reference</span>
+	<span class="n">non_const_rvalue_ref</span><span class="p">.</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">// #5: ok, but overload priority lower than #6, can be testfied by comment out #6 method</span>
+	<span class="n">create_const_rvalue</span><span class="p">().</span><span class="n">const_can_overload</span><span class="p">();</span>
+
+	<span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"&lt;&lt;&lt;&lt; #6 &lt;&lt;&lt;&lt;"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+	<span class="c1">/// #6: ok, non const rvalue；overload void const_can_overload() const&amp;&amp;, if</span>
+	<span class="c1">/// void const_can_overload() const&amp;&amp; is not defined, void</span>
+	<span class="c1">/// const_can_overload() const&amp; will be overloaded,since const lvalue</span>
+	<span class="c1">/// reference can bind to rvalue</span>
+	<span class="n">MemoryBlock</span><span class="p">().</span><span class="n">const_can_overload</span><span class="p">();</span>
+	<span class="c1">// #6: ok, const rvalue</span>
+	<span class="n">create_const_rvalue</span><span class="p">().</span><span class="n">const_can_overload</span><span class="p">();</span>
+<span class="p">}</span>
+
+</code></pre></div></div>
+
+  </div><a class="u-url" href="/2023/11/23/C++-%E7%B1%BB%E6%96%B9%E6%B3%95%E9%87%8D%E8%BD%BD.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

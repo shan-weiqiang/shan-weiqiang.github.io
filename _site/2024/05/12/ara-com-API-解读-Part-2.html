@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>ara::com API解析[Part 2] | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="ara::com API解析[Part 2]" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="标准连接：ara::com API" />
+<meta property="og:description" content="标准连接：ara::com API" />
+<link rel="canonical" href="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" />
+<meta property="og:url" content="http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-05-12T13:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="ara::com API解析[Part 2]" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-12T13:22:46+08:00","datePublished":"2024-05-12T13:22:46+08:00","description":"标准连接：ara::com API","headline":"ara::com API解析[Part 2]","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"},"url":"http://localhost:4000/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">ara::com API解析[Part 2]</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2024-05-12T13:22:46+08:00" itemprop="datePublished">May 12, 2024
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>用词说明：</p>
+
+<ul>
+  <li><em>通信协议</em>，<em>驱动协议</em>： 如果不是特别说明，这里<em>通信协议</em>指的是ComAPI底层使用的通信驱动协议，例如DDS、SOME/IP。注意<strong>不是</strong>网络协议</li>
+  <li><em>ComAPI</em>, <em>ComAPI绑定</em>，<em>绑定层</em>，<em>绑定</em>，<em>适配层</em>：这些都是指ComAPI层的接口实现，也称作绑定实现；它是存在于应用层与通信协议之间的适配代码</li>
+  <li><em>Proxy</em>，<em>Proxy类</em>，<em>客户端</em>：如无特别说明，都是指服务的消费方，Proxy接收Skeleton提供的服务</li>
+  <li><em>Skeleton</em>，<em>Skeleton类</em>，<em>服务端</em>：如无特别说明，都是指服务提供方，Skeleton为Proxy提供服务</li>
+  <li><em>服务实例</em>，<em>Skeleton类实例</em>，<em>Skeleton实例</em>：都是指一个具体的服务实例， 它是Skeleton类的实例；服务实例全局唯一</li>
+  <li><em>消费实例</em>，<em>Proxy类实例</em>， <em>Proxy实例</em>：是指一个具体的消费方，它有唯一的Client ID; 注意Proxy实例是没有服务实例ID的，服务ID是Skeleton实例的唯一标识符</li>
+  <li>Skeleton/Proxy的<strong>实例</strong>与Seleton/Proxy<strong>类</strong>是两个概念，文中如果指的是实例，则会具体写明，否则指的是Skeleton/Proxy类本身</li>
+</ul>
+
+<hr />
+
+<ul id="markdown-toc">
+  <li><a href="#5-detailed-api-description" id="markdown-toc-5-detailed-api-description">5 Detailed API description</a>    <ul>
+      <li><a href="#53-proxy-class" id="markdown-toc-53-proxy-class">5.3 Proxy Class</a>        <ul>
+          <li><a href="#533-constructor-and-handle-concept" id="markdown-toc-533-constructor-and-handle-concept">5.3.3 Constructor and Handle Concept</a></li>
+          <li><a href="#534-finding-services" id="markdown-toc-534-finding-services">5.3.4 Finding Services</a>            <ul>
+              <li><a href="#5341-auto-update-proxy-instance" id="markdown-toc-5341-auto-update-proxy-instance">5.3.4.1 Auto Update Proxy instance</a></li>
+            </ul>
+          </li>
+          <li><a href="#535-events" id="markdown-toc-535-events">5.3.5 Events</a>            <ul>
+              <li><a href="#5351-event-subscription-and-local-cache" id="markdown-toc-5351-event-subscription-and-local-cache">5.3.5.1 Event Subscription and Local Cache</a></li>
+              <li><a href="#5353-accessing-event-data--aka-samples" id="markdown-toc-5353-accessing-event-data--aka-samples">5.3.5.3 Accessing Event Data — aka Samples</a></li>
+              <li><a href="#5354-event-sample-management-via-sampleptrs" id="markdown-toc-5354-event-sample-management-via-sampleptrs">5.3.5.4 Event Sample Management via SamplePtrs</a></li>
+              <li><a href="#5355-event-driven-vs-polling-based-access" id="markdown-toc-5355-event-driven-vs-polling-based-access">5.3.5.5 Event-Driven vs Polling-Based access</a></li>
+              <li><a href="#5356-buffering-strategies" id="markdown-toc-5356-buffering-strategies">5.3.5.6 Buffering Strategies</a></li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="5-detailed-api-description">5 Detailed API description</h1>
+
+<h2 id="53-proxy-class">5.3 Proxy Class</h2>
+
+<blockquote>
+  <p>The Proxy class is generated from the SI description of the AUTOSAR meta model.
+ara::com does standardize the interface of the generated Proxy class.</p>
+
+  <p>The toolchain of an AP product vendor will generate a Proxy implementation class exactly implementing this interface.</p>
+</blockquote>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>Proxy的API接口是AUTOSAR定义好的，所有的代码引擎都需要生成符合标准要求的API</p>
+
+<hr />
+
+<h3 id="533-constructor-and-handle-concept">5.3.3 Constructor and Handle Concept</h3>
+
+<blockquote>
+  <p>As you can see in the Listing 5.2 ara::com prescribes the Proxy class to provide a
+constructor. This means, that the developer is responsible for creating a proxy instance
+to communicate with a possibly remote service.</p>
+</blockquote>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>Proxy类的特点可以总结如下：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">static</code>方法用于发现Skeleton实例</li>
+  <li>应用开发者需要通过发现的<code class="language-plaintext highlighter-rouge">HandleType</code>创建Proxy类的实例</li>
+  <li>一个Proxy类实例只能与一个Skeleton类实例通信</li>
+</ul>
+
+<hr />
+
+<h3 id="534-finding-services">5.3.4 Finding Services</h3>
+
+<p>通过使用StartFindService和FindService两个<code class="language-plaintext highlighter-rouge">static</code>方法来发现Skeleton实例：</p>
+
+<ul>
+  <li>StartFindService为异步发现，注册一个回调到ComAPI，每当有新的Skeleton实例被发现，回调会被调用</li>
+  <li>FindService为同步发现，直接返回发现结果</li>
+</ul>
+
+<p>这两个API都有两个重载，分别接收<code class="language-plaintext highlighter-rouge"> ara::com::InstanceIdentifier</code>和<code class="language-plaintext highlighter-rouge"> ara::core::InstanceSpecifier</code>，关于这二者的区别详见<a href="https://shan-weiqiang.github.io/2024/05/05/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-1.html#481-instance-identifiers-and-instance-specifiers">Part 1</a></p>
+
+<h4 id="5341-auto-update-proxy-instance">5.3.4.1 Auto Update Proxy instance</h4>
+
+<p>当已经被发现的Skeleton实例由于各种原因暂停提供服务，而后又重新提供服务后，可以通过自动更新Proxy实例来继续通信，而无需重新走一遍FindService，创建Proxy实例的流程。</p>
+
+<p>此外，允许在StartFindService注册的回调函数中直接使用已经存在的Proxy实例：</p>
+
+<ul>
+  <li>必须在调用这个回调前，做完自动Proxy实例的更新,这样才能保证Proxy实例的可用性</li>
+</ul>
+
+<p>以上自动更新是通过底层的服务发现模块提供的状态来完成的.</p>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p>笔者对这个功能持保留意见：</p>
+
+<ol>
+  <li>为什么会允许出现在运行时Proxy实例更新的情况？按照文中所说，Proxy实例甚至允许出现底层传输层地址改变的情况,这严重违反了AUTOSAR部署的意义：既然已经是部署，就不能允许在运行时更新部署配置信息</li>
+  <li>即便在调用StartFindService注册的回调前自动更新了已经存在的Proxy实例，那也不能保证在调用这个实例的API时对方的Skeleton实例仍然有效。因为这中间存在时间差，而对方Skeleton实例可能远在另外一台机器。</li>
+</ol>
+
+<hr />
+
+<h3 id="535-events">5.3.5 Events</h3>
+
+<h4 id="5351-event-subscription-and-local-cache">5.3.5.1 Event Subscription and Local Cache</h4>
+
+<p>如果Proxy实例端想要接收Skeleton实例中的一个event，则必须使用event订阅这个接口。这个接口有两个作用：</p>
+
+<ul>
+  <li>告诉ComAPI需要接收这个event的数据</li>
+  <li>告诉ComAPI需要在ComAPI层开辟多少存储空间用于存放数据</li>
+</ul>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p><code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Subscribe(size_t maxSampleCount);</code> ：</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">maxSampleCount</code>表示当前Proxy需要为当前event开辟的存放缓存数据的池子大小，这个池子与底层的协议绑定完全无关，比如DDS和SOME/IP，它不是底层协议的缓存，而是ComAPI binding层的缓存</li>
+  <li>在<code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口中需要将底层通信协议，例如DDS和SOME/IP，中的数据直接解序列化到这个池子，然后将指向这个池子中数据的指针<code class="language-plaintext highlighter-rouge">SamplePtr</code>传给上层应用；<code class="language-plaintext highlighter-rouge">SamplePtr</code>的行为将在后续小结详细说明</li>
+</ul>
+
+<hr />
+
+<h4 id="5353-accessing-event-data--aka-samples">5.3.5.3 Accessing Event Data — aka Samples</h4>
+
+<blockquote>
+  <p>So there has to be taken an explicit action, to get/fetch those event samples from those buffers,eventually deserialze it and and then put them into the event wrapper class instance
+specific cache in form of a correct SampleType. The API to trigger this action is
+<code class="language-plaintext highlighter-rouge">GetNewSamples()</code>.</p>
+</blockquote>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<ol>
+  <li>从绑定协议的底层，例如DDS的history，中获取<strong>未序列化</strong>的数据流。注意这些数据流可能存储在底层绑定协议的缓存中，也可能在内核空间中，例如在IPC socket、shared memory中。这些数据通常是从本地IPC，例如unix domain socket，或者UDP/TCP socket中获取的原始数据包,尚未完成反序列化。</li>
+  <li>将原始字节流<strong>反序列化</strong>，然后存储在ComAPI的本地缓存中，即上面所说的<code class="language-plaintext highlighter-rouge">local cache</code>中，其大小在<code class="language-plaintext highlighter-rouge">Subscribe(size_t maxSampleCount)</code>时，由应用告诉ComAPI; 注意，为了保证运行时的确定性，这个池子的内存应当是固定的，不能在运行时重新申请、释放。另外，为了减少Copy，根据底层绑定协议的能力，应当尽量直接将数据反序列化到池子中，而不是先反序列化，然后Copy。</li>
+</ol>
+
+<hr />
+
+<blockquote>
+  <p>On a call to GetNewSamples(), the ara::com implementation checks first, whether
+the number of event samples held by the application already exceeds the maximum
+number, which it had committed in the previous call to Subscribe(). If so, an
+ara::Core::ErrorCode is returned. Otherwise ara::com implementation checks,
+whether underlying buffers contain a new event sample and — if it’s the case — deserializes it into a sample slot and then calls the application provided f with a SamplePtr
+pointing to this new event sample. This processing (checking for further samples in the
+buffer and calling back the application provided callback f) is repeated until either:</p>
+
+  <ul>
+    <li>there aren’t any new samples in the buffers</li>
+    <li>there are further samples in the buffers, but the application provided maxNumberOfSamples argument in call to GetNewSamples() has been reached.</li>
+    <li>there are further samples in the buffers, but the application already exceeds its
+maxSampleCount, which it had committed in Subscribe().</li>
+  </ul>
+</blockquote>
+
+<hr />
+<p><strong>NOTE</strong></p>
+
+<p><code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口的行为：</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">F</span><span class="p">&gt;</span>
+<span class="n">ara</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">Result</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span> <span class="n">GetNewSamples</span><span class="p">(</span>
+<span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">f</span><span class="p">,</span>
+<span class="kt">size_t</span> <span class="n">maxNumberOfSamples</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">());</span>
+</code></pre></div></div>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">maxNumberOfSamples</code>: <code class="language-plaintext highlighter-rouge">GetNewSamples</code>接口传入的本次希望接收的最大数据数量</li>
+  <li><code class="language-plaintext highlighter-rouge">maxSampleCount</code>: <code class="language-plaintext highlighter-rouge">local cache</code>本地缓存的池子大小；大小由<code class="language-plaintext highlighter-rouge">Subscribe(size_t maxSampleCount)</code>时，由上层应用指定</li>
+  <li>底层绑定协议中buffer区域的可用的未读取的数据数量，姑且称为<code class="language-plaintext highlighter-rouge">bufferUnreadCount</code></li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">GetNewSamples</code>从底层通信获取未读的、未序列化的消息，将其序列化，存储到<code class="language-plaintext highlighter-rouge">local cache</code>池子中，然后将指向这个数据的<code class="language-plaintext highlighter-rouge">SamplePtr</code>指针作为参数传递给回调函数<code class="language-plaintext highlighter-rouge">f</code>. <code class="language-plaintext highlighter-rouge">F</code>必须是<code class="language-plaintext highlighter-rouge">void(ara::com::SamplePtr&lt;SampleType const&gt;).</code>类型。这个过程一直循环，直到：</p>
+
+<ul>
+  <li>所有<code class="language-plaintext highlighter-rouge">bufferUnreadCount</code>消息全部处理完</li>
+  <li>或者，<code class="language-plaintext highlighter-rouge">local cache</code>的数量已达到<code class="language-plaintext highlighter-rouge">maxSampleCount</code></li>
+  <li>或者，本次已读取<code class="language-plaintext highlighter-rouge">maxNumberOfSamples</code>个数据</li>
+</ul>
+
+<hr />
+
+<h4 id="5354-event-sample-management-via-sampleptrs">5.3.5.4 Event Sample Management via SamplePtrs</h4>
+
+<p><code class="language-plaintext highlighter-rouge">SamplePtr</code>需要满足如下功能：</p>
+
+<ul>
+  <li>它指向的内存区域应当是ComAPI申请的，与底层绑定的协议无关，且会被重复利用的区域；这意味着这些内存区域不会频繁的释放和申请</li>
+  <li>它指向的应当是应用层可以直接使用的数据类型，及已经完成反序列化</li>
+  <li>它指向的数据的所有权必须可以从ComAPI层<code class="language-plaintext highlighter-rouge">move</code>到应用层，且：
+    <ul>
+      <li>如有必要，为了极致的性能优化，它还应当支持引用计数，即同时将所有权给不同的应用层的Proxy</li>
+    </ul>
+  </li>
+  <li>当其所有权被应用层释放，应当通知到ComAPI实现层，这样ComAPI就可以将其指向的内存区域重新利用；这里可以有两种方式：
+    <ul>
+      <li>在<code class="language-plaintext highlighter-rouge">SamplePtr</code>析构时，通过类似引用计数的方式将释放信息传递给ComAPI，这个机制可以参考<code class="language-plaintext highlighter-rouge">std::shared_ptr</code></li>
+      <li>在<code class="language-plaintext highlighter-rouge">SamplePtr</code>中开放对应的API接口，应用程序使用完毕后，显式调用该接口释放内存</li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="5355-event-driven-vs-polling-based-access">5.3.5.5 Event-Driven vs Polling-Based access</h4>
+
+<p>Proxy端event的polling和event-driven模式分别通过两个API实现：</p>
+
+<ul>
+  <li>polling: <code class="language-plaintext highlighter-rouge">GetNewSamples</code>实现polling</li>
+  <li>event-driven：<code class="language-plaintext highlighter-rouge">SetReceiveHandler(ara::com::EventReceiveHandlerhandler)</code> 注册一个回调，底层通信协议在收到新的消息后会调用这个回调
+    <ul>
+      <li>在这个回调中再调用<code class="language-plaintext highlighter-rouge">GetNewSamples</code>获取数据</li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="5356-buffering-strategies">5.3.5.6 Buffering Strategies</h4>
+
+<p><img src="/assets/images/buffer_strategie.png" alt="Alt text" /></p>
+
+<p>在讨论之前，必须设定一些前提，不然讨论起来情形非常多；主要有以下几方面的原因：</p>
+
+<ul>
+  <li>这个Skeleton实例可能在当前机器，当Skeleton实例发送数据时，可能会将数据保存在：
+    <ul>
+      <li>kernel空间：例如unix domain socket，pipe</li>
+      <li>shared memory</li>
+      <li>daemon 进程：这是指专门用来分发的进程；当daemon进程与Proxy通信时也可以选择共享内存、unix domain socket、pipe等</li>
+    </ul>
+  </li>
+  <li>这个Skeleton实例可能在另外一台机器，当其发送数据，可能会将数据保存在：
+    <ul>
+      <li>kernel空间：例如TCP/UDP socket</li>
+      <li>daemon进程：同上</li>
+    </ul>
+  </li>
+  <li>Proxy实例可能在同一个进程中，也可能在不同的进程中</li>
+  <li>如果Skeleton实例在当前机器，Skeleton实例和Proxy实例在同一个进程都是有可能的</li>
+</ul>
+
+<p>Proxy实例和Skeleton实例不同的位置关系，使用的IPC技术方案，都会直接影响Proxy实例之间的数据共享。所以，我们限制如下：</p>
+
+<ul>
+  <li>不同的Proxy实例在不同的进程；做这个限制的原因是，同一个进程中收取两份相同的数据实际意义很小</li>
+  <li>Skeleton实例在另外一台机器；做这个限制的原因是这种情况最终会转化为同一台机器的共享，因为数据必须先通过网络到达当前机器</li>
+</ul>
+
+<p>如何实现不同Proxy实例之间的event数据共享：</p>
+
+<ul>
+  <li>首先需要一个Proxy实例所在机器的daemon进程统一管理与外部机器的网络数据收发，因为如果当前机器不同的Proxy实例分别与外部机器的Skeleton实例创建了网络连接，则会有重复的数据在网络发送；在Skeleton一侧，也应当有daemon进程，因为Proxy实例和Skeleton实例能相互通信的前提是底层使用了相同的通信协议（在模型中它们来自同一个<em>部署</em>），例如DDS或者SOME/IP</li>
+  <li>在服务发现阶段，也应当由daemon进程统一管理，只有这样这个daemon进程才能汇总、梳理可能共享event数据的Proxy实例，例如如果不同的Proxy实例都同时订阅了一个相同的Skeleton实例，则这两个Proxy实例可以共享event数据</li>
+  <li>在收到原始数据流后，daemon必须先对数据进行反序列化，才能共享；否则，如果共享的是为序列化的数据，则每次使用都必须反序列化，显然失去了共享的意义</li>
+  <li>在将数据反序列化后，daemon应当将数据保存在共享内存中，这样在不同地址空间中的Proxy实例才能通过指针的方式共享这些数据</li>
+  <li>Proxy实例的<code class="language-plaintext highlighter-rouge">local cache</code>中存储的不再是值，而是数据的指针；且daemon进程中必须使用引用计数的方式来管理这些共享数据</li>
+  <li>当Proxy实例将数据，即<code class="language-plaintext highlighter-rouge">SamplePtr</code> 给上层应用时，给的是指向daemon原始数据的指针；但是在这个<code class="language-plaintext highlighter-rouge">SamplePtr</code>的实现中，必须提供接口，或者在析构时，能够告知ComAPI层，当前<code class="language-plaintext highlighter-rouge">local cache</code>中的这个指针已经被应用层释放，从而ComAPI可以通知通信协议的daemon进程减少当前数据的引用计数</li>
+  <li>当daemon进程管理的数据引用计数为0时，可以释放该数据</li>
+</ul>
+
+<p>缺点：</p>
+
+<ul>
+  <li>不同Proxy实例会同时影响daemon进程中的event数据缓存量：任何缓存都是有限制的，一旦超过了限制，则必须选择丢弃新的数据，或者阻塞发送端(例如TCP)；如果不同Proxy实例之间对数据消耗的速度是不同的，则可能会出现相互影响：消费快的Proxy实例可能会因为消费慢的Proxy实例而牺牲掉获取数据的机会；相比较而言，如果每个Proxy实例都有自己的缓冲copy，则不会出现这个问题</li>
+  <li>不同的进程对数据的存储可能有不同的对齐要求，如果使用共享内存，则必须要考虑这个问题</li>
+</ul>
+
+  </div><a class="u-url" href="/2024/05/12/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-2.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

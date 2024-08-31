@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>c++: crtp与mixin设计模式 | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="c++: crtp与mixin设计模式" />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="http://localhost:4000/2023/10/13/CRTP%E4%B8%8EMixin.html" />
+<meta property="og:url" content="http://localhost:4000/2023/10/13/CRTP%E4%B8%8EMixin.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-10-13T19:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="c++: crtp与mixin设计模式" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-10-13T19:22:46+08:00","datePublished":"2023-10-13T19:22:46+08:00","headline":"c++: crtp与mixin设计模式","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2023/10/13/CRTP%E4%B8%8EMixin.html"},"url":"http://localhost:4000/2023/10/13/CRTP%E4%B8%8EMixin.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">c++: crtp与mixin设计模式</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2023-10-13T19:22:46+08:00" itemprop="datePublished">Oct 13, 2023
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul id="markdown-toc">
+  <li><a href="#静态多态" id="markdown-toc-静态多态">静态多态</a>    <ul>
+      <li><a href="#定义与实现原理" id="markdown-toc-定义与实现原理">定义与实现原理</a></li>
+      <li><a href="#用法一将基类的接口扩展到继承类" id="markdown-toc-用法一将基类的接口扩展到继承类">用法一：将基类的接口扩展到继承类</a></li>
+      <li><a href="#用法二实现静态接口" id="markdown-toc-用法二实现静态接口">用法二：实现静态接口</a></li>
+      <li><a href="#静态多态和虚函数多态的对比" id="markdown-toc-静态多态和虚函数多态的对比">静态多态和虚函数多态的对比</a></li>
+    </ul>
+  </li>
+  <li><a href="#mixin" id="markdown-toc-mixin">Mixin</a></li>
+  <li><a href="#crtp基类用作mixin" id="markdown-toc-crtp基类用作mixin">CRTP基类用作Mixin</a></li>
+</ul>
+
+<h1 id="静态多态">静态多态</h1>
+
+<h2 id="定义与实现原理">定义与实现原理</h2>
+
+<p>静态多态又叫做CRTP，全程是<em>Curiously recurring template pattern</em>，是基于C++模板实现的。其方法是：一个继承类 <code class="language-plaintext highlighter-rouge">Derived</code>，它继承自一个以 <code class="language-plaintext highlighter-rouge">Derived</code>为模板参数的基类 <code class="language-plaintext highlighter-rouge">Base</code>。原理基础是：</p>
+
+<ul>
+  <li>模板参数的二次查找</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Derived</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span> <span class="k">class</span> <span class="nc">Base</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">using</span> <span class="n">and_then_callback</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="kt">void</span><span class="p">(</span><span class="n">ValueType</span> <span class="o">&amp;</span><span class="p">)</span><span class="o">&gt;</span><span class="p">;</span>
+  <span class="c1">/// 函数是公共接口函数，所有继承类通过该接口实现多态</span>
+  <span class="c1">/// 接口的实现在基类, 与虚函数相反，虚函数多态的实现在继承类</span>
+  <span class="c1">/// 中间有两次接口的约定：</span>
+  <span class="c1">/// 1. 因为在基类中调用继承类的方法，所以所有继承类必须实现相关方法</span>
+  <span class="c1">/// 2. 基类的方法暴露给用户，为提供给用户的接口</span>
+  <span class="n">Derived</span> <span class="o">&amp;</span><span class="n">and_then</span><span class="p">(</span><span class="k">const</span> <span class="n">and_then_callback</span> <span class="o">&amp;</span><span class="n">callback</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">/// 将指针cast成继承类的指针</span>
+    <span class="k">auto</span> <span class="n">derived</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">Derived</span> <span class="o">*&gt;</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">derived</span><span class="o">-&gt;</span><span class="n">has_data</span><span class="p">())</span> <span class="p">{</span>
+      <span class="n">callback</span><span class="p">(</span><span class="n">derived</span><span class="o">-&gt;</span><span class="n">get_data</span><span class="p">());</span>
+      <span class="c1">// 可以在基类中调用继承类的成员，这也是这个设计模式的核心，因为按照正常逻辑，</span>
+      <span class="c1">// 此处这个函数基类并不知道（先声明，后使用），但是因为是模板类，</span>
+      <span class="c1">// 所以该类的实例化其实是在derived-&gt;other_implementation()之后进行的，</span>
+      <span class="c1">// 所以编译可以通过</span>
+      <span class="n">derived</span><span class="o">-&gt;</span><span class="n">other_implementation</span><span class="p">();</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="o">*</span><span class="n">derived</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">Derived_A</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Base</span><span class="o">&lt;</span><span class="n">Derived_A</span><span class="o">&lt;</span><span class="n">ValueType</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">&gt;</span>
+
+<span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="o">...</span> <span class="nc">Argu</span><span class="p">&gt;</span> <span class="kt">void</span> <span class="n">set_data</span><span class="p">(</span><span class="k">const</span> <span class="n">Argu</span> <span class="o">&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ValueType</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">ValueType</span> <span class="o">&amp;</span><span class="n">get_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">data</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">other_implementation</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Derived_A implementation is called</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="kt">bool</span> <span class="nf">has_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">flag</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">ValueType</span> <span class="n">data</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">flag</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">Derived_B</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Base</span><span class="o">&lt;</span><span class="n">Derived_B</span><span class="o">&lt;</span><span class="n">ValueType</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="o">...</span> <span class="nc">Argu</span><span class="p">&gt;</span> <span class="kt">void</span> <span class="n">set_data</span><span class="p">(</span><span class="k">const</span> <span class="n">Argu</span> <span class="o">&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ValueType</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">ValueType</span> <span class="o">&amp;</span><span class="n">get_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">data</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">other_implementation</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Derived_B implementation is called</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="kt">bool</span> <span class="nf">has_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">flag</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">ValueType</span> <span class="n">data</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">flag</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">struct</span> <span class="nc">MyType</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">a</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">b</span><span class="p">;</span>
+  <span class="n">MyType</span><span class="p">(</span><span class="k">const</span> <span class="kt">int</span> <span class="n">arg1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">float</span> <span class="n">arg2</span><span class="p">)</span> <span class="o">:</span> <span class="n">a</span><span class="p">(</span><span class="n">arg1</span><span class="p">),</span> <span class="n">b</span><span class="p">(</span><span class="n">arg2</span><span class="p">){};</span>
+  <span class="n">MyType</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="n">Derived_A</span><span class="o">&lt;</span><span class="n">MyType</span><span class="o">&gt;</span> <span class="n">DA</span><span class="p">;</span>
+  <span class="n">Derived_B</span><span class="o">&lt;</span><span class="n">MyType</span><span class="o">&gt;</span> <span class="n">DB</span><span class="p">;</span>
+
+  <span class="n">DA</span><span class="p">.</span><span class="k">template</span> <span class="n">set_data</span><span class="p">(</span><span class="mi">1u</span><span class="p">,</span> <span class="mf">2.1</span><span class="n">f</span><span class="p">);</span>
+  <span class="n">DB</span><span class="p">.</span><span class="k">template</span> <span class="n">set_data</span><span class="p">(</span><span class="mi">2u</span><span class="p">,</span> <span class="mf">3.2</span><span class="n">f</span><span class="p">);</span>
+  <span class="c1">// and_then是基类的成员函数，继承类没有，但是在这里实现了多态，不同的成员可以有不同的实现</span>
+  <span class="c1">// 但是没有vptr table等，没有运行时消耗，是静态多态，可以节约资源</span>
+  <span class="n">DA</span><span class="p">.</span><span class="n">and_then</span><span class="p">(</span>
+      <span class="p">[](</span><span class="n">MyType</span> <span class="o">&amp;</span><span class="n">a</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">void</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"from DA: a = "</span> <span class="o">&lt;&lt;</span> <span class="n">a</span><span class="p">.</span><span class="n">a</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">});</span>
+  <span class="n">DB</span><span class="p">.</span><span class="n">and_then</span><span class="p">(</span>
+      <span class="p">[](</span><span class="n">MyType</span> <span class="o">&amp;</span><span class="n">b</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kt">void</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"from DB: a = "</span> <span class="o">&lt;&lt;</span> <span class="n">b</span><span class="p">.</span><span class="n">a</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">});</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="用法一将基类的接口扩展到继承类">用法一：将基类的接口扩展到继承类</h2>
+
+<p>当基类的方法在继承类中不存在时，会将基类的接口方法扩展到继承类。在上面的例子中， <code class="language-plaintext highlighter-rouge">and_then</code> 方法在继承类中不存在，继承类扩展了这些接口。</p>
+
+<ul>
+  <li>扩展后用户直接使用继承类</li>
+  <li>继承类必须保证在基类的方法实现中用到的所有方法，也就是说：
+    <ul>
+      <li>继承类提供接口给基类</li>
+      <li>基类提供接口给用户</li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="用法二实现静态接口">用法二：实现静态接口</h2>
+
+<p>当继承类中有基类相同的方法时，继承类的方法会覆盖基类的方法，而通过CRTP，在基类中可以直接调用继承类的同名方法。如果用户使用基类对象，就会产生与使用虚函数相同的效果。</p>
+
+<ul>
+  <li>基类和继承类实现同名方法</li>
+  <li>在基类的同名方法中调用继承类的同名方法</li>
+  <li>用户直接使用基类对象，调用的是实际继承类的方法</li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Derived</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span> <span class="k">class</span> <span class="nc">Base</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="c1">/// 基类和继承类有相同的方法</span>
+  <span class="n">Derived</span> <span class="o">&amp;</span><span class="n">print_value</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">/// 将指针cast成继承类的指针</span>
+    <span class="k">auto</span> <span class="n">derived</span> <span class="o">=</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">Derived</span> <span class="o">*&gt;</span><span class="p">(</span><span class="k">this</span><span class="p">);</span>
+    <span class="c1">/// 在基类中调用继承类的同名方法</span>
+    <span class="n">derived</span><span class="o">-&gt;</span><span class="n">print_value</span><span class="p">();</span>
+    <span class="k">return</span> <span class="o">*</span><span class="n">derived</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">Derived_A</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Base</span><span class="o">&lt;</span><span class="n">Derived_A</span><span class="o">&lt;</span><span class="n">ValueType</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="o">...</span> <span class="nc">Argu</span><span class="p">&gt;</span> <span class="kt">void</span> <span class="n">set_data</span><span class="p">(</span><span class="k">const</span> <span class="n">Argu</span> <span class="o">&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ValueType</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">ValueType</span> <span class="o">&amp;</span><span class="n">get_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">data</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">print_value</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Derived_A printing</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">bool</span> <span class="nf">has_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">flag</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">ValueType</span> <span class="n">data</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">flag</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">Derived_B</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Base</span><span class="o">&lt;</span><span class="n">Derived_B</span><span class="o">&lt;</span><span class="n">ValueType</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="k">using</span> <span class="n">fn_print_value_type</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="n">function</span><span class="o">&lt;</span><span class="n">ValueType</span> <span class="o">&amp;&gt;</span><span class="p">;</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span><span class="o">...</span> <span class="nc">Argu</span><span class="p">&gt;</span> <span class="kt">void</span> <span class="n">set_data</span><span class="p">(</span><span class="k">const</span> <span class="n">Argu</span> <span class="o">&amp;</span><span class="p">...</span><span class="n">args</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">ValueType</span><span class="p">(</span><span class="n">args</span><span class="p">...);</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="nb">true</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">ValueType</span> <span class="o">&amp;</span><span class="n">get_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">data</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">print_value</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Derived_B printing</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">bool</span> <span class="nf">has_data</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="n">flag</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">ValueType</span> <span class="n">data</span><span class="p">;</span>
+  <span class="kt">bool</span> <span class="n">flag</span> <span class="o">=</span> <span class="nb">false</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">struct</span> <span class="nc">MyType</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">a</span><span class="p">;</span>
+  <span class="kt">float</span> <span class="n">b</span><span class="p">;</span>
+  <span class="n">MyType</span><span class="p">(</span><span class="k">const</span> <span class="kt">int</span> <span class="n">arg1</span><span class="p">,</span> <span class="k">const</span> <span class="kt">float</span> <span class="n">arg2</span><span class="p">)</span> <span class="o">:</span> <span class="n">a</span><span class="p">(</span><span class="n">arg1</span><span class="p">),</span> <span class="n">b</span><span class="p">(</span><span class="n">arg2</span><span class="p">){};</span>
+  <span class="n">MyType</span><span class="p">()</span> <span class="o">=</span> <span class="k">default</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="c1">/// 用户</span>
+<span class="c1">/// 注意这里用户必须是个模板，因为不但Derived_A和Derived_B是两种类型</span>
+<span class="c1">/// 他们的基类也是两种类型，不能用同一个基类指针指向它们，需要使用</span>
+<span class="c1">/// 模板函数的方式来同时支持Derived_A和Derived_B作为参数传入</span>
+<span class="c1">/// 静态多态在使用时也是静态的</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Derived</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">ValueType</span><span class="p">&gt;</span>
+<span class="kt">void</span> <span class="nf">print_base</span><span class="p">(</span><span class="n">Base</span><span class="o">&lt;</span><span class="n">Derived</span><span class="p">,</span> <span class="n">ValueType</span><span class="o">&gt;</span> <span class="o">&amp;</span><span class="n">base</span><span class="p">)</span> <span class="p">{</span>
+  <span class="n">base</span><span class="p">.</span><span class="n">print_value</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="n">Derived_A</span><span class="o">&lt;</span><span class="n">MyType</span><span class="o">&gt;</span> <span class="n">DA</span><span class="p">;</span>
+  <span class="n">Derived_B</span><span class="o">&lt;</span><span class="n">MyType</span><span class="o">&gt;</span> <span class="n">DB</span><span class="p">;</span>
+
+  <span class="n">DA</span><span class="p">.</span><span class="k">template</span> <span class="n">set_data</span><span class="p">(</span><span class="mi">1u</span><span class="p">,</span> <span class="mf">2.1</span><span class="n">f</span><span class="p">);</span>
+  <span class="n">DB</span><span class="p">.</span><span class="k">template</span> <span class="n">set_data</span><span class="p">(</span><span class="mi">2u</span><span class="p">,</span> <span class="mf">3.2</span><span class="n">f</span><span class="p">);</span>
+  <span class="c1">/// DA 和 DB 都可以传入，且分别调用各自的方法</span>
+  <span class="n">print_base</span><span class="p">(</span><span class="n">DA</span><span class="p">);</span>
+  <span class="n">print_base</span><span class="p">(</span><span class="n">DB</span><span class="p">);</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="静态多态和虚函数多态的对比">静态多态和虚函数多态的对比</h2>
+
+<p>CRTP静态多态和虚函数动态多态区别在于没有 <em>vptr</em> 和 <em>vptr table</em> 等动态运行时的函数查找机制，是在编译时运用模板的特性来实现静态的多态：</p>
+
+<ul>
+  <li>静态多态因为没有运行时损耗，运行时效率要比动态多态要高</li>
+  <li>CRTP要求继承类必须实现指定的函数供基类(接口类)调用，所以区别在于：
+    <ul>
+      <li>动态多态要求继承类必须实现相应的虚函数</li>
+      <li>静态多态要求继承类必须实现相应的成员方法，供基类接口方法调用</li>
+    </ul>
+  </li>
+  <li>静态多态只能在模板类使用，使用范围不如虚函数</li>
+</ul>
+
+<p>静态多态是不能完全替代虚函数的，因为静态多态要求在编译时已经知道所有的类型信息，其多态是通过模板的特化来实现的；虚函数不要求在编译时知道所有类型信息，只需要知道虚接口类型，而在运行时自动实现多态（其实运行时也不知道实际的类型信息，只是通过虚函数表实现多态）。</p>
+
+<h1 id="mixin">Mixin</h1>
+
+<p>Wikipedia的定义：</p>
+
+<blockquote>
+  <p>In object-oriented programming languages, a mixin (or mix-in)<a href="https://en.wikipedia.org/wiki/Mixin">1</a>[3][4] is a class that contains methods for use by other classes without having to be the parent class of those other classes.</p>
+
+</blockquote>
+
+<p>根据这个定义C++并没有原生支持Mixin，因为C++必须通过模板参数+继承的方式实现Mixin。</p>
+
+<p>C++中的Mixin就是类继承它的模板参数。本质上就是继承。</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="c1">/// Mixins</span>
+<span class="k">class</span> <span class="nc">SayEn</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="kt">void</span> <span class="n">say_hi</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">class</span> <span class="nc">SayCh</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="kt">void</span> <span class="n">say_hi</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"你好</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Mixin</span><span class="p">&gt;</span> <span class="k">class</span> <span class="nc">Person</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Mixin</span> <span class="p">{};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Mixin1</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">Mixin2</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">BilangPersion</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Mixin1</span><span class="p">,</span> <span class="k">public</span> <span class="n">Mixin2</span> <span class="p">{};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="c1">/// Person 可以通过继承不同的Mixin获得不同的方法</span>
+  <span class="n">Person</span><span class="o">&lt;</span><span class="n">SayEn</span><span class="o">&gt;</span> <span class="n">en_person</span><span class="p">;</span>
+  <span class="n">Person</span><span class="o">&lt;</span><span class="n">SayCh</span><span class="o">&gt;</span> <span class="n">ch_person</span><span class="p">;</span>
+
+  <span class="n">BilangPersion</span><span class="o">&lt;</span><span class="n">SayCh</span><span class="p">,</span> <span class="n">SayEn</span><span class="o">&gt;</span> <span class="n">bi_persion</span><span class="p">;</span>
+
+  <span class="n">en_person</span><span class="p">.</span><span class="n">say_hi</span><span class="p">();</span>
+  <span class="n">ch_person</span><span class="p">.</span><span class="n">say_hi</span><span class="p">();</span>
+
+  <span class="c1">/// 必须具体指定是哪个类型的方法</span>
+  <span class="n">bi_persion</span><span class="p">.</span><span class="n">SayEn</span><span class="o">::</span><span class="n">say_hi</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h1 id="crtp基类用作mixin">CRTP基类用作Mixin</h1>
+
+<p>既然Mixin可以被作为模板参数被其他类继承其功能，那么一个CRTP的基类可以作为一个Mixin类被其他类继承，这样其他类也变成了一个CRTP的基类，且这个继承类可以重新 <em>override</em> 原CRTP基类的方法:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;functional&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="c1">/// CRTP 基类</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Derived</span><span class="p">&gt;</span> <span class="k">class</span> <span class="nc">Animal</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="c1">/// 接口方法</span>
+  <span class="kt">void</span> <span class="n">run</span><span class="p">()</span> <span class="p">{</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">get_child</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">default_behavior</span><span class="p">();</span> <span class="p">}</span>
+
+  <span class="kt">void</span> <span class="nf">bark</span><span class="p">()</span> <span class="p">{</span> <span class="k">this</span><span class="o">-&gt;</span><span class="n">get_child</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">default_behavior</span><span class="p">();</span> <span class="p">}</span>
+
+  <span class="c1">/// 所有基类要求实现，作为接口方法的默认实现</span>
+  <span class="kt">void</span> <span class="nf">default_behavior</span><span class="p">()</span> <span class="p">{</span> <span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="c1">/// 类型转为继承类</span>
+  <span class="n">Derived</span> <span class="o">*</span><span class="nf">get_child</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="n">Derived</span> <span class="o">*&gt;</span><span class="p">(</span><span class="k">this</span><span class="p">);</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">/// Mixin</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">Mixin</span><span class="p">&gt;</span> <span class="k">class</span> <span class="nc">LivingThing</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Mixin</span> <span class="p">{};</span>
+
+<span class="c1">/// Pet现在也是CRTP接口类</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">class</span> <span class="nc">Pet</span> <span class="o">:</span> <span class="k">public</span> <span class="n">LivingThing</span><span class="o">&lt;</span><span class="n">Animal</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;&gt;</span> <span class="p">{};</span>
+
+<span class="c1">/// 使用</span>
+<span class="k">class</span> <span class="nc">Dog</span> <span class="o">:</span> <span class="k">public</span> <span class="n">Pet</span><span class="o">&lt;</span><span class="n">Dog</span><span class="o">&gt;</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="kt">void</span> <span class="n">run</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dog running.."</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span> <span class="p">}</span>
+  <span class="kt">void</span> <span class="nf">default_behavior</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dog is lazy, it is doing nothing.."</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">Dog</span> <span class="n">d</span><span class="p">;</span>
+  <span class="c1">/// Dog没有实现bark方法，但是继承了CRTP的默认接口方法实现</span>
+  <span class="c1">/// 注意：在CRTP基类bark方法中用到的Derived方法必须在Drived类中实现</span>
+  <span class="n">d</span><span class="p">.</span><span class="n">bark</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+  </div><a class="u-url" href="/2023/10/13/CRTP%E4%B8%8EMixin.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

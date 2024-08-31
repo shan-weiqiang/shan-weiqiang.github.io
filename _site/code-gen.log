@@ -1,0 +1,5 @@
+2024-08-31 08:27:03 - INFO - -- Python 3.10.12: /usr/bin/python3
+2024-08-31 08:27:03 - INFO - -- xway-code-engine-toolkit, version: 4.1.1
+2024-08-31 08:27:03 - INFO - -- code formatter: Ubuntu clang-format version 14.0.0-1ubuntu1.1
+
+2024-08-31 08:27:03 - INFO - no model files found in ['./model']

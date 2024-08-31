@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>arguments of clone() system call | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="arguments of clone() system call" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This blog reference most of it’s content to Chapter 28.2 of The Linux Programming Interface" />
+<meta property="og:description" content="This blog reference most of it’s content to Chapter 28.2 of The Linux Programming Interface" />
+<link rel="canonical" href="http://localhost:4000/2024/06/30/the-clone-sys-call.html" />
+<meta property="og:url" content="http://localhost:4000/2024/06/30/the-clone-sys-call.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-06-30T10:20:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="arguments of clone() system call" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-06-30T10:20:46+08:00","datePublished":"2024-06-30T10:20:46+08:00","description":"This blog reference most of it’s content to Chapter 28.2 of The Linux Programming Interface","headline":"arguments of clone() system call","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/06/30/the-clone-sys-call.html"},"url":"http://localhost:4000/2024/06/30/the-clone-sys-call.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">arguments of clone() system call</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2024-06-30T10:20:46+08:00" itemprop="datePublished">Jun 30, 2024
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This blog reference most of it’s content to Chapter 28.2 of <a href="https://man7.org/tlpi/">The Linux Programming Interface</a></p>
+
+<p><code class="language-plaintext highlighter-rouge">clone()</code> system call has following signature:</p>
+
+<div class="language-c highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kt">int</span> <span class="nf">clone</span><span class="p">(</span><span class="kt">int</span> <span class="p">(</span><span class="o">*</span><span class="n">func</span><span class="p">)</span> <span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">),</span> <span class="kt">void</span> <span class="o">*</span><span class="n">child_stack</span><span class="p">,</span> <span class="kt">int</span> <span class="n">flags</span><span class="p">,</span> <span class="kt">void</span> <span class="o">*</span><span class="n">func_arg</span><span class="p">,</span> <span class="p">...</span> <span class="cm">/* pid_t *ptid, struct user_desc *tls, pid_t *ctid */</span> <span class="p">);</span>
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">func</code> is the address of the entry function; <code class="language-plaintext highlighter-rouge">child_stack</code> is the starting pointer on which the new function’s stack will be built; <code class="language-plaintext highlighter-rouge">flags</code> are sets of bit masks that are used to specify the behaviors of this <code class="language-plaintext highlighter-rouge">clone</code> operation. We focus on some of the flags. Before starting to delve into the discussion of specific flags, it’s useful to have a general understanding of what is <code class="language-plaintext highlighter-rouge">process</code> and <code class="language-plaintext highlighter-rouge">thread</code> in linux. As far as i read, following quote from the book <a href="https://man7.org/tlpi/">The Linux Programming Interface</a> have the most concise and accurate description:</p>
+
+<blockquote>
+  <p>At this point, it is worth remarking that, to some extent, we are playing with
+words when trying to draw a distinction between the terms thread and process. It
+helps a little to introduce the term <em>kernel scheduling entity</em> (KSE), which is used in
+some texts to refer to the objects that are dealt with by the kernel scheduler. Really,
+threads and processes are simply KSEs that provide for greater and lesser degrees
+of sharing of attributes (virtual memory, open file descriptors, signal dispositions,
+process ID, and so on) with other KSEs. The POSIX threads specification provides
+just one out of various possible definitions of which attributes should be shared
+between threads.</p>
+</blockquote>
+
+<p>I could not describe the difference and relationship between <code class="language-plaintext highlighter-rouge">process</code> and <code class="language-plaintext highlighter-rouge">thread</code> better than this quote, so no more words about <code class="language-plaintext highlighter-rouge">process</code> and <code class="language-plaintext highlighter-rouge">thread</code>. Let’s go into some of the flags. Different flags combinations in the <code class="language-plaintext highlighter-rouge">clone()</code> call will create different KSEs that will share resources with the calling KSE in different level and aspects. In following discussion we avoid using <code class="language-plaintext highlighter-rouge">process</code> and <code class="language-plaintext highlighter-rouge">thread</code> to prevent ambiguity, instead KSE is used to denote the returned entity by <code class="language-plaintext highlighter-rouge">clone()</code></p>
+
+<h1 id="clone_files">CLONE_FILES</h1>
+
+<p>If specified the returned KSE shares the same table for descriptors, which means that file descriptor creation and deallocation is visible between each other. For example, if in the calling KSE there is a new <code class="language-plaintext highlighter-rouge">socket</code> created, it will be automatically usable in the returned KSE. This flag makes the calling KSE and the returned KSE not only share the <em>file description</em>, but also the <em>file descriptor</em>. Please note the difference: file descriptions can be referenced by <em>multiple</em> file descriptors, both in same process or in different process. If this flag is not specified, the returned KSE will have a <em>copy</em> of the calling KSE’s file descriptor table, which will increment the reference count for the file description that the file descriptors point to. In this scenario, two different file descriptors point to the same file description(system wide resource), and they share the properties that are decided by the file description, like read/write positions, but they are different file descriptors. If inside one KSE, the file descriptor is closed, the file descriptor in another KSE is still usable. But if CLONE_FILES is specified, the calling KSE and the returned KSE share the same file descriptor, not copy.</p>
+
+<h1 id="clone_fs">CLONE_FS</h1>
+
+<p>If specified, calling KSE and returned KSE share current working directory and root directory. If any one of them changes those value, the other one sees them. Again, if not specified, the returned KSE have a copy for that of the calling KSE and after the copy, they will have individual working directory and root directory, with change of them not affecting each other.</p>
+
+<h1 id="clone_vm">CLONE_VM</h1>
+
+<p>If specified, the calling KSE and the returned KSE share the same virtual memory table. Otherwise, the returned KSE get a copy of the calling KSE’s virtual table, like in <code class="language-plaintext highlighter-rouge">fork()</code></p>
+
+<h1 id="clone_sighand">CLONE_SIGHAND</h1>
+
+<p>If specified, the calling KSE and the returned KSE share the same handling behavior for every signal. If not specified, the returned KSE get a copy of current behavior from the calling KSE, but when any of them changes the signal behavior, the other one can not see it.</p>
+
+<p>Pending signals and signal masks are NOT shared between the calling KSE and the returned KSE, even if this flag is specified. panding signals and signal masks are KSE specific.</p>
+
+<p>Imagine that this flag is specified and both KSE share the same signal handler, when one of them changes the handler, so the handler address is changed, what happens if the other KSE get the signal and need to call this handler(which is changed by another KSE to a different address)?  The only way this works is that the two KSEs must have same virtual memory address. Say if one of the KSE load some library into the virtual memory and changes the handler address to this memory region, if the two KSEs share the same virtual memory, the other one can safely calls the handler, otherwise segmentation fault is supposed to happen. So if CLONE_SIGHAND is specified, CLONE_VM must also be specified.</p>
+
+<h1 id="clone_thread">CLONE_THREAD</h1>
+
+<p>If specifed the returned KSE have the same thread group ID as the calling KSE, otherwise a new thread group ID is created for the returned KSE. Thread group ID is the same thing as process ID. Following diagram illustrate the relationship between different KSEs and what is POSIX thread:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th style="text-align: center"><img src="/assets/images/linux_thread_process.png" alt="Alt text" /></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center"><em>POSIX thread, KSE, PID/TGID/TID relationship</em></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>There some key points about the effect of this flag:</p>
+
+<ul>
+  <li>We can call KSEs created with CLONE_THREAD flag <code class="language-plaintext highlighter-rouge">threads</code></li>
+  <li>No signals is sent to the calling KSE when <code class="language-plaintext highlighter-rouge">thread</code> is terminated, so <code class="language-plaintext highlighter-rouge">thread</code> can not be waited like <code class="language-plaintext highlighter-rouge">process</code>; the right way to <em>wait</em> a <code class="language-plaintext highlighter-rouge">thread</code> to terminate is throuth the <code class="language-plaintext highlighter-rouge">join()</code> semantics. The cornerstone behind the <code class="language-plaintext highlighter-rouge">join</code> is <em>futex</em>, which we dicuss in <a href="https://shan-weiqiang.github.io/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html">futex</a>. For how the <code class="language-plaintext highlighter-rouge">join</code> works and the behaviors of the <code class="language-plaintext highlighter-rouge">join</code>, i will write another blog. For now we need to konw that <code class="language-plaintext highlighter-rouge">thread</code> created with CLONE_THREAD can not be waited using <code class="language-plaintext highlighter-rouge">wait()/waitpid()</code>  and must use <code class="language-plaintext highlighter-rouge">join</code> to wait for it</li>
+  <li>When all KSEs inside one TGID(PID) terminate, a SIGCHLD signal is sent to parent process of this TGID</li>
+  <li>If any <code class="language-plaintext highlighter-rouge">thread</code> inside one thread group calls <code class="language-plaintext highlighter-rouge">exec()</code>, all other threads except for the thread group leader are terminated and the new program is executed inside the thread group leader</li>
+  <li>If any <code class="language-plaintext highlighter-rouge">thread</code> inside one thread group calls <code class="language-plaintext highlighter-rouge">fork</code>, anyother <code class="language-plaintext highlighter-rouge">thread</code> inside this thread group can call <code class="language-plaintext highlighter-rouge">wait</code> on it
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">fork</code> only have something to do with the calling <code class="language-plaintext highlighter-rouge">thread</code>, except for the <code class="language-plaintext highlighter-rouge">wait</code> operation above, other <code class="language-plaintext highlighter-rouge">thread</code> does not have much to do with the forked process</li>
+    </ul>
+  </li>
+  <li>If CLONE_THREAD is specified, CLONE_SIGHAND must be specifed, again CLONE_VM must be specifed</li>
+</ul>
+
+<h1 id="clone_parent_settidclone_child_settidclone_child_cleartid">CLONE_PARENT_SETTID/CLONE_CHILD_SETTID/CLONE_CHILD_CLEARTID</h1>
+
+<p>Those are flags to support POSIX threads.</p>
+
+<ul>
+  <li>CLONE_PARENT_SETTID: <code class="language-plaintext highlighter-rouge">clone</code> will set the ID of the returned KSE to the parameter <code class="language-plaintext highlighter-rouge">pid_t *ptid</code>. The value is the same as the return value of <code class="language-plaintext highlighter-rouge">clone</code>.
+    <ul>
+      <li>The set of the value happens before the duplication of virtual memory, so even the CLONE_VM not specified, the child and parent both can see the newly created <code class="language-plaintext highlighter-rouge">pid</code>. CLONE_VM is required for POSIX threads</li>
+      <li>Getting <code class="language-plaintext highlighter-rouge">pid</code> through parameter and through the return value is different: for example, if the returned KSE terminates immediately <em>before</em> the parent has the chance to do the assignment of the return value, and if the SIGCHLD handler in parent use the <code class="language-plaintext highlighter-rouge">pid</code>, the <code class="language-plaintext highlighter-rouge">pid</code> is invalid, because the <code class="language-plaintext highlighter-rouge">pid</code> has not been assigned yet. But if the <code class="language-plaintext highlighter-rouge">pid</code> is aquired by argument <code class="language-plaintext highlighter-rouge">ptid</code>, due to the fact that the write of the <code class="language-plaintext highlighter-rouge">pid</code> to <code class="language-plaintext highlighter-rouge">ptid</code> is done before the <code class="language-plaintext highlighter-rouge">clone</code> returns, the parent SIGCHLD handler can safely use this <code class="language-plaintext highlighter-rouge">pid</code></li>
+    </ul>
+  </li>
+  <li>CLONE_CHILD_SETTID: <code class="language-plaintext highlighter-rouge">clone</code> write the ID of the newly created KSE into the child’s memory location specified by argument <code class="language-plaintext highlighter-rouge">pid_t *ctid</code>.  Note that if CLONE_VM is specified, this will also affect the parent. For POSIX threads, CLONE_VM must be specified. So for the POSIX thread implmentation, CLONE_PARENT_SETTID and CLONE_CHILD_SETTID  overlapps in functionality</li>
+  <li>CLONE_CHILD_CLEARTID: <code class="language-plaintext highlighter-rouge">clone</code> zeros the memory pointed by <code class="language-plaintext highlighter-rouge">pid_t *ctid</code></li>
+</ul>
+
+<h2 id="pthread_join-under-the-hood">pthread_join under the hood</h2>
+
+<p>In linux, the <code class="language-plaintext highlighter-rouge">pthread_join/pthread_create</code> is implemented based on these three flags. When <code class="language-plaintext highlighter-rouge">pthread_create</code> creates threads, CLONE_PARENT_SETTID and CLONE_CHILD_CLEARTID is used, <code class="language-plaintext highlighter-rouge">pid_t *ptid</code> and <code class="language-plaintext highlighter-rouge">pid_t *ctid</code> are set to point to the same location. CLONE_CHILD_SETTID is irrelevent because POSIX thread requires the CLONE_VM. Kernel does the following trick to support POSIX threads:</p>
+
+<ul>
+  <li>Kernel treat the memory pointed to by <code class="language-plaintext highlighter-rouge">pid_t *ptid</code> and <code class="language-plaintext highlighter-rouge">pid_t *ctid</code> as <a href="https://shan-weiqiang.github.io/2024/06/08/futex-syscall-foundation-for-mutex-and-semaphore.html">futex</a></li>
+  <li>When <code class="language-plaintext highlighter-rouge">pthread_join</code> joins the <code class="language-plaintext highlighter-rouge">pid_t</code>, it actually <code class="language-plaintext highlighter-rouge">FUTEX_WAIT</code> on this <em>futex</em>, if condition is not met, then calling thread is put into block</li>
+  <li>When the KSE terminates, since then CLONE_CHILD_CLEARTID is specified, the <em>futex</em> is cleared and <code class="language-plaintext highlighter-rouge">FUTEX_WAKE</code> is called on this <em>futex</em>, which wakes up thread that is waiting on this <em>futex</em>. This mechanism achieve the behavior that the <code class="language-plaintext highlighter-rouge">phread_join</code> calling thread is blocked until the termination of the joined thread denoted by <code class="language-plaintext highlighter-rouge">pid_t</code></li>
+</ul>
+
+<h1 id="clone_settls">CLONE_SETTLS</h1>
+
+<p>If specified, the argument <code class="language-plaintext highlighter-rouge">user_desc *tls</code> is used as thread-local storage. This storage is only accesible by the newly created KSE</p>
+
+<h1 id="use-clone-to-implement-fork-and-posix-threads">use <code class="language-plaintext highlighter-rouge">clone</code> to implement <code class="language-plaintext highlighter-rouge">fork</code> and POSIX threads</h1>
+
+<p><code class="language-plaintext highlighter-rouge">fork</code> and POSIX threads can be implemented by <code class="language-plaintext highlighter-rouge">clone</code> with different flags specifed:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">fork</code> corresponds to flags combination: <code class="language-plaintext highlighter-rouge">CLONE_VM | CLONE_VFORK | SIGCHLD</code></li>
+  <li>POSIX threads corresponds to flags combination: <code class="language-plaintext highlighter-rouge">CLONE_VM | CLONE_FILES | CLONE_FS | CLONE_SIGHAND | CLONE_THREAD | CLONE_SETTLS | CLONE_PARENT_SETTID | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM</code></li>
+</ul>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Demonstrate the use of the clone(..) to simulate fork and std::threads</span>
+<span class="cp">#include</span> <span class="cpf">&lt;chrono&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;csignal&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;cstddef&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;ctime&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;mutex&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;pthread.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;sched.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;stdio.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;stdlib.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;sys/wait.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;thread&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;unistd.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;vector&gt;</span><span class="cp">
+</span>
+<span class="cp">#define STACK_SIZE 65536
+</span>
+<span class="kt">void</span> <span class="nf">sig_handler</span><span class="p">(</span><span class="kt">int</span><span class="p">)</span> <span class="p">{</span> <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="c1">// mutex to synchronize printf</span>
+<span class="n">std</span><span class="o">::</span><span class="n">mutex</span> <span class="n">mtx</span><span class="p">;</span>
+
+<span class="c1">// entry function for clone(..)</span>
+<span class="kt">int</span> <span class="nf">clone_func</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lck</span><span class="p">{</span><span class="n">mtx</span><span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"clone thread: "</span> <span class="o">&lt;&lt;</span> <span class="n">getpid</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">seconds</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// level two std::thread function, used to demonstrate that even they are</span>
+<span class="c1">// created nested, they are peers with the thread that created them</span>
+<span class="kt">void</span> <span class="nf">level_two</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(;;)</span> <span class="p">{</span>
+    <span class="p">{</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lck</span><span class="p">{</span><span class="n">mtx</span><span class="p">};</span>
+      <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"POSIX thread, id: "</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">get_id</span><span class="p">()</span>
+                <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">this_thread</span><span class="o">::</span><span class="n">sleep_for</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">seconds</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="c1">// level one std::thread function</span>
+<span class="kt">void</span> <span class="nf">level_one</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">auto</span> <span class="n">t</span> <span class="o">=</span> <span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="p">(</span><span class="n">level_two</span><span class="p">);</span>
+  <span class="n">t</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+<span class="p">}</span>
+
+<span class="n">pid_t</span> <span class="n">child_pid</span><span class="p">;</span>
+<span class="n">pid_t</span> <span class="n">parent_pid</span><span class="p">;</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">sig_handler</span><span class="p">);</span>
+
+  <span class="c1">// Stack for the new thread</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">stack</span><span class="p">;</span>
+
+  <span class="c1">// Top of the stack</span>
+  <span class="kt">char</span> <span class="o">*</span><span class="n">stackTop</span><span class="p">;</span>
+  <span class="n">pid_t</span> <span class="n">pid</span><span class="p">;</span>
+
+  <span class="c1">// Allocate memory for the stack</span>
+  <span class="n">stack</span> <span class="o">=</span> <span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="p">)</span><span class="n">malloc</span><span class="p">(</span><span class="n">STACK_SIZE</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">stack</span> <span class="o">==</span> <span class="nb">NULL</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Calculate the top of the stack</span>
+  <span class="n">stackTop</span> <span class="o">=</span> <span class="n">stack</span> <span class="o">+</span> <span class="n">STACK_SIZE</span><span class="p">;</span>
+
+  <span class="c1">// use `ps --pid &lt;pid&gt; -O tid,lwp,nlwp -L` to see the difference</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// CLONE_THREAD flag prevent from creating new thread group ID(the same as</span>
+    <span class="c1">// process ID); this thread will be peers to threads that are created by</span>
+    <span class="c1">// std::thread</span>
+    <span class="c1">// emulate the POSIX threads, like std::thread</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">clone</span><span class="p">(</span><span class="n">clone_func</span><span class="p">,</span> <span class="n">stackTop</span><span class="p">,</span>
+                <span class="n">CLONE_VM</span> <span class="o">|</span> <span class="n">CLONE_FILES</span> <span class="o">|</span> <span class="n">CLONE_FS</span> <span class="o">|</span> <span class="n">CLONE_SIGHAND</span> <span class="o">|</span>
+                    <span class="n">CLONE_THREAD</span> <span class="o">|</span> <span class="n">CLONE_SETTLS</span> <span class="o">|</span> <span class="n">CLONE_PARENT_SETTID</span> <span class="o">|</span>
+                    <span class="n">CLONE_CHILD_CLEARTID</span> <span class="o">|</span> <span class="n">CLONE_SYSVSEM</span><span class="p">,</span>
+                <span class="o">&amp;</span><span class="n">parent_pid</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">child_pid</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="c1">// create new thread group ID, aka creating new process ID</span>
+    <span class="c1">// emulate fork</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">clone</span><span class="p">(</span><span class="n">clone_func</span><span class="p">,</span> <span class="n">stackTop</span><span class="p">,</span> <span class="n">SIGCHLD</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">pid</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">exit</span><span class="p">(</span><span class="n">EXIT_FAILURE</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+  <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span> <span class="n">lck</span><span class="p">{</span><span class="n">mtx</span><span class="p">};</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Parent process: Created child thread with PID = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">pid</span><span class="p">);</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Parent process: PID = %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">getpid</span><span class="p">());</span>
+  <span class="p">}</span>
+
+  <span class="c1">// standard POSIX comforming threads</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="o">&gt;</span> <span class="n">threads</span><span class="p">;</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">;</span> <span class="o">++</span><span class="n">i</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">threads</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="p">(</span><span class="n">level_one</span><span class="p">));</span>
+  <span class="p">}</span>
+
+  <span class="c1">// wait for signals</span>
+  <span class="n">pause</span><span class="p">();</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+  </div><a class="u-url" href="/2024/06/30/the-clone-sys-call.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

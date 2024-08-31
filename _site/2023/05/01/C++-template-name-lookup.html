@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>c++ template name lookup rules | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="c++ template name lookup rules" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="When defining template class or function template, knowing how these template parameters are instantiated during compiling time is important to correctly use them. This article tries to explain(but with no full coverage) the order behind the name look up. The template parameter name look up is complex. This article only cover the commonly used cases. For a full understanding of the issue, please refer to official documentation or C++ ISO standard." />
+<meta property="og:description" content="When defining template class or function template, knowing how these template parameters are instantiated during compiling time is important to correctly use them. This article tries to explain(but with no full coverage) the order behind the name look up. The template parameter name look up is complex. This article only cover the commonly used cases. For a full understanding of the issue, please refer to official documentation or C++ ISO standard." />
+<link rel="canonical" href="http://localhost:4000/2023/05/01/C++-template-name-lookup.html" />
+<meta property="og:url" content="http://localhost:4000/2023/05/01/C++-template-name-lookup.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-05-01T19:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="c++ template name lookup rules" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-05-01T19:22:46+08:00","datePublished":"2023-05-01T19:22:46+08:00","description":"When defining template class or function template, knowing how these template parameters are instantiated during compiling time is important to correctly use them. This article tries to explain(but with no full coverage) the order behind the name look up. The template parameter name look up is complex. This article only cover the commonly used cases. For a full understanding of the issue, please refer to official documentation or C++ ISO standard.","headline":"c++ template name lookup rules","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2023/05/01/C++-template-name-lookup.html"},"url":"http://localhost:4000/2023/05/01/C++-template-name-lookup.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">c++ template name lookup rules</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2023-05-01T19:22:46+08:00" itemprop="datePublished">May 1, 2023
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>When defining template class or function template, knowing how these template parameters are instantiated during compiling time is important to correctly use them. This article tries to explain(but with no full coverage) the order behind the name look up. The template parameter name look up is complex. This article only cover the commonly used cases. For a full understanding of the issue, please refer to official documentation or C++ ISO standard.</p>
+
+<ul id="markdown-toc">
+  <li><a href="#types-of-template-parameters" id="markdown-toc-types-of-template-parameters">Types of template parameters</a>    <ul>
+      <li><a href="#non-type-template-parameters" id="markdown-toc-non-type-template-parameters">non-type template parameters</a></li>
+      <li><a href="#type-template-parameter" id="markdown-toc-type-template-parameter">type template parameter</a>        <ul>
+          <li><a href="#template-parameters-without-name" id="markdown-toc-template-parameters-without-name">template parameters without name</a></li>
+        </ul>
+      </li>
+      <li><a href="#template-template-parameter" id="markdown-toc-template-template-parameter">template template parameter</a></li>
+    </ul>
+  </li>
+  <li><a href="#the-base-rule-two-phase-name-lookup" id="markdown-toc-the-base-rule-two-phase-name-lookup">The base rule: “Two Phase Name Lookup”</a></li>
+  <li><a href="#rules-for-non-template-dependent-names" id="markdown-toc-rules-for-non-template-dependent-names">Rules for non template dependent names</a></li>
+  <li><a href="#rules-for-template-dependent-names" id="markdown-toc-rules-for-template-dependent-names">Rules for template dependent names</a>    <ul>
+      <li><a href="#the-normal-case" id="markdown-toc-the-normal-case">The normal case</a></li>
+      <li><a href="#different-behaviour-when-using-non-adl-and-adl" id="markdown-toc-different-behaviour-when-using-non-adl-and-adl">Different behaviour when using non-ADL and ADL</a>        <ul>
+          <li><a href="#why-template-definition-context-when-non-adl" id="markdown-toc-why-template-definition-context-when-non-adl">Why template definition context when non-ADL?</a></li>
+          <li><a href="#why-template-instantiation-context-when-adl" id="markdown-toc-why-template-instantiation-context-when-adl">Why template instantiation context when ADL?</a></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li><a href="#current-instantiation" id="markdown-toc-current-instantiation">Current instantiation</a>    <ul>
+      <li><a href="#typename-for-template-dependent-types" id="markdown-toc-typename-for-template-dependent-types"><code class="language-plaintext highlighter-rouge">typename</code> for template dependent types</a></li>
+      <li><a href="#template-for-template-dependent-templates" id="markdown-toc-template-for-template-dependent-templates"><code class="language-plaintext highlighter-rouge">template</code> for template dependent templates</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h1 id="types-of-template-parameters">Types of template parameters</h1>
+
+<p>Each parameter in <em>parameter-list</em> may be:</p>
+
+<ul>
+  <li>a non-type template parameter;</li>
+  <li>a type template parameter;</li>
+  <li>a template template parameter.</li>
+</ul>
+
+<h2 id="non-type-template-parameters">non-type template parameters</h2>
+
+<ul>
+  <li>
+    <p>template parameter can be non-type</p>
+
+    <div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">template</span><span class="o">&lt;</span><span class="k">const</span> <span class="kt">int</span><span class="o">*</span> <span class="n">pci</span><span class="p">&gt;</span>
+  <span class="k">struct</span> <span class="nc">X</span> <span class="p">{};</span>
+     
+  <span class="kt">int</span> <span class="n">ai</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+  <span class="n">X</span><span class="o">&lt;</span><span class="n">ai</span><span class="o">&gt;</span> <span class="n">xi</span><span class="p">;</span> <span class="c1">// OK: array to pointer conversion and cv-qualification conversion</span>
+</code></pre></div>    </div>
+  </li>
+</ul>
+
+<h2 id="type-template-parameter">type template parameter</h2>
+
+<h3 id="template-parameters-without-name">template parameters without name</h3>
+
+<ul>
+  <li>template parameter name is optional!!</li>
+</ul>
+
+<h2 id="template-template-parameter">template template parameter</h2>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">my_array</span> <span class="p">{};</span>
+ 
+<span class="c1">// two type template parameters and one template template parameter:</span>
+<span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span> <span class="nc">K</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">V</span><span class="p">,</span> <span class="k">template</span><span class="o">&lt;</span><span class="k">typename</span><span class="p">&gt;</span> <span class="k">typename</span> <span class="nc">C</span> <span class="o">=</span> <span class="n">my_array</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">Map</span>
+<span class="p">{</span>
+    <span class="n">C</span><span class="o">&lt;</span><span class="n">K</span><span class="o">&gt;</span> <span class="n">key</span><span class="p">;</span>
+    <span class="n">C</span><span class="o">&lt;</span><span class="n">V</span><span class="o">&gt;</span> <span class="n">value</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h1 id="the-base-rule-two-phase-name-lookup">The base rule: “Two Phase Name Lookup”</h1>
+
+<p>When the compiler parses the template relevant code, it resolves the names in the template in two stages:</p>
+
+<ul>
+  <li>First at the template definition</li>
+  <li>Second at the instantiation of the template</li>
+</ul>
+
+<p>Here is an example of this basic rule:</p>
+
+<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#1</code> :</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="n">f</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span> <span class="o">&lt;&lt;</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="sc">'\n'</span><span class="p">;</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">DerivedStruct</span> <span class="o">:</span> <span class="k">public</span> <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="p">{</span>
+  <span class="kt">void</span> <span class="n">h</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="c1">//  Nok, because f() is non-template dependent, so name lookup happens</span>
+    <span class="c1">//  at phase one, but during this time there is no f() defined,</span>
+    <span class="c1">//  because SomeStruct has not been instantiated yet</span>
+    <span class="c1">// f();</span>
+
+    <span class="c1">//  Ok, because 'this' is template dependent, f() lookup happens at</span>
+    <span class="c1">//  phase two, at this time SomeStruct has been instantiated and f() is</span>
+    <span class="c1">//  available</span>
+    <span class="k">this</span><span class="o">-&gt;</span><span class="n">f</span><span class="p">();</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="n">DerivedStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">().</span><span class="n">h</span><span class="p">();</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>As in above example, there are differences when name look up and definition binding for <code class="language-plaintext highlighter-rouge">f()</code> and <code class="language-plaintext highlighter-rouge">this-&gt;f()</code>.  That is because they belong to two different name types:</p>
+
+<ul>
+  <li>Dependent names: or template dependent names. These are names that can be different for different template parameter types(type template parameter) or parameter values(non-type template parameter). In this example, <code class="language-plaintext highlighter-rouge">this-&gt;f()</code> is template dependent, because, <code class="language-plaintext highlighter-rouge">this</code> can be <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;int&gt;</code> or it can be <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;double&gt;</code></li>
+  <li>Non-dependent names: or non template dependent names. These are names that is always the same between different instantiations. In this example <code class="language-plaintext highlighter-rouge">f()</code> is non template dependent name, because whether is <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;int&gt;</code> or <code class="language-plaintext highlighter-rouge">DerivedStruct&lt;double&gt;</code> , the call for <code class="language-plaintext highlighter-rouge">f()</code> is the same. It has nothing to do with parameter <code class="language-plaintext highlighter-rouge">T</code></li>
+</ul>
+
+<h1 id="rules-for-non-template-dependent-names">Rules for non template dependent names</h1>
+
+<p>Non template dependent names are determined at stage one, namely, template definition.</p>
+
+<p>Here is an example to demonstrate this behaviour:</p>
+
+<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#2</code>:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
+  <span class="c1">// Since f is non template dependent, it will be looked up and bound here</span>
+  <span class="c1">// But at this time FooStruct has not been defined(only declaration), the</span>
+  <span class="c1">// compiler does not know how much memory f will take, so it gives incomplete</span>
+  <span class="c1">// type error</span>
+  <span class="n">FooStruct</span> <span class="n">f</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="c1">// Even though at the time of instantiation, the FooStruct is fully defined</span>
+  <span class="c1">// SomeStruct does not compile because name look up and bound of member f</span>
+  <span class="c1">// happens at template definition time</span>
+  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Another example of non template dependent name look up behaviour:</p>
+
+<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#3</code> :</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double type recieved</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
+  <span class="c1">// Here f is already looked up and bound with f(double data)</span>
+  <span class="kt">void</span> <span class="n">some_method</span><span class="p">()</span> <span class="p">{</span> <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span> <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// Even there is a more matched version of f(int data), it will not be called</span>
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Int type recieved</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+
+  <span class="c1">// This will call f(int data), because it is more compatible</span>
+  <span class="n">f</span><span class="p">(</span><span class="mi">3</span><span class="p">);</span>
+  <span class="c1">// This will call f(double data), because even there is more compatible</span>
+  <span class="c1">// version, the f is looked up and bound before f(int data) is available</span>
+  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">().</span><span class="n">some_method</span><span class="p">();</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<ul>
+  <li>In above example, the <code class="language-plaintext highlighter-rouge">f(int data)</code> is not visible to <code class="language-plaintext highlighter-rouge">SomeStruct</code></li>
+</ul>
+
+<h1 id="rules-for-template-dependent-names">Rules for template dependent names</h1>
+
+<h2 id="the-normal-case">The normal case</h2>
+
+<p>The behaviour is clear when compared with following example with <code class="language-plaintext highlighter-rouge">EXAMPLE_#2</code></p>
+
+<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#4</code> , which makes the <code class="language-plaintext highlighter-rouge">f</code> template dependent in <code class="language-plaintext highlighter-rouge">EXAMPLE_#2</code>. Now the code compiles:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
+  <span class="c1">// Since f is template dependent, it will be looked up and bound not at here</span>
+  <span class="c1">// but at the instantiation; Even though here FooStruct is not defined yet</span>
+  <span class="c1">// it does not effect the compile</span>
+  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">f</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="c1">// Here the FooStruct is fully defined, code compiles</span>
+  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="different-behaviour-when-using-non-adl-and-adl">Different behaviour when using non-ADL and ADL</h2>
+
+<p>Firstly a basic understanding of <code class="language-plaintext highlighter-rouge">non-ADL</code> and <code class="language-plaintext highlighter-rouge">ADL</code> should be required, please refer to <a href="https://en.cppreference.com/w/cpp/language/adl">Argument-dependent lookup - cppreference.com</a> for detailed info. For an extremely simplified explanation of what <code class="language-plaintext highlighter-rouge">ADL</code> does is that:</p>
+
+<ul>
+  <li>When look up a function name, not only in current namespace, but also the namespace of the arguments are added to the look up scope</li>
+  <li>For fundamental types, no additional argument namespace is added</li>
+</ul>
+
+<p>Here is an example to demonstrate this behaviour:</p>
+
+<p><code class="language-plaintext highlighter-rouge">EXAMPLE_#5</code></p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double passed in</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
+  <span class="c1">// Since f is template dependent, it will be looked up and bound not at here</span>
+  <span class="c1">// but at the instantiation; Even though here FooStruct is not defined yet</span>
+  <span class="c1">// it does not effect the compile</span>
+  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">f</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
+  <span class="n">FooStruct</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">T</span> <span class="n">t</span><span class="p">;</span>
+    <span class="c1">// Here f(..) name look up depends on type of T:</span>
+    <span class="c1">// 1. If non-ADL look up, for example T is of fundamental types(int,</span>
+    <span class="c1">// double..) the look up scope ends here, it's look up is based on template</span>
+    <span class="c1">// definition context; Functions declared after this template definition are</span>
+    <span class="c1">// not visible.</span>
+    <span class="c1">// 2. If ADL look up, for example T is of user defined types, the look up</span>
+    <span class="c1">// scope will include the namespace where T resides. The look up scope is</span>
+    <span class="c1">// based on template definition context or template instantiate context,</span>
+    <span class="c1">// which means that functions declared before the instantiation is also</span>
+    <span class="c1">// visible.</span>
+    <span class="n">f</span><span class="p">(</span><span class="n">t</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">int</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Int passed in</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="k">struct</span> <span class="nc">UserType</span> <span class="p">{};</span>
+
+<span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="n">UserType</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"UserType passed in</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span>
+  <span class="c1">// Here whether it's int or double, void f(int data) is not visible to  f(t)</span>
+  <span class="c1">// in FooStruct constructor. It's a non-ADL look up.</span>
+  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="c1">// Here since UserType is user defined, it's ADL look up. The look up scope is</span>
+  <span class="c1">// template definition scope or instantiation scope, which means void</span>
+  <span class="c1">// f(UserType data) is visible.</span>
+  <span class="n">SomeStruct</span><span class="o">&lt;</span><span class="n">UserType</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Output:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Double</span> <span class="n">passed</span> <span class="n">in</span>
+<span class="n">Double</span> <span class="n">passed</span> <span class="n">in</span>
+<span class="n">UserType</span> <span class="n">passed</span> <span class="n">in</span>
+</code></pre></div></div>
+
+<p>This behaviour can be summarized in one sentence:</p>
+
+<blockquote>
+  <p>For template dependent names, adding a new function declaration after template definition does not make it visible, except via ADL(from cppreference.com)</p>
+
+</blockquote>
+
+<h3 id="why-template-definition-context-when-non-adl">Why template definition context when non-ADL?</h3>
+
+<p>The reason is to not violate the <code class="language-plaintext highlighter-rouge">ODR</code>(One Definition Rule).</p>
+
+<p>To demonstrate this, let’s make the template a header library.  File <code class="language-plaintext highlighter-rouge">SomeStruct.h</code> :</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// SomeStruct.h</span>
+<span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="kr">inline</span> <span class="kt">void</span> <span class="nf">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">){};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span><span class="p">;</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">SomeStruct</span> <span class="p">{</span>
+  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="n">f</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
+  <span class="n">FooStruct</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">T</span> <span class="n">t</span><span class="p">;</span>
+    <span class="n">f</span><span class="p">(</span><span class="n">t</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<p>Now we have two translation unit that both use the <code class="language-plaintext highlighter-rouge">SomeStruct.h</code> library, respectively <code class="language-plaintext highlighter-rouge">TU_a.cpp</code> and <code class="language-plaintext highlighter-rouge">TU_b.cpp</code> . And they have namespace <code class="language-plaintext highlighter-rouge">A</code> and namespace <code class="language-plaintext highlighter-rouge">B</code> respectively.</p>
+
+<p>File <code class="language-plaintext highlighter-rouge">TU_a.cpp</code>:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"SomeStruct.h"</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span><span class="k">namespace</span> <span class="n">A</span> <span class="p">{</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double passed in, at namespace A</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+<span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">a</span><span class="p">();</span>
+<span class="p">}</span> <span class="c1">// namespace A</span>
+</code></pre></div></div>
+
+<p>File <code class="language-plaintext highlighter-rouge">TU_b.cpp</code> :</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"SomeStruct.h"</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span><span class="k">namespace</span> <span class="n">B</span> <span class="p">{</span>
+<span class="kt">void</span> <span class="n">f</span><span class="p">(</span><span class="kt">double</span> <span class="n">data</span><span class="p">)</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Double passed in, at namespace B</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+<span class="n">SomeStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">();</span>
+<span class="p">}</span> <span class="c1">// namespace B</span>
+</code></pre></div></div>
+
+<p>Let’s analysis what will happen if we compile and link the two translation unit:</p>
+
+<ul>
+  <li>Since <code class="language-plaintext highlighter-rouge">T</code> is <code class="language-plaintext highlighter-rouge">double</code> , it’s a non-ADL name look up. Let’s see what will happen if we use template instantiation context for name look up:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">TU_a.cpp</code> will use <code class="language-plaintext highlighter-rouge">A::f</code></li>
+      <li><code class="language-plaintext highlighter-rouge">TU_b.cpp</code> will use <code class="language-plaintext highlighter-rouge">B::f</code>
+        <ul>
+          <li>Both <code class="language-plaintext highlighter-rouge">TU_a.cpp</code> and <code class="language-plaintext highlighter-rouge">TU_b.cpp</code> instantiate the same data type <code class="language-plaintext highlighter-rouge">SomeStruct&lt;double&gt;</code>, but they have multi definition of <code class="language-plaintext highlighter-rouge">f</code> , which clearly violates the <code class="language-plaintext highlighter-rouge">ODR</code></li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>So instead of using template instantiation context when non-ADL name look up, compiler use template definition context for name look up, which leads to:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">inline void f(double data){};</code> is use for both <code class="language-plaintext highlighter-rouge">TU_a.cpp</code> and <code class="language-plaintext highlighter-rouge">TU_b.cpp</code></li>
+    </ul>
+  </li>
+</ul>
+
+<h3 id="why-template-instantiation-context-when-adl">Why template instantiation context when ADL?</h3>
+
+<p>The key point is:</p>
+
+<ul>
+  <li>When using ADL look up, the type is user defined, such as <code class="language-plaintext highlighter-rouge">SomeStruct&lt;UserType_A&gt;</code> or <code class="language-plaintext highlighter-rouge">SomeStruct&lt;UserType_B&gt;</code> , the types which are instantiated can not be the same</li>
+  <li>But with fundamental types, above assertion is not true. Some different translation unit can instantiate the same type, such as <code class="language-plaintext highlighter-rouge">SomeStruct&lt;double&gt;</code> in the example. To keep the <code class="language-plaintext highlighter-rouge">ODR</code> rule, it has to use the template definition context for name look up, not template instantiation context.</li>
+</ul>
+
+<h1 id="current-instantiation">Current instantiation</h1>
+
+<p>Names that belong to <em>current instantiation</em> means that their look up and binding can be done based on current instantiation of the template, no further instantiation is required to compete look up and binding. Following is an example to demonstrate this:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
+  <span class="c1">// FooStruct&lt;T&gt; is current instantiation because when instantiate this</span>
+  <span class="c1">// template FooStruct&lt;T&gt; is itself, no additional instantiation is required to</span>
+  <span class="c1">// determine FooStruct&lt;T&gt;</span>
+  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+  <span class="c1">//   FooStruct&lt;T*&gt; is NOT current instantiation because when instantiate this</span>
+  <span class="c1">//   template FooStruct&lt;T&gt;, another instantiation which is FooStruct&lt;T*&gt; is</span>
+  <span class="c1">//   required.Note: here is an compiling error</span>
+  <span class="n">FooStruct</span><span class="o">&lt;</span><span class="n">T</span> <span class="o">*&gt;</span> <span class="n">ptr_ptr</span><span class="p">;</span>
+
+  <span class="c1">// Current instantiation, no further instantiations are required</span>
+  <span class="n">T</span> <span class="n">c</span><span class="p">;</span>
+  <span class="n">T</span> <span class="o">*</span><span class="n">c_ptr</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+
+<h2 id="typename-for-template-dependent-types"><code class="language-plaintext highlighter-rouge">typename</code> for template dependent types</h2>
+
+<p>A name that is not a member of current instantiation and is dependent on template argument is not considered a type, except using <code class="language-plaintext highlighter-rouge">typename</code> keyword:</p>
+
+<p>Here is an example to demonstrate this:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">BarStruct</span> <span class="p">{</span>
+  <span class="k">typedef</span> <span class="n">T</span> <span class="o">*</span><span class="n">ptr_type</span><span class="p">;</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">U</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">NestedStruct</span> <span class="p">{</span>
+    <span class="n">NestedStruct</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
+
+  <span class="c1">// Here ptr_type is not a current instantiation and a member of FooStruct,</span>
+  <span class="c1">// typename has to be used to indicate that it's a type</span>
+  <span class="k">typename</span> <span class="n">BarStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="n">ptr_type</span> <span class="n">ni</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span> <span class="n">FooStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">;</span> <span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="template-for-template-dependent-templates"><code class="language-plaintext highlighter-rouge">template</code> for template dependent templates</h2>
+
+<p>A name is not considered a template if the name is not a member of current instantiation and depend on template argument, except using <code class="language-plaintext highlighter-rouge">template</code> keyword:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">BarStruct</span> <span class="p">{</span>
+  <span class="k">typedef</span> <span class="n">T</span> <span class="o">*</span><span class="n">ptr_type</span><span class="p">;</span>
+  <span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">U</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">NestedStruct</span> <span class="p">{</span>
+    <span class="n">NestedStruct</span><span class="p">()</span> <span class="p">{</span> <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Hello</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span> <span class="p">}</span>
+  <span class="p">};</span>
+<span class="p">};</span>
+
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">T</span><span class="p">&gt;</span> <span class="k">struct</span> <span class="nc">FooStruct</span> <span class="p">{</span>
+
+  <span class="c1">// Here NestedStruct&lt;T&gt; is at the same time template and type name; typename</span>
+  <span class="c1">// and template keywords must be used</span>
+  <span class="k">typename</span> <span class="n">BarStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="o">&gt;::</span><span class="k">template</span> <span class="n">NestedStruct</span><span class="o">&lt;</span><span class="n">T</span><span class="p">&gt;</span> <span class="n">com</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span> <span class="k">const</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span> <span class="n">FooStruct</span><span class="o">&lt;</span><span class="kt">double</span><span class="o">&gt;</span> <span class="n">b</span><span class="p">;</span> <span class="p">}</span>
+</code></pre></div></div>
+
+<p>Output:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">Hello</span>
+</code></pre></div></div>
+
+  </div><a class="u-url" href="/2023/05/01/C++-template-name-lookup.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

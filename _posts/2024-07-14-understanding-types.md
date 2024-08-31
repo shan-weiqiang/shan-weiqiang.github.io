@@ -1,0 +1,94 @@
+---
+layout: post
+title:  "type system and language bindings"
+date:   2024-07-14 10:20:46 +0800
+tags: [design_philosophy]
+---
+
+Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg... They are all representation of types. Some of them are static, others are dynamic. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.
+
+* toc
+{:toc}
+
+## Type Systems
+
+Syntax rules for defining data types. It consists of pre-defined basic types and rules to build complex customized data types. It is compiled into machine code for static-typed languages like C/C++, or dynamically loaded as types in dynamic-typed languages like Python.
+
+It includes language-specific type system and language-neutral type systems that are defined by interface definition languages, which we will have detailed discussion later.
+
+I categorize type system in following way, according to their runtime behavior: static type system, introspection type system, dynamic type system, dynamic data system.
+
+### Static
+
+The main characteristic of those type system is that after compiling, all type information is lost. Type information of a variable, like type name, type, member name, member type, are translated by compiler into machine code directly. Those types only lives *before* compilation. Representitives of this kind of types is C. 
+
+### Introspection
+
+*Introspection* means that type information can be retrieved at *runtime*. This means that type information of a variable lives at runtime. We can get the type information through specific API. To achieve this, static variables and functions are required for a specific type. Those *introspection* variables and codes are compiled into text and data segment of ELF file. At runtime, caller need to know the type name(string literal, for example) to get the relevent introspection information. An example is ROS2 type system. In ROS2, the ROS2 compiler will compile the *.msg* file into language-specific type representations. At the same time, introspection codes and static variables that store type information for every type are generated. Every type is identified by it's unique *path*(string literal) and at runtime, by using this *path*, the introspection information can be retrieved(this normally involves global function naming convention together with the type path, and the use of *dlopen* and *dlsym* to find symbols in shared libraries, which is how ROS2 support introspection). C++ is mostly static types, however it can use RTTI to support *introspection*.
+
+### Reflection
+
+*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* and *types* through *introspection*. 
+
+### Dynamic type
+
+Introspection and Reflection can be implemented *statically* or *dynamically*. Like we mentioned above, ROS2 supports *introspection* and *reflection* statically, since all the codes and static variables that contains type information are *statically* generated and compiled into machine code at compile time.
+
+What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* system and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types in more detail later, take the XTypes of OMG as example.
+
+### Dynamic data
+
+It's not enough to only have dynamic types. To dynamically represent *values* at runtime for a dynamic type, *dynamic data* system is required. Dynamic data system use dynamic type system and carries *values* for each type. Note that statically compiled data and dynamically created data of the same type often has different memory model. To illustrate this, let's consider one .idl struct *StructExample*. The *StructExample* should be compiled into C++ code by tools like *fastddsgen* and a C++ class is generated for this specific struct and have determined memory model at compile time. The same .idl *StructExample* can also be loaded at runtime by XTypes dynamic type system, without knowing the type at compile time. In both way, we can create the same value for *StructExample* type, but with very different memory layout. The statically generated C++ class will have memory layout according to the language specific rules. While the memory layout of the dynamic data will have memory layout according to the implementation of the dynamic type/data system. We will illustrate this points again in later chapter.
+
+## Schema Language/Data Definition Languages
+
+Language/platform neutral way for defining data types.  It consists of pre-defined basic types and rules to build complex customized data types. It is mainly used for data exchange and storage across different languages and platforms. It is compiled into different language code representations, or dynamically loaded as dynamic types.  The most familiar schema languages in the world might be XML Schema(XSD) and JSON Schema. The .xml and .json files we encounter every day are NOT schemas, they are *data* of a XML Schema and JSON Schema respectively. We normally do not deal with the XML Schema or JSON Schema when we write a .xml or .json file, instead we directly write *data* of those schemas. This is because *data* or *serialized data* of  XML Schema and JSON Schema self-contains the XML Schema or JSON Schema. All kinds of XML or JSON parsers can get all the schema information from the *data* to dynamically build types to interpret the *data*. Compared with Protocol Buffers, a .json file is NOT the counterpart of .proto file, instead it is the counter-part of on-wire data of Protocol Buffers. It’s rather counter intuitive. The reason behind this is that both XML and JSON only support and serialize it’ data into human readable text format and it’s data contains all the info of it’s schema, while Protocol Buffers serialize it’s data into binary format. Of course it’s ok if Protocol Buffers choose to use plain text like JSON to encode it’s on-wire format, but it’s in the expense of speed and efficiency. In exchange for speed and efficiency, it’s is required in the receiver side to know the schema to decode the on-wire data, unless the schema itself is encoded and send together with data. We will talk about this latter.
+
+## Language binding
+
+For schema languages to run on machine, it has to be bound to specific programming languages. For a dynamic-typed languages like Python, loading built-in type system and loading schema languages are very similar, only needing to transform schema language representation into type system of the corresponding language types. To the interpreter, they are all string tokens. For the static-types languages, the schema language must be firstly compiled into type representation of the specific language, then compiled into machine code. Static-typed languages can also implement programs to dynamically load schema languages. This program can be seen as counterpart of interpreter of dynamic-typed languages.
+
+
+## Self-hosting
+
+Type system or schema language is self-hosting if it can use  it’s type or schema to describe  other types or schemas. It’s a rather tricky concept. The type system or schema language should not be too simple as to not have enough expressiveness to describe all it’s features. At the same time, it should not be too complex as to make it impossible for it to describe itself. It’s like a competition between expressiveness and complexcity of the type system and the schema language itself. For example, C++ type system is so complex that we normally do not use C++ types to represent another C++ type, even given that C++ type’s great expressiveness. Protocol Buffers is not that complex and have enough expressiveness so that we can use one single *descriptor.proto* schema to describe all possible other Protocol Buffers schemas, making Protocol Buffers self-hosting.
+
+
+## Schema and Data
+
+After we understand what is self-hosting, we better take the chance to have a deep look at what is *schema*  and what is *data*. Simply put: *data* is actualization of *schema,* and for self-hosting schema languages, we can use *data*  of one special schema to represent another schema, we call this special schema, *meta-schema*, or, *schema of schemas*. For schema languages like XML Schema, or JSON Schema, there is no need for the meta-schema, since every data can contains it’s schema in itself. We do not need another special schema to carry the schema information of it’s data. But for Protocol Buffers and OMG XTypes, the schema info is not carried in every encoded data. One way to carry schema info is to encode all schema info into data, which like said before is inefficient. Another way is to use the text format .proto or .idl file directly, which is feasible but also inefficient. The final way that adopted both by Protocol Buffers and OMG XTypes is to use it’s self-hosting feature to define a meta-schema that can carry information of another schema. This way, the schema information can be encoded *the same* with data and can be transmitted on-wire. This meta-schema is often a built-in schema in those schema languages, for example *type_object.idl*, or *descriptor.proto*, and their compiled C++ class are *TypeObject* and *DescriptorProto,* in XTypes and Protocol Buffers respectively. Instance of those class carries the same information as a proto or idl file. In dynamic type systems we will latter talk about, those built-in schemas will be used as input to build dynamic types, since they are equal to schema files. In Protocol Buffers, the *DescriptorProto* calss will be based to construct *Descriptor* class, which represents a dynamic type. In XTypes, *TypeObject* will be based to construct a *DynamicType*. Based on those dynamic types, *dynamic data* can be realized and be used to decode schema data dynamically.
+
+
+## Interpreter/Dynamic types systems
+
+In our context this seems not the same as dynamic type in dynamic-typed language. Here we specifically mean *dynamically representing the value of a type.* While in dynamic-typed language context, dynamic type means a type of a variable can change dynamically. However, deep down, they are the same thing, both operating types at runtime, while the operator is statically compiled program, normally called interpreter. One of the example of the implementation of dynamic type system is the JSON Schema parser called [nlohmann json](https://github.com/nlohmann/json), it can dynamically read json file and parse it into C++ native types. Other dynamic type systems such as OMG XTypes, Protocol Buffers Reflection have similar functionality.
+
+### OMG XTypes
+
+OMG XTypes is a dynamic data type system used by DDS. [The standard](https://www.omg.org/spec/DDS-XTypes/1.3/PDF) is very clear about it's internal structure. The simplified version is that it contains  following concepts:
+
+- Type System: This is the most abstract and the most important part of XTypes. It defines the basic types and the structure of how to construct complex data types. Also defines how to manage modules. This definition composes the core of the type system. From this type system comes everything else.
+- Type Representation: Once we have a type system, we need to find a way to represent types properly. XTypes can be represented using IDL, XML, XSD, *TypeObject* and *TypeIdentifier*, they both can contain the same information. Note that *TypeObject* and *TypeIdentifier* represent types at runtime. Those are the *schema*s.
+- Data Representation: XTypes support CDR encoding to represent data of schema
+
+Until now, there is no dynamic types involved. Like we said earlier, it's not enough to only have type system and schema languages. We now need to bind it into specific programming languages. XTypes provide two kinds of language bindings, and one of them is dynamic language binding.
+
+- Plain language binding: For this binding, schemas will be compiled into specific language code by the XTypes compiler. For example, *fastddsgen*. The generated code is then compiled into user application. This should be the normal way of using XTypes for the end user, since it is the most fast and efficient way. Note that for dynamic languages, the compile code might be just a different version of the original schema, since dynamic languages by nature interpret types dynamically.
+- Dynamic language binding: For this binding, schemas need not to be compiled into specific language code like C++, instead, a dynamic type program need to be developed to interpret the schemas dynamically. This dynamic type program can be compared with the interpreter of the dynamic languages. 
+
+Note that the memory model for representing the data type in these two types of bindings are very different. For the plain language binding, the data might be contagious since it is represented using specificaly generated language types, like C++, the type is represented by a individual class. The memory model is decided by the generated class. For dynamic language binding, since there are no individual language specific data type to represent the data type, the memory model is decided by the implementation of the dynamic type program. 
+
+The dynamic type system mainly contain four parts. The first one is dynamic type system, this system should build starting from basic types and should recursively contains itself to support complex user defined types. Dynamic types system is built hierarchically, with each level a specific type kind and if one level contains members, it should contain another dynamic type recursively. This way the dynamic type itself is static, but at runtime it can represent any types that are defined in a schema. The second one is a dynamic data system. If we only have dynamic type system, it is not enough to decode data and inspect them in human readable way. Dynamic data system must use dynamic type and also recursively include itself to represent complex value of dynamic types. An instance of dynamic type is a specific type. An instance of dynamic data is a specific data of a specific type. Dynamic data is also static code. As you can imagine, there are lots of recursions going on here. The third one is the above mentioned *TypeObject*, which contain schema information. XTypes use *TypeObject* as source to build dynamic types. The final part is a global type management system. Types are inter-dependent. One types can depend on another and this is generally the normal way of how types are constructed. A global instance that manages all types, that recieves type registration, that create dynamic types is necessary to coordinate all dynamic type management.
+
+### Protocol Buffers dynamic type
+
+For Protocol Buffers, conceptually it's the same with XTypes, with some differences.
+
+- Type system: Protocol Buffers have it's own type system. Basic types, ways to construct complex user defined types and module management etc.
+- Type representation: it's more limited compared with XTypes, only *proto* files are supported.
+- Data representation: Protocol Buffers use it's own encoding format to encode data.
+
+As for language bindings, Protocol Buffers supports plain language binding and limited dynamic language binding.
+
+- Plain language binding: Protocol Buffers provide compiler to compile schema into language specific code representation, just like XTypes
+- Dynamic language binding: Compared with XTypes, Protocol Buffers' support for dynamic types is different and less complete. Protocol Buffers do have full representation at runtime using *Descriptor* class, but the dynamic type system is not hierarchically and recursively built like XTypes. Protocol Buffers use it's reflection system to support dynamic types. When building a dynamic type, Protocol Buffers does not hierarchically create dynamic data like XTypes, instead, it first allocate one chunk of memory, then recursively resolve *Descriptor* and use inplacement new operator to assign the position of every data member and create cooresponding *Field*, finally it use the reflection system to build a *Message*, which is *the same* type with the plain language binding. As we can see, the memory layout for plain language binding and dynamical language binding in Protocol Buffers is very similar. The most apparent difference compared with XTypes is that the dynamically created message and the plain language binding message is of the same type!
