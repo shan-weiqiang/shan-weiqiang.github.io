@@ -62,5 +62,5 @@ What really matters:
 - All target dependencies are managed automatically. For example when client use `Math::Caculator` component, it's dependency `Math::divide`, `Math::multi`, and their dependencies `nlomann::json` and `foonathan_memory` will be automatically discovered. If the dependencies are not met, error will happen during configuration time and give proper messsages.
 - Support `QUIET` option for package
 
-Detailed usage and their nationale are given inside the repo as comments. The repo will be continously updated in the future, such as `ctest`, `cpack` will be added. Hope it can save some time for you.
+Detailed usage and their nationale are given inside the repo as comments. The repo will be continously updated in the future, such as `ctest`, `cpack` will be added.
 
