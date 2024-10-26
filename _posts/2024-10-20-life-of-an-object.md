@@ -30,7 +30,7 @@ Above example is just an illustration, as we can see: it goes recursively. An ob
 
 Every object is *single-handedly* responsible for it's own resources: both *directly managed resources* or *indirectly managed resources*. In our example, member1 is *directly managed* by object A, so when object A is constructed or destructed, it's responsible for allocating memory for member1, calling constructor of member1, calling destructor of member1 and deallocate memories occupied by member1. Object A does not know and care anything about object C, object D, or any raw memory. Those are recursively being taken care of by the object to which they belong. 
 
-## Object creation and Object destruction
+## Object creation and Object destruction operators
 
 Creation of an object involves two distinct stages:
 
@@ -103,7 +103,7 @@ What if exceptions occur during the construction phase of object? The behaviors 
   - If the object is created using `new`, the memory will be deallocated by the compiler, so no memory leakage
   - If the object is created using placement `new`, the memory will *not* be deallocated
 
-### Why there should not ever throw in destructors?
+### Why destructors should not throw exceptions?
 
 It is not that destructors can not throw exceptions. Destructors indeed can throw exceptions and can be catched, as long as at the time the destructor throws there is one corresponding try..catch block waiting to handle this exception. The try..catch blocks can be nested in multiple levels, but there must be only one exception expected inside each try...catch block.
 If destructors are called during unwinding, which indicates that there is already an exception existing and the runtime is trying to find a try..catch block to handle it. In this case, if the destructor also throw an exception, there is an question that can not be decided by the compiler: when a try..catch block is found, which exception should it handle? The original one, or the new one thrown by the destructor? Instead of doing this decision, the compiler just call std::terminate. Again what if multiple destructors all throws, what the compiler should do about those exceptions?
