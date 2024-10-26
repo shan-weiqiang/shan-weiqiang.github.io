@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "i/o缓存：内核与用户空间"
+title:  "I/O缓存：内核与用户空间"
 date:   2024-05-19 13:22:46 +0800
 tags: [linux-programming]
 ---

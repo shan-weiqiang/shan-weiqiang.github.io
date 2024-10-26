@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "type system and language bindings"
+title:  "Type system and language bindings"
 date:   2024-07-14 10:20:46 +0800
 tags: [design_philosophy]
 ---

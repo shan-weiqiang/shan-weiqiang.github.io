@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "life of a TCP segment"
+title:  "Life of a TCP segment"
 date:   2024-05-19 10:22:46 +0800
 tags: [linux-programming]
 ---

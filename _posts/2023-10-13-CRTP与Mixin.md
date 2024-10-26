@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "c++: crtp与mixin设计模式"
+title:  "C++: crtp与mixin设计模式"
 date:   2023-10-13 19:22:46 +0800
 tags: [c++]
 ---

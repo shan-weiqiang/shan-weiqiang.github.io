@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "reference count in computer systems"
+title:  "Reference count in computer systems"
 date:   2024-06-23 15:20:46 +0800
 tags: [linux-programming]
 ---

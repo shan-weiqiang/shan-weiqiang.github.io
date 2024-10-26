@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "c++ container cheet sheets"
+title:  "C++ container cheet sheets"
 date:   2024-08-31 09:22:46 +0800
 tags: [c++]
 ---

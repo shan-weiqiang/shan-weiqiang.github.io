@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "arguments of clone() system call"
+title:  "Arguments of clone() system call"
 date:   2024-06-30 10:20:46 +0800
 tags: [linux-programming]
 ---

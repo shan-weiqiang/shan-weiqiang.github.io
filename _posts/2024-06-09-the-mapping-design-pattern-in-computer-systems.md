@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "the mapping design pattern in storage management"
+title:  "Mapping design pattern in storage management"
 date:   2024-06-09 9:20:46 +0800
 tags: [operating-system]
 ---
