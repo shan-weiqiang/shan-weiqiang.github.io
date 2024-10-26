@@ -106,9 +106,11 @@ What if exceptions occur during the construction phase of object? The behaviors 
 ### Why destructors should not throw exceptions?
 
 It is not that destructors can not throw exceptions. Destructors indeed can throw exceptions and can be catched, as long as at the time the destructor throws there is one corresponding try..catch block waiting to handle this exception. The try..catch blocks can be nested in multiple levels, but there must be only one exception expected inside each try...catch block.
+
 If destructors are called during unwinding, which indicates that there is already an exception existing and the runtime is trying to find a try..catch block to handle it. In this case, if the destructor also throw an exception, there is an question that can not be decided by the compiler: when a try..catch block is found, which exception should it handle? The original one, or the new one thrown by the destructor? Instead of doing this decision, the compiler just call std::terminate. Again what if multiple destructors all throws, what the compiler should do about those exceptions?
 
 The situation is not the same if there are nested try..catch blocks. If inside destructor that is new try..catch blocks, then inside this try block if any exception is thrown, it is clear for the compiler that any exception inside it should be handled by this try block, not conflicting with the unwinding exception. In this case, the exception and it's handler is clear.
+
 So the question of why destructor should not throw is quite simple: one try..catch block can only handle one exception at runtime, if there are two exceptions at the same time, the compiler do not know which one to handle, so it terminate the program, which is reasonable. And the only scenario that this could happen is during the unwinding phase of an exception, during which time the destructors will be called. So destructors should take the burden to not throw exceptions.
 
 
