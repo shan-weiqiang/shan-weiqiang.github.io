@@ -13,7 +13,7 @@ It's safe to say that one of the most important part of C++ is how an object is 
 
 ## Resource model
 
-An object contain resources: memory, file descriptors, sockets, threads, timers, etc.. Those resources are managed using RAAI by object. For now we only consider the memory part, which is also the most complicated. An object manages memory in two ways:
+An object contain resources: memory, file descriptors, sockets, threads, timers, etc.. Those resources are managed using RAII by object. For now we only consider the memory part, which is also the most complicated. An object manages memory in two ways:
 
 - Direct management: memory is together with the object itself
 - Indirect management: memory is managed by pointers
@@ -24,7 +24,7 @@ Following diagram illustrate an example of memory resources of object A. object 
 
 ![alt text](/assets/images/object_memory.png)
 
-Above example is just an illustration, as we can see: it goes recursively. An object can *directly* or *indirectly* manage a huge mount of resources in this way. Another important point is that through pointers, a *fixed* sized object can manage *variable* amount of resources at runtime: this is actually the cornerstone of how dynamic languages are implemented using static languages like C/C++. It is also the basis for any program writting in static languages that can dynamically manage resources.
+Above example is just an illustration, as we can see: it goes recursively. An object can *directly* or *indirectly* manage a huge mount of resources in this way. Another important point is that through pointers, a *fixed* sized object can manage *variable* amount of resources at runtime: this is actually the cornerstone of how dynamic languages are implemented using static languages like C/C++. It is also the basis for any program written in static languages that can dynamically manage resources.
 
 ### Every object is responsible for it's own resoruces
 
@@ -45,12 +45,14 @@ Destruction of an object involves two distinct stages:
 ### `new` and `delete`
 
 The `new` keyword does memory allocation and initialization at the same time
+
 The `delete` keyword does call of destructor and memory deallocation at the same time
 
 
 ### `operator new` and `operator delete`
 
 The `operator new` only allocate the required amount of memory for an object
+
 The `operator delete` only deallocate the memory occupied for an object
 
 ### placement `new` and calling destructor explicitly
@@ -102,6 +104,22 @@ What if exceptions occur during the construction phase of object? The behaviors 
   - The already constructed base class, members constructors will be called in reverse order of their construction
   - If the object is created using `new`, the memory will be deallocated by the compiler, so no memory leakage
   - If the object is created using placement `new`, the memory will *not* be deallocated
+
+Since destructors of current object whose constructor throws will not be called, program should *always* use RAII instead of store a pointer to manage resources such as memory, for example:
+
+```cpp
+struct MyClass {
+    std::unique_ptr<int> data; // good, memory will be freed using RAII
+    int* bad_data; // bad, memory leakage
+    MyClass() : data(new int(42)), bad_data(new int(43)){
+        std::cout << "MyClass constructor\n";
+        throw std::runtime_error("Error during construction");
+    }
+    ~MyClass(){
+      delete bad_data; // This will not be called if exception is thrown in constructor
+    }
+};
+```
 
 ### Why destructors should not throw exceptions?
 
