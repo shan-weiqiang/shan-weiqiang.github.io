@@ -16,10 +16,13 @@ For easy understanding of the repo, the project composition is like following:
 After build and installation, the package looks like following:
 
 ```shell
-➜  install git:(main) ✗ tree                                  //<install folder>
+➜  install git:(main) tree                                     //<install folder>
 .
-├── include                                                   // header files folder
-│   ├── caculator                                             
+├── bin                                                        //executables folder
+│   ├── computer -> computer-1.0.0
+│   └── computer-1.0.0
+├── include                                                    // header files folder
+│   ├── caculator
 │   │   └── caculator.h
 │   ├── divide
 │   │   └── divide.h
@@ -27,19 +30,22 @@ After build and installation, the package looks like following:
 │   └── multi
 │       └── multi.h
 └── lib
-    ├── cmake                                                 // folder for cmake scripts
+    ├── cmake                                                   // folder for cmake scripts
     │   └── bp
-    │       ├── bpConfig.cmake                                // package level cmake
-    │       ├── bpConfigVersion.cmake                         // package level version cmake(package only)
-    │       ├── Caculator                                     // Caculator component
+    │       ├── bpConfig.cmake                                  // package level cmake
+    │       ├── bpConfigVersion.cmake                           // package level version cmake(package only)
+    │       ├── Caculator                                       // Caculator component
     │       │   ├── CaculatorConfig.cmake
     │       │   └── CaculatorConfig-noconfig.cmake
-    │       ├── Json                                          // Json component
+    │       ├── Computer                                        // Computer component
+    │       │   ├── ComputerConfig.cmake
+    │       │   └── ComputerConfig-noconfig.cmake
+    │       ├── Json                                            // Json component
     │       │   └── JsonConfig.cmake
-    │       └── Math                                          // Math component
+    │       └── Math                                            // Math component
     │           ├── MathConfig.cmake
     │           └── MathConfig-noconfig.cmake
-    ├── libCaculator.so -> libCaculator.so.3                  // libraries in unix version format  
+    ├── libCaculator.so -> libCaculator.so.3                    // libraries in unix version format  
     ├── libCaculator.so.3 -> libCaculator.so.3.2.1
     ├── libCaculator.so.3.2.1
     ├── libdivide.so -> libdivide.so.3
