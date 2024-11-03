@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Symbols, libraries and One Definition Rule"
-date:   2024-11-2 09:22:46 +0800
+date:   2024-11-3 09:22:46 +0800
 tags: [c++]
 ---
 
