@@ -130,10 +130,3 @@ If destructors are called during unwinding, which indicates that there is alread
 The situation is not the same if there are nested try..catch blocks. If inside destructor that is new try..catch blocks, then inside this try block if any exception is thrown, it is clear for the compiler that any exception inside it should be handled by this try block, not conflicting with the unwinding exception. In this case, the exception and it's handler is clear.
 
 So the question of why destructor should not throw is quite simple: one try..catch block can only handle one exception at runtime, if there are two exceptions at the same time, the compiler do not know which one to handle, so it terminate the program, which is reasonable. And the only scenario that this could happen is during the unwinding phase of an exception, during which time the destructors will be called. So destructors should take the burden to not throw exceptions.
-
-
-
-
-
-
-
