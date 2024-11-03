@@ -6,7 +6,7 @@ tags: [c++]
 ---
 
 
-In this post, we talk about declaration and definition and their relationship with symbols and code in binares. Then we discuss library dependency issues and finally the ODR rule. Those are things that we normally don't care about. However, understanding them give us more control over the binaries we produce.
+In this post, we talk about declaration and definition and their relationship with symbols and code in binaries. Then we discuss library dependency issues and finally the ODR rule. Those are things that we normally don't care about. However, understanding them give us more control over the binaries we produce.
 
 * toc
 {:toc}
@@ -19,20 +19,20 @@ A declaration and definition can be about *data* or *code*. They differs in what
 
 ### Data declaration and definition
 
-For data, such as C++ built in types and user-defined class types, a declaration decides the *memory* layout of the data. A definition decides a concrete *instance* of the data. The key points here are:
+For data, such as C++ built-in types and user-defined types, a declaration decides the *memory* layout of the data. A definition decides a concrete *instance* of the data. The key points here are:
 
-- Data declaration only says that *all this type of data must be consist of this kinds of memory layout*
+- Data declaration only says that *all this type of data must be of this kinds of memory layout*
 - Data definition says that *here you have an instance of this kinkds of data, it's address in memory is ...*
 
 `class S{...}` is *declaration*; `S s;` is *definition*. A definitiion *requires* the compiler to allcoate memory for this definition. A declaration *tells* compiler *how* to allocate memory for this specific type.
 
-Saying that *declaration does not occupy memory* is correct but often misleading. It's misleading in that it sounds that declaration have nothing to do with memory, which is wrong. A declaration *determins* how for the compiler to allocate memory. It's better to say like this:
+Saying that *declaration does not occupy memory* is correct but often misleading. It's misleading in that it sounds that declaration have nothing to do with memory, which is wrong. A declaration *determines* how for the compiler to allocate memory. It's better to say like this:
 
 **Declaration tells compiler how to allocate memory; Definition asks for memory from the compiler**
 
 ### Code declaration and definition
 
-For code, declaration and definition meaning are a little different. A declaration of code decides *signature* of a function. A definition of code decides *implementation* of a function. `int f(double);` declares code that accept `double` and returns `int`. `int f(double) {...}` defines *what to do* with this function, this definition asks for memory from the compiler to store codes. As we can see, it's more complicated than simple data. We can summarize:
+For code, declaration and definition meanings are a little different. A declaration of code decides *signature* of a function. A definition of code decides *implementation* of a function. `int f(double);` declares code that accept `double` and returns `int`. `int f(double) {...}` defines *what to do* with this function, this definition asks for memory from the compiler to store codes. As we can see, it's more complicated than simple data. We can summarize:
 
 - Code declaration says that *function should be used in this *form* and compiler should allocate memory according to this signature*
 - Code implementation says that *here is the code for the execution of this function and here it's address in memory is ...*
@@ -40,7 +40,7 @@ For code, declaration and definition meaning are a little different. A declarati
 Difference between data and code declaration and definition is sutle:
 
 - Data declaration alone does not produce symbols in binary, while code declaration produce symbols in binary
-- Multiple data definition(with different names) can be made for one data declaration, while only one definition can be made for code declaration
+- Multiple data definition(with different names) can be made for one data declaration, while only one definition can be made for code declaration in one translation unit
 
 ### Classes are combination of data and code
 
@@ -74,7 +74,7 @@ Above obersevations are roots of some interesting behaviors of cmake, if A is st
 - A only needs B and C's header file location to succesfully compile
 - After compilation, Inside A's binary there are no B or C's dependency information
 
-The *right* way it to link to B and C using *PRIVATE* keyword. When A as a library is depended by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behaviour for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
+The normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behaviour for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
 
 This problem does not exist if A is a shared lib. The reasons are:
 
