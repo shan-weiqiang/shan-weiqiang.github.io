@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Variable-lengthed shared memory ring buffer"
+title:  "Variable-length shared memory ring buffer"
 date:   2025-01-12 09:22:46 +0800
 tags: [c++]
 ---
