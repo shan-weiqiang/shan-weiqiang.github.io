@@ -57,10 +57,13 @@
 
 <p>After build and installation, the package looks like following:</p>
 
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  <span class="nb">install </span>git:<span class="o">(</span>main<span class="o">)</span> ✗ tree                                  //&lt;<span class="nb">install </span>folder&gt;
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  <span class="nb">install </span>git:<span class="o">(</span>main<span class="o">)</span> tree                                     //&lt;<span class="nb">install </span>folder&gt;
 <span class="nb">.</span>
-├── include                                                   // header files folder
-│   ├── caculator                                             
+├── bin                                                        //executables folder
+│   ├── computer -&gt; computer-1.0.0
+│   └── computer-1.0.0
+├── include                                                    // header files folder
+│   ├── caculator
 │   │   └── caculator.h
 │   ├── divide
 │   │   └── divide.h
@@ -68,19 +71,22 @@
 │   └── multi
 │       └── multi.h
 └── lib
-    ├── cmake                                                 // folder <span class="k">for </span>cmake scripts
+    ├── cmake                                                   // folder <span class="k">for </span>cmake scripts
     │   └── bp
-    │       ├── bpConfig.cmake                                // package level cmake
-    │       ├── bpConfigVersion.cmake                         // package level version cmake<span class="o">(</span>package only<span class="o">)</span>
-    │       ├── Caculator                                     // Caculator component
+    │       ├── bpConfig.cmake                                  // package level cmake
+    │       ├── bpConfigVersion.cmake                           // package level version cmake<span class="o">(</span>package only<span class="o">)</span>
+    │       ├── Caculator                                       // Caculator component
     │       │   ├── CaculatorConfig.cmake
     │       │   └── CaculatorConfig-noconfig.cmake
-    │       ├── Json                                          // Json component
+    │       ├── Computer                                        // Computer component
+    │       │   ├── ComputerConfig.cmake
+    │       │   └── ComputerConfig-noconfig.cmake
+    │       ├── Json                                            // Json component
     │       │   └── JsonConfig.cmake
-    │       └── Math                                          // Math component
+    │       └── Math                                            // Math component
     │           ├── MathConfig.cmake
     │           └── MathConfig-noconfig.cmake
-    ├── libCaculator.so -&gt; libCaculator.so.3                  // libraries <span class="k">in </span>unix version format  
+    ├── libCaculator.so -&gt; libCaculator.so.3                    // libraries <span class="k">in </span>unix version format  
     ├── libCaculator.so.3 -&gt; libCaculator.so.3.2.1
     ├── libCaculator.so.3.2.1
     ├── libdivide.so -&gt; libdivide.so.3

@@ -55,7 +55,7 @@
       <li><a href="#every-object-is-responsible-for-its-own-resoruces" id="markdown-toc-every-object-is-responsible-for-its-own-resoruces">Every object is responsible for it’s own resoruces</a></li>
     </ul>
   </li>
-  <li><a href="#object-creation-and-object-destruction" id="markdown-toc-object-creation-and-object-destruction">Object creation and Object destruction</a>    <ul>
+  <li><a href="#object-creation-and-object-destruction-operators" id="markdown-toc-object-creation-and-object-destruction-operators">Object creation and Object destruction operators</a>    <ul>
       <li><a href="#new-and-delete" id="markdown-toc-new-and-delete"><code class="language-plaintext highlighter-rouge">new</code> and <code class="language-plaintext highlighter-rouge">delete</code></a></li>
       <li><a href="#operator-new-and-operator-delete" id="markdown-toc-operator-new-and-operator-delete"><code class="language-plaintext highlighter-rouge">operator new</code> and <code class="language-plaintext highlighter-rouge">operator delete</code></a></li>
       <li><a href="#placement-new-and-calling-destructor-explicitly" id="markdown-toc-placement-new-and-calling-destructor-explicitly">placement <code class="language-plaintext highlighter-rouge">new</code> and calling destructor explicitly</a></li>
@@ -64,14 +64,14 @@
   <li><a href="#runtime-creation-and-destruction" id="markdown-toc-runtime-creation-and-destruction">Runtime creation and destruction</a>    <ul>
       <li><a href="#recursion-again" id="markdown-toc-recursion-again">Recursion, again</a></li>
       <li><a href="#here-comes-exceptions" id="markdown-toc-here-comes-exceptions">Here comes exceptions</a></li>
-      <li><a href="#why-there-should-not-ever-throw-in-destructors" id="markdown-toc-why-there-should-not-ever-throw-in-destructors">Why there should not ever throw in destructors?</a></li>
+      <li><a href="#why-destructors-should-not-throw-exceptions" id="markdown-toc-why-destructors-should-not-throw-exceptions">Why destructors should not throw exceptions?</a></li>
     </ul>
   </li>
 </ul>
 
 <h2 id="resource-model">Resource model</h2>
 
-<p>An object contain resources: memory, file descriptors, sockets, threads, timers, etc.. Those resources are managed using RAAI by object. For now we only consider the memory part, which is also the most complicated. An object manages memory in two ways:</p>
+<p>An object contain resources: memory, file descriptors, sockets, threads, timers, etc.. Those resources are managed using RAII by object. For now we only consider the memory part, which is also the most complicated. An object manages memory in two ways:</p>
 
 <ul>
   <li>Direct management: memory is together with the object itself</li>
@@ -84,13 +84,13 @@
 
 <p><img src="/assets/images/object_memory.png" alt="alt text" /></p>
 
-<p>Above example is just an illustration, as we can see: it goes recursively. An object can <em>directly</em> or <em>indirectly</em> manage a huge mount of resources in this way. Another important point is that through pointers, a <em>fixed</em> sized object can manage <em>variable</em> amount of resources at runtime: this is actually the cornerstone of how dynamic languages are implemented using static languages like C/C++. It is also the basis for any program writting in static languages that can dynamically manage resources.</p>
+<p>Above example is just an illustration, as we can see: it goes recursively. An object can <em>directly</em> or <em>indirectly</em> manage a huge mount of resources in this way. Another important point is that through pointers, a <em>fixed</em> sized object can manage <em>variable</em> amount of resources at runtime: this is actually the cornerstone of how dynamic languages are implemented using static languages like C/C++. It is also the basis for any program written in static languages that can dynamically manage resources.</p>
 
 <h3 id="every-object-is-responsible-for-its-own-resoruces">Every object is responsible for it’s own resoruces</h3>
 
 <p>Every object is <em>single-handedly</em> responsible for it’s own resources: both <em>directly managed resources</em> or <em>indirectly managed resources</em>. In our example, member1 is <em>directly managed</em> by object A, so when object A is constructed or destructed, it’s responsible for allocating memory for member1, calling constructor of member1, calling destructor of member1 and deallocate memories occupied by member1. Object A does not know and care anything about object C, object D, or any raw memory. Those are recursively being taken care of by the object to which they belong.</p>
 
-<h2 id="object-creation-and-object-destruction">Object creation and Object destruction</h2>
+<h2 id="object-creation-and-object-destruction-operators">Object creation and Object destruction operators</h2>
 
 <p>Creation of an object involves two distinct stages:</p>
 
@@ -108,13 +108,15 @@
 
 <h3 id="new-and-delete"><code class="language-plaintext highlighter-rouge">new</code> and <code class="language-plaintext highlighter-rouge">delete</code></h3>
 
-<p>The <code class="language-plaintext highlighter-rouge">new</code> keyword does memory allocation and initialization at the same time
-The <code class="language-plaintext highlighter-rouge">delete</code> keyword does call of destructor and memory deallocation at the same time</p>
+<p>The <code class="language-plaintext highlighter-rouge">new</code> keyword does memory allocation and initialization at the same time</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">delete</code> keyword does call of destructor and memory deallocation at the same time</p>
 
 <h3 id="operator-new-and-operator-delete"><code class="language-plaintext highlighter-rouge">operator new</code> and <code class="language-plaintext highlighter-rouge">operator delete</code></h3>
 
-<p>The <code class="language-plaintext highlighter-rouge">operator new</code> only allocate the required amount of memory for an object
-The <code class="language-plaintext highlighter-rouge">operator delete</code> only deallocate the memory occupied for an object</p>
+<p>The <code class="language-plaintext highlighter-rouge">operator new</code> only allocate the required amount of memory for an object</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">operator delete</code> only deallocate the memory occupied for an object</p>
 
 <h3 id="placement-new-and-calling-destructor-explicitly">placement <code class="language-plaintext highlighter-rouge">new</code> and calling destructor explicitly</h3>
 
@@ -178,14 +180,30 @@ The <code class="language-plaintext highlighter-rouge">operator delete</code> on
   </li>
 </ul>
 
-<h3 id="why-there-should-not-ever-throw-in-destructors">Why there should not ever throw in destructors?</h3>
+<p>Since destructors of current object whose constructor throws will not be called, program should <em>always</em> use RAII instead of store a pointer to manage resources such as memory, for example:</p>
 
-<p>It is not that destructors can not throw exceptions. Destructors indeed can throw exceptions and can be catched, as long as at the time the destructor throws there is one corresponding try..catch block waiting to handle this exception. The try..catch blocks can be nested in multiple levels, but there must be only one exception expected inside each try…catch block.
-If destructors are called during unwinding, which indicates that there is already an exception existing and the runtime is trying to find a try..catch block to handle it. In this case, if the destructor also throw an exception, there is an question that can not be decided by the compiler: when a try..catch block is found, which exception should it handle? The original one, or the new one thrown by the destructor? Instead of doing this decision, the compiler just call std::terminate. Again what if multiple destructors all throws, what the compiler should do about those exceptions?</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">MyClass</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span> <span class="c1">// good, memory will be freed using RAII</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">bad_data</span><span class="p">;</span> <span class="c1">// bad, memory leakage</span>
+    <span class="n">MyClass</span><span class="p">()</span> <span class="o">:</span> <span class="n">data</span><span class="p">(</span><span class="k">new</span> <span class="kt">int</span><span class="p">(</span><span class="mi">42</span><span class="p">)),</span> <span class="n">bad_data</span><span class="p">(</span><span class="k">new</span> <span class="kt">int</span><span class="p">(</span><span class="mi">43</span><span class="p">)){</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"MyClass constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Error during construction"</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="o">~</span><span class="n">MyClass</span><span class="p">(){</span>
+      <span class="k">delete</span> <span class="n">bad_data</span><span class="p">;</span> <span class="c1">// This will not be called if exception is thrown in constructor</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
 
-<p>The situation is not the same if there are nested try..catch blocks. If inside destructor that is new try..catch blocks, then inside this try block if any exception is thrown, it is clear for the compiler that any exception inside it should be handled by this try block, not conflicting with the unwinding exception. In this case, the exception and it’s handler is clear.
-So the question of why destructor should not throw is quite simple: one try..catch block can only handle one exception at runtime, if there are two exceptions at the same time, the compiler do not know which one to handle, so it terminate the program, which is reasonable. And the only scenario that this could happen is during the unwinding phase of an exception, during which time the destructors will be called. So destructors should take the burden to not throw exceptions.</p>
+<h3 id="why-destructors-should-not-throw-exceptions">Why destructors should not throw exceptions?</h3>
 
+<p>It is not that destructors can not throw exceptions. Destructors indeed can throw exceptions and can be catched, as long as at the time the destructor throws there is one corresponding try..catch block waiting to handle this exception. The try..catch blocks can be nested in multiple levels, but there must be only one exception expected inside each try…catch block.</p>
+
+<p>If destructors are called during unwinding, which indicates that there is already an exception existing and the runtime is trying to find a try..catch block to handle it. In this case, if the destructor also throw an exception, there is an question that can not be decided by the compiler: when a try..catch block is found, which exception should it handle? The original one, or the new one thrown by the destructor? Instead of doing this decision, the compiler just call std::terminate. Again what if multiple destructors all throws, what the compiler should do about those exceptions?</p>
+
+<p>The situation is not the same if there are nested try..catch blocks. If inside destructor that is new try..catch blocks, then inside this try block if any exception is thrown, it is clear for the compiler that any exception inside it should be handled by this try block, not conflicting with the unwinding exception. In this case, the exception and it’s handler is clear.</p>
+
+<p>So the question of why destructor should not throw is quite simple: one try..catch block can only handle one exception at runtime, if there are two exceptions at the same time, the compiler do not know which one to handle, so it terminate the program, which is reasonable. And the only scenario that this could happen is during the unwinding phase of an exception, during which time the destructors will be called. So destructors should take the burden to not throw exceptions.</p>
 
   </div><a class="u-url" href="/2024/10/26/life-of-an-object.html" hidden></a>
 </article>

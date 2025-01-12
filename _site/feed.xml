@@ -1,4 +1,240 @@
-<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2024-10-26T14:55:35+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">shanweiqiang’s blog</title><subtitle></subtitle><entry><title type="html">Life of an object</title><link href="http://localhost:4000/2024/10/26/life-of-an-object.html" rel="alternate" type="text/html" title="Life of an object" /><published>2024-10-26T09:22:46+08:00</published><updated>2024-10-26T09:22:46+08:00</updated><id>http://localhost:4000/2024/10/26/life-of-an-object</id><content type="html" xml:base="http://localhost:4000/2024/10/26/life-of-an-object.html"><![CDATA[<p>It’s safe to say that one of the most important part of C++ is how an object is created and how it is destructed. Let’s explain it. To understand the runtime behavior and logic, firstly we need to understand the resource model of an C++ object.</p>
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="4.3.3">Jekyll</generator><link href="http://localhost:4000/feed.xml" rel="self" type="application/atom+xml" /><link href="http://localhost:4000/" rel="alternate" type="text/html" /><updated>2025-01-12T14:03:44+08:00</updated><id>http://localhost:4000/feed.xml</id><title type="html">shanweiqiang’s blog</title><subtitle></subtitle><entry><title type="html">Variable-lengthed shared memory ring buffer</title><link href="http://localhost:4000/2025/01/12/variable-length-shm-ring-buffer.html" rel="alternate" type="text/html" title="Variable-lengthed shared memory ring buffer" /><published>2025-01-12T09:22:46+08:00</published><updated>2025-01-12T09:22:46+08:00</updated><id>http://localhost:4000/2025/01/12/variable-length-shm-ring-buffer</id><content type="html" xml:base="http://localhost:4000/2025/01/12/variable-length-shm-ring-buffer.html"><![CDATA[<p>A variable-length shard memory ring buffer that supports sharing variable length payloads data between processes. This is based on https://github.com/bo-yang/shm_ring_buffer, which only support POD fixed length data. The idea is illustrated in following diagram:</p>
+
+<p><img src="/assets/images/var-length-ring-buffer.png" alt="alt text" /></p>
+
+<p>Github: <a href="https://github.com/shan-weiqiang/shm_ring_buffer">shm_ring_buffer</a></p>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[A variable-length shard memory ring buffer that supports sharing variable length payloads data between processes. This is based on https://github.com/bo-yang/shm_ring_buffer, which only support POD fixed length data. The idea is illustrated in following diagram:]]></summary></entry><entry><title type="html">Symbols, libraries and One Definition Rule</title><link href="http://localhost:4000/2024/11/03/symbols-libraries-one-definition-rule.html" rel="alternate" type="text/html" title="Symbols, libraries and One Definition Rule" /><published>2024-11-03T09:22:46+08:00</published><updated>2024-11-03T09:22:46+08:00</updated><id>http://localhost:4000/2024/11/03/symbols-libraries-one-definition-rule</id><content type="html" xml:base="http://localhost:4000/2024/11/03/symbols-libraries-one-definition-rule.html"><![CDATA[<p>In this post, we talk about declaration and definition and their relationship with symbols and code in binaries. Then we discuss library dependency issues and finally the ODR rule. Those are things that we normally don’t care about. However, understanding them give us more control over the binaries we produce.</p>
+
+<ul id="markdown-toc">
+  <li><a href="#declaration-and-definition" id="markdown-toc-declaration-and-definition">Declaration and Definition</a>    <ul>
+      <li><a href="#data-declaration-and-definition" id="markdown-toc-data-declaration-and-definition">Data declaration and definition</a></li>
+      <li><a href="#code-declaration-and-definition" id="markdown-toc-code-declaration-and-definition">Code declaration and definition</a></li>
+      <li><a href="#classes-are-combination-of-data-and-code" id="markdown-toc-classes-are-combination-of-data-and-code">Classes are combination of data and code</a></li>
+    </ul>
+  </li>
+  <li><a href="#symbols-and-libraries" id="markdown-toc-symbols-and-libraries">Symbols and libraries</a>    <ul>
+      <li><a href="#static-libraries" id="markdown-toc-static-libraries">Static libraries</a></li>
+      <li><a href="#shared-libraries" id="markdown-toc-shared-libraries">Shared libraries</a>        <ul>
+          <li><a href="#symbol-visibility" id="markdown-toc-symbol-visibility">Symbol visibility</a></li>
+        </ul>
+      </li>
+      <li><a href="#best-practices" id="markdown-toc-best-practices">Best practices</a></li>
+    </ul>
+  </li>
+  <li><a href="#one-definition-rule" id="markdown-toc-one-definition-rule">One definition rule</a>    <ul>
+      <li><a href="#which-definition-to-use" id="markdown-toc-which-definition-to-use">Which definition to use?</a></li>
+      <li><a href="#data-definitions-are-special" id="markdown-toc-data-definitions-are-special">Data definitions are special</a></li>
+      <li><a href="#code-definitions-are-influenced-by-optimization" id="markdown-toc-code-definitions-are-influenced-by-optimization">Code definitions are influenced by optimization</a></li>
+      <li><a href="#how-template-cope-with-odr" id="markdown-toc-how-template-cope-with-odr">How template cope with ODR</a></li>
+    </ul>
+  </li>
+</ul>
+
+<h2 id="declaration-and-definition">Declaration and Definition</h2>
+
+<p>Declaration determines symbols in binary; definition determines code in binary. A definition is itself a declaration. A declaration in a translation unit give us a <em>promise</em> that the declared entity exist in <em>somewhere</em> in the final <em>executable</em>. For example, when we declare <code class="language-plaintext highlighter-rouge">void f();</code> we make a promise that a function called <code class="language-plaintext highlighter-rouge">f</code> can be used, it might be implemented in current tranlation unit, or it can be implemented in other translation unit. When we declare <code class="language-plaintext highlighter-rouge">class S{..};</code> we make a promise that a type called <code class="language-plaintext highlighter-rouge">S</code> can be used and compiled in this translation unit, we can use the member functions and members of it in this translation unit and the implementation of those member functions might be elsewhere.</p>
+
+<p>A declaration and definition can be about <em>data</em> or <em>code</em>. They differs in what it really means for declaration and definition.</p>
+
+<h3 id="data-declaration-and-definition">Data declaration and definition</h3>
+
+<p>For data, such as C++ built-in types and user-defined types, a declaration decides the <em>memory</em> layout of the data. A definition decides a concrete <em>instance</em> of the data. The key points here are:</p>
+
+<ul>
+  <li>Data declaration only says that <em>all this type of data must be of this kinds of memory layout</em></li>
+  <li>Data definition says that <em>here you have an instance of this kinkds of data, it’s address in memory is …</em></li>
+</ul>
+
+<p><code class="language-plaintext highlighter-rouge">class S{...}</code> is <em>declaration</em>; <code class="language-plaintext highlighter-rouge">S s;</code> is <em>definition</em>. A definitiion <em>requires</em> the compiler to allcoate memory for this definition. A declaration <em>tells</em> compiler <em>how</em> to allocate memory for this specific type.</p>
+
+<p>Saying that <em>declaration does not occupy memory</em> is correct but often misleading. It’s misleading in that it sounds that declaration have nothing to do with memory, which is wrong. A declaration <em>determines</em> how for the compiler to allocate memory. It’s better to say like this:</p>
+
+<p><strong>Declaration tells compiler how to allocate memory; Definition asks for memory from the compiler</strong></p>
+
+<h3 id="code-declaration-and-definition">Code declaration and definition</h3>
+
+<p>For code, declaration and definition meanings are a little different. A declaration of code decides <em>signature</em> of a function. A definition of code decides <em>implementation</em> of a function. <code class="language-plaintext highlighter-rouge">int f(double);</code> declares code that accept <code class="language-plaintext highlighter-rouge">double</code> and returns <code class="language-plaintext highlighter-rouge">int</code>. <code class="language-plaintext highlighter-rouge">int f(double) {...}</code> defines <em>what to do</em> with this function, this definition asks for memory from the compiler to store codes. As we can see, it’s more complicated than simple data. We can summarize:</p>
+
+<ul>
+  <li>Code declaration says that <em>function should be used in this *form</em> and compiler should allocate memory according to this signature*</li>
+  <li>Code implementation says that <em>here is the code for the execution of this function and here it’s address in memory is …</em></li>
+</ul>
+
+<p>Difference between data and code declaration and definition is sutle:</p>
+
+<ul>
+  <li>Data declaration alone does not produce symbols in binary, while code declaration produce symbols in binary</li>
+  <li>Multiple data definition(with different names) can be made for one data declaration, while only one definition can be made for code declaration in one translation unit</li>
+</ul>
+
+<h3 id="classes-are-combination-of-data-and-code">Classes are combination of data and code</h3>
+
+<p>For declaration and definition of classes, it’s only a combination of data and code. The data members of a class are data declarations. The member functions of a class are code declarations. Besides:</p>
+
+<ul>
+  <li>All class’s member functions that are implemented inside the class declaration are in-lined</li>
+</ul>
+
+<p>Except for that, class is not that special with stand alone types and functions in delcaration and definition.</p>
+
+<h2 id="symbols-and-libraries">Symbols and libraries</h2>
+
+<p>Data definitions(global variables) and code declaration(global functions, class member functions..) will produce symbols in binary. Symbols can be categorized into <em>defined</em> and <em>undefined</em>:</p>
+
+<ul>
+  <li>Defined(T): thoese are symbols that current translation unit or library <em>provides</em></li>
+  <li>Undefined(U): thoese are symbols that current translation unit or library <em>requires</em> from outside</li>
+</ul>
+
+<p>Normally, every object file and shared library file contains a section <code class="language-plaintext highlighter-rouge">.symtab</code> to store all symbols.</p>
+
+<h3 id="static-libraries">Static libraries</h3>
+
+<p>Static libraries are archives of object files. Static libraries are not <em>linked</em>, which have many implications:</p>
+
+<ul>
+  <li>Multiple definition of data and function can exist in different object files</li>
+  <li>When a static library depends on other static libraries or shared libraries:
+    <ul>
+      <li>Only header files of those static libraries and shared libraries are actually required by this static library</li>
+      <li>Binaries of thoese dependees are not required, since static libraries are <em>not</em> linked</li>
+      <li>Static libraries does not contain the information of it’s dependees</li>
+    </ul>
+  </li>
+</ul>
+
+<p>Above obersevations are roots of some interesting behaviors of cmake, if A is static lib we are building, B and C are two libs that A depends on. Let’s suppose B is static and C is dynamic. If in A’s public API, there is no use of B or C’s any declaration or definitions(only includes B or C’s header in cpp file):</p>
+
+<ul>
+  <li>A only needs B and C’s header file location to succesfully compile</li>
+  <li>After compilation, Inside A’s binary there are no B or C’s dependency information</li>
+</ul>
+
+<p>The normal way to link to B and C is to use <em>PRIVATE</em> keyword, since A’s public API does not refer to B or C’s headers. When A as a library is depended by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behaviour for static libraries. See: <a href="https://cmake.org/pipermail/cmake/2016-May/063400.html">[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries</a></p>
+
+<p>This problem does not exist if A is a shared lib. The reasons are:</p>
+
+<ul>
+  <li>For B, all depended code in B will be copied into A already, D does not need B’s binary anymore</li>
+  <li>For C, even though it’s not copied into A, but inside A there will be information record that says that A depend on C, so D does not need to have anything to do with C. During load time the dynamic linker will read info from A and load C into program automatically.</li>
+</ul>
+
+<p>The key difference here is that static libraries are not <em>linked</em> and shared libraries are all <em>linked</em> already. Again, if in A’s public API B and C’s headers are used, then we need to change the keyword from PRIVATE to PUBLIC, then we will not have above problem anymore.</p>
+
+<p>One last thing about static libraries is that when it’s used only the relevent object files will be copied, not the whole archive. The linker copies code <strong>in the unit of object files</strong>. But if instead we seperately give the object files to gcc compiler in command, all the object files, even if they are not used by the final program will be copied into the executable.</p>
+
+<h3 id="shared-libraries">Shared libraries</h3>
+
+<p>Shared libraries are <em>linked</em>(not necessarily fully linked, might contain unresolved symbols) executable files:</p>
+
+<ul>
+  <li>When a shared lib A depend on another static lib B:
+    <ul>
+      <li>A <em>absorbs</em> B in binary level and in API(headers) level, after compilation and linking, in the eye of A there is no B anymore</li>
+      <li>Thanks to the PRIVATE-becomes-PUBLIC behaviour mentioned above, all B’s dependencies will be passed into A</li>
+      <li>If A is about to be exported as a library, relevent headers of B, more in general relevent headers of all dependent static libs of A, should also be exported together with A’s headers, as long as thoese headers are used in A’s public API.</li>
+    </ul>
+  </li>
+  <li>When a shared lib A depend on another shared lib B:
+    <ul>
+      <li>A <em>works</em> with B. After compilation and linking, A stores dependency infomation on B and will see B during load time again</li>
+      <li>If A is about to be exported as a library, and if in A’s API B’s headers are used, then B is PUBLIC depended. All users of A will automatically depend on B. If in A’s API B’s header are not used, PRIVATE dependency is used, users of A will not aware of B’s existence, since users will not link to B. At load time, linker will load B according to A’s dependencies infomation.</li>
+    </ul>
+  </li>
+</ul>
+
+<p>Shared libs contains unresloved symbols. Those undefined symbols further can be categorized into:</p>
+
+<ul>
+  <li>Unresolved symbols in linked dependencies: those symbols are <em>resolved</em> during compile time and the dependent shared libs infomation are recorded in shared lib</li>
+  <li>Unresolved symbols with no known provider at compile time: those symbols are <em>not resolved</em> at compile time and the resolution of them are deferred until this shared lib is used with an executable.</li>
+</ul>
+
+<h4 id="symbol-visibility">Symbol visibility</h4>
+
+<p>Except for .symtab section, shared libraries also have .dynsym section which stores symbols that this lib defines and symbols that need to be resolved during load time. We can control symbol’s visibility in .dynsym with gcc compiler. By default, all symbols that defined in shared lib will appear in .dynsym. We can use <code class="language-plaintext highlighter-rouge">__attribute__((visibility("hidden")))</code> to hide symbols from appearing here. This specifier has different meanings when used on defined and undefined symbols:</p>
+
+<ul>
+  <li>If it’s used on defined symbols inside current lib, this symbol will not be seen outside. Not appear in .dynsym</li>
+  <li>If it’s used on undefined symbols, this symbol will not appear in .dynsym. If it’s definition is not found inside current lib, compiler will issue not-defined error</li>
+</ul>
+
+<p>Visiblilty specifier can be used on both data definitions and code definitions.</p>
+
+<h3 id="best-practices">Best practices</h3>
+
+<p>When building libraries using cmake:</p>
+
+<ul>
+  <li>Never use PRIVATE when specify static lib’s dependencies. Since all it’s dependencies info will not be recorded inside it and every user of it will use it’s dependencies during final linking when building an executable. Even if PRIVATE is used, cmake is smart enough to behaves like PUBLIC and dismiss the requirement.</li>
+  <li>Use PRIVATE when specify shared lib’s dependencies if this dependency’s header file not appear inside shared lib’s public API. Shard lib remembers what it depends on.</li>
+  <li>When shared lib depend on static lib, properly manage the header files of the static lib. Install relevent static lib’s headers into share lib’s headers set. Note that we do not need to worry about the dependee static lib’s headers locations if current shared lib is used inside current build system, again thanks to the PRIVATE-becomes-PUBLIC behaviour for static libraries. However, if the shared lib will be exported and used by clients, proper header file installation is required.</li>
+  <li>Use symbol control: .dynsym will be loaded into memory when program is running. If a symbol is not used by outside libs and exist in .dynsym, it’s a waste of memory and a slow down of program loading phase. It will also have the problem of multiple definition, although not intentionally by programmer, which will leads to unexpected behaviors. We will talk about this when we talk about one definition rule later.</li>
+</ul>
+
+<h2 id="one-definition-rule">One definition rule</h2>
+
+<p>For definition of ODR, see <a href="https://en.cppreference.com/w/cpp/language/definition">Definitions and ODR (One Definition Rule)</a>. I only share what I get from experiment and it’s implifications in linking.</p>
+
+<h3 id="which-definition-to-use">Which definition to use?</h3>
+
+<p>In static libs there might be multiple definitions for the same symbols name in different object files(see <a href="https://github.com/shan-weiqiang/cplusplus/tree/main/ODR/static">experiment</a>). In shared libs there might be multiple definitions for the same symbols in different shared libs when those libs are both required by an executable(see <a href="https://github.com/shan-weiqiang/cplusplus/tree/main/ODR/shared">experiment</a>). When an executable is linked to those libs, how the compiler choose definitions if there are multiple definitions available? The answer is rather interesting:</p>
+
+<p><strong>There is no such problem in the eye of the linker, since the linker just use the definition that it first find and the resolution process is finished</strong></p>
+
+<p>The linker is <em>lazy</em>, it does not tries to find all available options and decides which one to use. Instead, the linker find the available one and says: <em>oh! here you are!</em> and stop searching process. The first symbol apperance wins and is used by the linker.</p>
+
+<h3 id="data-definitions-are-special">Data definitions are special</h3>
+
+<p>Data definitions are special in that it not only involves data memory allocation, it also involves <em>construction and initialization</em> code execution. For example if the linker tries to find one global variable definition and it finds one in shared lib A, all hereafter apperance of this symbol will be treated as the same definition. If in shared lib B there is also this symbol, this symbol will be addressed in lib A’s memory mappings, the memory of the same definition in lib B will <em>not</em> be used, since lib A’s definition appears <em>first</em>.</p>
+
+<p>But, a data definition not only is about memory, it’s also about construction and initialization. In out example lib A and lib B both will construct and initialize at lib A’s symbols address, which means that this data definition symbol will be constructed and initialized <strong>two times</strong>. I encountered one such situation once:</p>
+
+<ul>
+  <li>Static lib A contains global variable <code class="language-plaintext highlighter-rouge">a</code></li>
+  <li>Lib A is linked into shared lib S1</li>
+  <li>Lib A is linked into shared lib S2</li>
+  <li>S1 and S2 are both linked into executable E</li>
+  <li>In <code class="language-plaintext highlighter-rouge">a</code>’s construction and initialization code, there is some checking that says it can not be initialized twice, otherwise program terminates.</li>
+</ul>
+
+<p>The above situation will terminate the program and the reason is that <code class="language-plaintext highlighter-rouge">a</code> will be constructed twice. Problem reproduction can be found at <a href="https://github.com/shan-weiqiang/cplusplus/tree/main/ODR">here</a>.</p>
+
+<h3 id="code-definitions-are-influenced-by-optimization">Code definitions are influenced by optimization</h3>
+
+<p>Since the linker only respect the first appearance of symbols, if a code definition symbol, such as a function is in-lined by the compiler, there will be no such problem. And whether a function is inlined or not can be decided by the optimization level of the compiler. So different opitimization levels might produce different code behaviors. Take an example:</p>
+
+<ul>
+  <li>Lib A has it’s own implementation of function <code class="language-plaintext highlighter-rouge">f</code></li>
+  <li>main.cpp also has an implementation of function <code class="language-plaintext highlighter-rouge">f</code></li>
+  <li>main.cpp depends and links to lib A</li>
+</ul>
+
+<p>When compiled with different optimization levels:</p>
+
+<ul>
+  <li>If <code class="language-plaintext highlighter-rouge">f</code> is inlined, lib A will use <code class="language-plaintext highlighter-rouge">f</code> in lib A</li>
+  <li>If <code class="language-plaintext highlighter-rouge">f</code> is not inlined, lib A will refer <code class="language-plaintext highlighter-rouge">f</code> in main.cpp’s source file and use it’s implementation, since the linker find the <code class="language-plaintext highlighter-rouge">f</code> implementation in main.cpp first</li>
+</ul>
+
+<p>This video demonstrate this problem very well: <a href="https://www.youtube.com/watch?v=HakSW8wIH8A">C++ Linkers and the One Definition Rule - Roger Orr - ACCU 2024</a></p>
+
+<h3 id="how-template-cope-with-odr">How template cope with ODR</h3>
+
+<p>Templates, such as standard libraries, are instantiated in each translation unit. Inside one translation unit, the compiler will only instantiate one defintion for one particular template parameter. But what happens during link time? Since all translation unit might instantiate the same template argument, which is basically for certain because every body is using standard library. This can be solved possibly in two ways:</p>
+
+<ul>
+  <li>Make all template instantiation in-line</li>
+  <li>At link time, use the first instantiation that appear to the linker</li>
+</ul>
+
+<p>The first approach avoid problems by removing any symbols. The second approach just goes the normal way. But this approach brings another question: if lib A use lib B’s implemetentation code, how the linker manage the load and unload sequence of lib A and lib B, so as to avoid any disaster during runtime? I asked this problem in StackOverflow, and I think the answer is satifying: <a href="https://stackoverflow.com/questions/79147491/template-instantiation-and-symbol-resolution-problem?noredirect=1#comment139562798_79147491">template instantiation and symbol resolution problem
+</a>.</p>
+
+<blockquote>
+  <p>Start with the obvious: libraries are loaded in one order, unloaded in the reverse order, exactly so that non-cyclical dependencies can work.
+Now ask the question again: how can the dynamic linker resolve a symbol so that it’s not prematurely unloaded? The answer is trivial: just use the first occurrence. It will be unloaded last.
+Note that most std::vector&lt;std::string&gt; methods are likely to be inlined and simply won’t appear in any library, precisely because they’re templates. operator[] for instance is not a whole lot more than a simple addition.</p>
+</blockquote>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[In this post, we talk about declaration and definition and their relationship with symbols and code in binaries. Then we discuss library dependency issues and finally the ODR rule. Those are things that we normally don’t care about. However, understanding them give us more control over the binaries we produce.]]></summary></entry><entry><title type="html">Life of an object</title><link href="http://localhost:4000/2024/10/26/life-of-an-object.html" rel="alternate" type="text/html" title="Life of an object" /><published>2024-10-26T09:22:46+08:00</published><updated>2024-10-26T09:22:46+08:00</updated><id>http://localhost:4000/2024/10/26/life-of-an-object</id><content type="html" xml:base="http://localhost:4000/2024/10/26/life-of-an-object.html"><![CDATA[<p>It’s safe to say that one of the most important part of C++ is how an object is created and how it is destructed. Let’s explain it. To understand the runtime behavior and logic, firstly we need to understand the resource model of an C++ object.</p>
 
 <ul id="markdown-toc">
   <li><a href="#resource-model" id="markdown-toc-resource-model">Resource model</a>    <ul>
@@ -6,7 +242,7 @@
       <li><a href="#every-object-is-responsible-for-its-own-resoruces" id="markdown-toc-every-object-is-responsible-for-its-own-resoruces">Every object is responsible for it’s own resoruces</a></li>
     </ul>
   </li>
-  <li><a href="#object-creation-and-object-destruction" id="markdown-toc-object-creation-and-object-destruction">Object creation and Object destruction</a>    <ul>
+  <li><a href="#object-creation-and-object-destruction-operators" id="markdown-toc-object-creation-and-object-destruction-operators">Object creation and Object destruction operators</a>    <ul>
       <li><a href="#new-and-delete" id="markdown-toc-new-and-delete"><code class="language-plaintext highlighter-rouge">new</code> and <code class="language-plaintext highlighter-rouge">delete</code></a></li>
       <li><a href="#operator-new-and-operator-delete" id="markdown-toc-operator-new-and-operator-delete"><code class="language-plaintext highlighter-rouge">operator new</code> and <code class="language-plaintext highlighter-rouge">operator delete</code></a></li>
       <li><a href="#placement-new-and-calling-destructor-explicitly" id="markdown-toc-placement-new-and-calling-destructor-explicitly">placement <code class="language-plaintext highlighter-rouge">new</code> and calling destructor explicitly</a></li>
@@ -15,14 +251,14 @@
   <li><a href="#runtime-creation-and-destruction" id="markdown-toc-runtime-creation-and-destruction">Runtime creation and destruction</a>    <ul>
       <li><a href="#recursion-again" id="markdown-toc-recursion-again">Recursion, again</a></li>
       <li><a href="#here-comes-exceptions" id="markdown-toc-here-comes-exceptions">Here comes exceptions</a></li>
-      <li><a href="#why-there-should-not-ever-throw-in-destructors" id="markdown-toc-why-there-should-not-ever-throw-in-destructors">Why there should not ever throw in destructors?</a></li>
+      <li><a href="#why-destructors-should-not-throw-exceptions" id="markdown-toc-why-destructors-should-not-throw-exceptions">Why destructors should not throw exceptions?</a></li>
     </ul>
   </li>
 </ul>
 
 <h2 id="resource-model">Resource model</h2>
 
-<p>An object contain resources: memory, file descriptors, sockets, threads, timers, etc.. Those resources are managed using RAAI by object. For now we only consider the memory part, which is also the most complicated. An object manages memory in two ways:</p>
+<p>An object contain resources: memory, file descriptors, sockets, threads, timers, etc.. Those resources are managed using RAII by object. For now we only consider the memory part, which is also the most complicated. An object manages memory in two ways:</p>
 
 <ul>
   <li>Direct management: memory is together with the object itself</li>
@@ -35,13 +271,13 @@
 
 <p><img src="/assets/images/object_memory.png" alt="alt text" /></p>
 
-<p>Above example is just an illustration, as we can see: it goes recursively. An object can <em>directly</em> or <em>indirectly</em> manage a huge mount of resources in this way. Another important point is that through pointers, a <em>fixed</em> sized object can manage <em>variable</em> amount of resources at runtime: this is actually the cornerstone of how dynamic languages are implemented using static languages like C/C++. It is also the basis for any program writting in static languages that can dynamically manage resources.</p>
+<p>Above example is just an illustration, as we can see: it goes recursively. An object can <em>directly</em> or <em>indirectly</em> manage a huge mount of resources in this way. Another important point is that through pointers, a <em>fixed</em> sized object can manage <em>variable</em> amount of resources at runtime: this is actually the cornerstone of how dynamic languages are implemented using static languages like C/C++. It is also the basis for any program written in static languages that can dynamically manage resources.</p>
 
 <h3 id="every-object-is-responsible-for-its-own-resoruces">Every object is responsible for it’s own resoruces</h3>
 
 <p>Every object is <em>single-handedly</em> responsible for it’s own resources: both <em>directly managed resources</em> or <em>indirectly managed resources</em>. In our example, member1 is <em>directly managed</em> by object A, so when object A is constructed or destructed, it’s responsible for allocating memory for member1, calling constructor of member1, calling destructor of member1 and deallocate memories occupied by member1. Object A does not know and care anything about object C, object D, or any raw memory. Those are recursively being taken care of by the object to which they belong.</p>
 
-<h2 id="object-creation-and-object-destruction">Object creation and Object destruction</h2>
+<h2 id="object-creation-and-object-destruction-operators">Object creation and Object destruction operators</h2>
 
 <p>Creation of an object involves two distinct stages:</p>
 
@@ -59,13 +295,15 @@
 
 <h3 id="new-and-delete"><code class="language-plaintext highlighter-rouge">new</code> and <code class="language-plaintext highlighter-rouge">delete</code></h3>
 
-<p>The <code class="language-plaintext highlighter-rouge">new</code> keyword does memory allocation and initialization at the same time
-The <code class="language-plaintext highlighter-rouge">delete</code> keyword does call of destructor and memory deallocation at the same time</p>
+<p>The <code class="language-plaintext highlighter-rouge">new</code> keyword does memory allocation and initialization at the same time</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">delete</code> keyword does call of destructor and memory deallocation at the same time</p>
 
 <h3 id="operator-new-and-operator-delete"><code class="language-plaintext highlighter-rouge">operator new</code> and <code class="language-plaintext highlighter-rouge">operator delete</code></h3>
 
-<p>The <code class="language-plaintext highlighter-rouge">operator new</code> only allocate the required amount of memory for an object
-The <code class="language-plaintext highlighter-rouge">operator delete</code> only deallocate the memory occupied for an object</p>
+<p>The <code class="language-plaintext highlighter-rouge">operator new</code> only allocate the required amount of memory for an object</p>
+
+<p>The <code class="language-plaintext highlighter-rouge">operator delete</code> only deallocate the memory occupied for an object</p>
 
 <h3 id="placement-new-and-calling-destructor-explicitly">placement <code class="language-plaintext highlighter-rouge">new</code> and calling destructor explicitly</h3>
 
@@ -129,13 +367,30 @@ The <code class="language-plaintext highlighter-rouge">operator delete</code> on
   </li>
 </ul>
 
-<h3 id="why-there-should-not-ever-throw-in-destructors">Why there should not ever throw in destructors?</h3>
+<p>Since destructors of current object whose constructor throws will not be called, program should <em>always</em> use RAII instead of store a pointer to manage resources such as memory, for example:</p>
 
-<p>It is not that destructors can not throw exceptions. Destructors indeed can throw exceptions and can be catched, as long as at the time the destructor throws there is one corresponding try..catch block waiting to handle this exception. The try..catch blocks can be nested in multiple levels, but there must be only one exception expected inside each try…catch block.
-If destructors are called during unwinding, which indicates that there is already an exception existing and the runtime is trying to find a try..catch block to handle it. In this case, if the destructor also throw an exception, there is an question that can not be decided by the compiler: when a try..catch block is found, which exception should it handle? The original one, or the new one thrown by the destructor? Instead of doing this decision, the compiler just call std::terminate. Again what if multiple destructors all throws, what the compiler should do about those exceptions?</p>
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">struct</span> <span class="nc">MyClass</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span> <span class="n">data</span><span class="p">;</span> <span class="c1">// good, memory will be freed using RAII</span>
+    <span class="kt">int</span><span class="o">*</span> <span class="n">bad_data</span><span class="p">;</span> <span class="c1">// bad, memory leakage</span>
+    <span class="n">MyClass</span><span class="p">()</span> <span class="o">:</span> <span class="n">data</span><span class="p">(</span><span class="k">new</span> <span class="kt">int</span><span class="p">(</span><span class="mi">42</span><span class="p">)),</span> <span class="n">bad_data</span><span class="p">(</span><span class="k">new</span> <span class="kt">int</span><span class="p">(</span><span class="mi">43</span><span class="p">)){</span>
+        <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"MyClass constructor</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+        <span class="k">throw</span> <span class="n">std</span><span class="o">::</span><span class="n">runtime_error</span><span class="p">(</span><span class="s">"Error during construction"</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="o">~</span><span class="n">MyClass</span><span class="p">(){</span>
+      <span class="k">delete</span> <span class="n">bad_data</span><span class="p">;</span> <span class="c1">// This will not be called if exception is thrown in constructor</span>
+    <span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div></div>
 
-<p>The situation is not the same if there are nested try..catch blocks. If inside destructor that is new try..catch blocks, then inside this try block if any exception is thrown, it is clear for the compiler that any exception inside it should be handled by this try block, not conflicting with the unwinding exception. In this case, the exception and it’s handler is clear.
-So the question of why destructor should not throw is quite simple: one try..catch block can only handle one exception at runtime, if there are two exceptions at the same time, the compiler do not know which one to handle, so it terminate the program, which is reasonable. And the only scenario that this could happen is during the unwinding phase of an exception, during which time the destructors will be called. So destructors should take the burden to not throw exceptions.</p>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[It’s safe to say that one of the most important part of C++ is how an object is created and how it is destructed. Let’s explain it. To understand the runtime behavior and logic, firstly we need to understand the resource model of an C++ object.]]></summary></entry><entry><title type="html">CMake: Best Practice(bp)</title><link href="http://localhost:4000/2024/09/18/cmake-best-practice.html" rel="alternate" type="text/html" title="CMake: Best Practice(bp)" /><published>2024-09-18T09:22:46+08:00</published><updated>2024-09-18T09:22:46+08:00</updated><id>http://localhost:4000/2024/09/18/cmake-best-practice</id><content type="html" xml:base="http://localhost:4000/2024/09/18/cmake-best-practice.html"><![CDATA[<p>It has been a long time since I want to summarize the usage of CMake and give a best practice for using it. Recently I have time to read the book: <a href="https://crascit.com/">Professional CMake: A Practical Guide</a>, and it’s time to do this. CMake is complex and easy at the same time: it’s complex because what it tries to solve is complex; it’s easy because once we know how to use it and familiar with the best practice, it’s basically repitition afterwards. So the key here is to have a model for repetition, which I try to give here.</p>
+<h3 id="why-destructors-should-not-throw-exceptions">Why destructors should not throw exceptions?</h3>
+
+<p>It is not that destructors can not throw exceptions. Destructors indeed can throw exceptions and can be catched, as long as at the time the destructor throws there is one corresponding try..catch block waiting to handle this exception. The try..catch blocks can be nested in multiple levels, but there must be only one exception expected inside each try…catch block.</p>
+
+<p>If destructors are called during unwinding, which indicates that there is already an exception existing and the runtime is trying to find a try..catch block to handle it. In this case, if the destructor also throw an exception, there is an question that can not be decided by the compiler: when a try..catch block is found, which exception should it handle? The original one, or the new one thrown by the destructor? Instead of doing this decision, the compiler just call std::terminate. Again what if multiple destructors all throws, what the compiler should do about those exceptions?</p>
+
+<p>The situation is not the same if there are nested try..catch blocks. If inside destructor that is new try..catch blocks, then inside this try block if any exception is thrown, it is clear for the compiler that any exception inside it should be handled by this try block, not conflicting with the unwinding exception. In this case, the exception and it’s handler is clear.</p>
+
+<p>So the question of why destructor should not throw is quite simple: one try..catch block can only handle one exception at runtime, if there are two exceptions at the same time, the compiler do not know which one to handle, so it terminate the program, which is reasonable. And the only scenario that this could happen is during the unwinding phase of an exception, during which time the destructors will be called. So destructors should take the burden to not throw exceptions.</p>]]></content><author><name></name></author><category term="c++" /><summary type="html"><![CDATA[It’s safe to say that one of the most important part of C++ is how an object is created and how it is destructed. Let’s explain it. To understand the runtime behavior and logic, firstly we need to understand the resource model of an C++ object.]]></summary></entry><entry><title type="html">CMake: Best Practice(bp)</title><link href="http://localhost:4000/2024/09/18/cmake-best-practice.html" rel="alternate" type="text/html" title="CMake: Best Practice(bp)" /><published>2024-09-18T09:22:46+08:00</published><updated>2024-09-18T09:22:46+08:00</updated><id>http://localhost:4000/2024/09/18/cmake-best-practice</id><content type="html" xml:base="http://localhost:4000/2024/09/18/cmake-best-practice.html"><![CDATA[<p>It has been a long time since I want to summarize the usage of CMake and give a best practice for using it. Recently I have time to read the book: <a href="https://crascit.com/">Professional CMake: A Practical Guide</a>, and it’s time to do this. CMake is complex and easy at the same time: it’s complex because what it tries to solve is complex; it’s easy because once we know how to use it and familiar with the best practice, it’s basically repitition afterwards. So the key here is to have a model for repetition, which I try to give here.</p>
 
 <p>All code can be found at repo: <a href="https://github.com/shan-weiqiang/cmake/tree/main/best_practice_lib">best_practice_lib</a>.</p>
 
@@ -145,10 +400,13 @@ So the question of why destructor should not throw is quite simple: one try..cat
 
 <p>After build and installation, the package looks like following:</p>
 
-<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  <span class="nb">install </span>git:<span class="o">(</span>main<span class="o">)</span> ✗ tree                                  //&lt;<span class="nb">install </span>folder&gt;
+<div class="language-shell highlighter-rouge"><div class="highlight"><pre class="highlight"><code>➜  <span class="nb">install </span>git:<span class="o">(</span>main<span class="o">)</span> tree                                     //&lt;<span class="nb">install </span>folder&gt;
 <span class="nb">.</span>
-├── include                                                   // header files folder
-│   ├── caculator                                             
+├── bin                                                        //executables folder
+│   ├── computer -&gt; computer-1.0.0
+│   └── computer-1.0.0
+├── include                                                    // header files folder
+│   ├── caculator
 │   │   └── caculator.h
 │   ├── divide
 │   │   └── divide.h
@@ -156,19 +414,22 @@ So the question of why destructor should not throw is quite simple: one try..cat
 │   └── multi
 │       └── multi.h
 └── lib
-    ├── cmake                                                 // folder <span class="k">for </span>cmake scripts
+    ├── cmake                                                   // folder <span class="k">for </span>cmake scripts
     │   └── bp
-    │       ├── bpConfig.cmake                                // package level cmake
-    │       ├── bpConfigVersion.cmake                         // package level version cmake<span class="o">(</span>package only<span class="o">)</span>
-    │       ├── Caculator                                     // Caculator component
+    │       ├── bpConfig.cmake                                  // package level cmake
+    │       ├── bpConfigVersion.cmake                           // package level version cmake<span class="o">(</span>package only<span class="o">)</span>
+    │       ├── Caculator                                       // Caculator component
     │       │   ├── CaculatorConfig.cmake
     │       │   └── CaculatorConfig-noconfig.cmake
-    │       ├── Json                                          // Json component
+    │       ├── Computer                                        // Computer component
+    │       │   ├── ComputerConfig.cmake
+    │       │   └── ComputerConfig-noconfig.cmake
+    │       ├── Json                                            // Json component
     │       │   └── JsonConfig.cmake
-    │       └── Math                                          // Math component
+    │       └── Math                                            // Math component
     │           ├── MathConfig.cmake
     │           └── MathConfig-noconfig.cmake
-    ├── libCaculator.so -&gt; libCaculator.so.3                  // libraries <span class="k">in </span>unix version format  
+    ├── libCaculator.so -&gt; libCaculator.so.3                    // libraries <span class="k">in </span>unix version format  
     ├── libCaculator.so.3 -&gt; libCaculator.so.3.2.1
     ├── libCaculator.so.3.2.1
     ├── libdivide.so -&gt; libdivide.so.3
@@ -756,230 +1017,4 @@ between threads.</p>
   <li>all processes’s futex syscall works atomically on this futex word inside the kernel(user space operation on this futex word is assured by user)</li>
 </ul>
 
-<p><code class="language-plaintext highlighter-rouge">pthread_mutex_t</code> and named semaphores in POSIX can be used to achieve inter-process synchronization. The C++ <code class="language-plaintext highlighter-rouge">std::mutex</code> is only designed for intra-process usage.</p>]]></content><author><name></name></author><category term="linux-programming" /><summary type="html"><![CDATA[In linux, pthread mutex pthread_mutex_t(on which std::mutex is based), and pthread_cond_t(on which std::condition_variable is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it.]]></summary></entry><entry><title type="html">AUTOSAR service model: a big picture</title><link href="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html" rel="alternate" type="text/html" title="AUTOSAR service model: a big picture" /><published>2024-06-08T09:22:46+08:00</published><updated>2024-06-08T09:22:46+08:00</updated><id>http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture</id><content type="html" xml:base="http://localhost:4000/2024/06/08/AUTOSAR-Service-Model-a-big-picture.html"><![CDATA[<p>The design phase of AUTOSAR communication management can be generalized as following steps: First, a <em>methodology</em> is chosen. According to the methodology, <em>standards</em> and <em>protocols</em> are designed, specifying detailed <em>behavior</em>. AUTOSAR vendors and open source organizations <em>implement</em> these <em>standards</em> and <em>protocol</em>.</p>
-
-<p>AUTOSAR Service Model is based on SOA(service-oriented architecture). According to this service model, AUTOSAR designs the user level API, aka the ara::com::API and the low level communication protocol SOME/IP. ara::com::API and SOME/IP both inherit concept from AUTOSAR service model, so they both have similar concept like service,event, method, etc, even though the meaning of these names varies in its own context. ara::com API can be implemented on other communication protocols, like DDS, instead of SOME/IP. (Interestingly, DDS is not service-oriented.).</p>
-
-<p>These steps can be illustrated in the following diagram:</p>
-
-<table>
-  <thead>
-    <tr>
-      <th style="text-align: center"><img src="/assets/images/autosar_service_model.png" alt="Alt text" /></th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td style="text-align: center"><em>AUTOSAR Service Model</em></td>
-    </tr>
-  </tbody>
-</table>
-
-<p>The soul of the software is the AUTOSAR service model, which defines <em>service description</em>:</p>
-
-<ul>
-  <li>A service is interface between service provider and service consumer(SOA)</li>
-  <li>AUTOSAR service consists of one or more of following elements:
-    <ul>
-      <li>events</li>
-      <li>methods</li>
-      <li>fields</li>
-    </ul>
-  </li>
-</ul>
-
-<p>ara::com API and SOME/IP both contain these concepts, but they describe them in different levels:</p>
-
-<ul>
-  <li>SOME/IP is low level <em>communication oriented</em> protocol. It emphasize the <em>transportation</em> of <em>data</em>. It doesn’t care about method calls, event handling. It’s job is to compose corresponding messages and deliver them to desired target.</li>
-  <li>ara::com API is high level <em>user oriented</em> standards. It focus on the user side and give detailed requirement on <em>behavior</em> of these concepts. For example, ara::com API defines fixed class, method signature and data structures to unify the <em>behavior</em> in the eye of the user. ara::com API defines how service provider implement their method logic, how consumer implement their event handler. ara::com API also specifies the execution mechanism, polling or event-driven, for method and event handling. Except for events, methods, fields, ara::com API extends another element: triggers, which does not appear in AUTOSAR service model and SOME/IP.</li>
-</ul>
-
-<p>Implementation details can be very different for SOME/IP, as long as the implementation adhere to the message format. Implemetentations for ara::com API must use the standard code specified by AUTOSAR, so user does not need to care about the underlying details. The underlying implementation for the ara::com API is called <em>binding</em>, and the underlying protocol used for communication is called <em>driver</em> or <em>communication driver</em>. ara::com API can use SOME/IP as <em>driver</em>, which is the AUTOSAR standard. Besides SOME/IP, the ara::com API can also be bound to DDS, whose binding requirement are included in standard.</p>]]></content><author><name></name></author><category term="autosar" /><summary type="html"><![CDATA[The design phase of AUTOSAR communication management can be generalized as following steps: First, a methodology is chosen. According to the methodology, standards and protocols are designed, specifying detailed behavior. AUTOSAR vendors and open source organizations implement these standards and protocol.]]></summary></entry><entry><title type="html">ara::com API解析[Part 3]</title><link href="http://localhost:4000/2024/06/01/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-3.html" rel="alternate" type="text/html" title="ara::com API解析[Part 3]" /><published>2024-06-01T09:22:46+08:00</published><updated>2024-06-01T09:22:46+08:00</updated><id>http://localhost:4000/2024/06/01/ara::com-API-%E8%A7%A3%E8%AF%BB-Part-3</id><content type="html" xml:base="http://localhost:4000/2024/06/01/ara-com-API-%E8%A7%A3%E8%AF%BB-Part-3.html"><![CDATA[<p>标准连接：<a href="https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf">ara::com API</a></p>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>以下文中用到的词语解释：</p>
-
-<ul>
-  <li><em>通信协议</em>，<em>驱动协议</em>： 如果不是特别说明，这里<em>通信协议</em>指的是ComAPI底层使用的通信驱动协议，例如DDS、SOME/IP。注意<strong>不是</strong>网络协议</li>
-  <li><em>ComAPI</em>, <em>ComAPI绑定</em>，<em>绑定层</em>，<em>绑定</em>，<em>适配层</em>：这些都是指ComAPI层的接口实现，也称作绑定实现；它是存在于应用层与通信协议之间的适配代码</li>
-  <li><em>Proxy</em>，<em>Proxy类</em>，<em>客户端</em>：如无特别说明，都是指服务的消费方，Proxy接收Skeleton提供的服务</li>
-  <li><em>Skeleton</em>，<em>Skeleton类</em>，<em>服务端</em>：如无特别说明，都是指服务提供方，Skeleton为Proxy提供服务</li>
-  <li><em>服务实例</em>，<em>Skeleton类实例</em>，<em>Skeleton实例</em>：都是指一个具体的服务实例， 它是Skeleton类的实例；服务实例全局唯一</li>
-  <li><em>消费实例</em>，<em>Proxy类实例</em>， <em>Proxy实例</em>：是指一个具体的消费方，它有唯一的Client ID; 注意Proxy实例是没有服务实例ID的，服务ID是Skeleton实例的唯一标识符</li>
-  <li>Skeleton/Proxy的<strong>实例</strong>与Seleton/Proxy<strong>类</strong>是两个概念，文中如果指的是实例，则会具体写明，否则指的是Skeleton/Proxy类本身</li>
-</ul>
-
-<hr />
-
-<ul id="markdown-toc">
-  <li><a href="#536-methods" id="markdown-toc-536-methods">5.3.6 Methods</a>    <ul>
-      <li><a href="#5361-one-way-aka-fire-and-forget-methods" id="markdown-toc-5361-one-way-aka-fire-and-forget-methods">5.3.6.1 One-Way aka Fire-and-Forget Methods</a></li>
-      <li><a href="#5362-event-driven-vs-polling-access-to-method-results" id="markdown-toc-5362-event-driven-vs-polling-access-to-method-results">5.3.6.2 Event-Driven vs Polling access to method results</a></li>
-      <li><a href="#5363-canceling-method-result" id="markdown-toc-5363-canceling-method-result">5.3.6.3 Canceling Method Result</a></li>
-    </ul>
-  </li>
-  <li><a href="#537-fields" id="markdown-toc-537-fields">5.3.7 Fields</a></li>
-  <li><a href="#538-triggers" id="markdown-toc-538-triggers">5.3.8 Triggers</a></li>
-  <li><a href="#54-skeleton-class" id="markdown-toc-54-skeleton-class">5.4 Skeleton Class</a>    <ul>
-      <li><a href="#543-instantiation-constructors" id="markdown-toc-543-instantiation-constructors">5.4.3 Instantiation (Constructors)</a></li>
-      <li><a href="#544-offering-service-instance" id="markdown-toc-544-offering-service-instance">5.4.4 Offering Service instance</a></li>
-      <li><a href="#545-polling-and-event-driven-processing-modes" id="markdown-toc-545-polling-and-event-driven-processing-modes">5.4.5 Polling and event-driven processing modes</a>        <ul>
-          <li><a href="#5451-polling-mode" id="markdown-toc-5451-polling-mode">5.4.5.1 Polling Mode</a></li>
-          <li><a href="#5452-event-driven-mode" id="markdown-toc-5452-event-driven-mode">5.4.5.2 Event-Driven Mode</a></li>
-        </ul>
-      </li>
-      <li><a href="#546-methods" id="markdown-toc-546-methods">5.4.6 Methods</a></li>
-      <li><a href="#547-events" id="markdown-toc-547-events">5.4.7 Events</a></li>
-    </ul>
-  </li>
-</ul>
-
-<h3 id="536-methods">5.3.6 Methods</h3>
-
-<blockquote>
-  <p>The operator contains all of the service methods IN-/INOUT-parameters as INparameters. That means INOUT-parameters in the abstract service method description
-are split in a pair of IN and OUT parameters in the ara::com API.</p>
-</blockquote>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>服务接口中的每一个method都对应一个实现了<code class="language-plaintext highlighter-rouge">()</code>操作符的类。<code class="language-plaintext highlighter-rouge">()</code>操作符的入参就是method的In+In/Out参数；返回值是<code class="language-plaintext highlighter-rouge">ara::core::Future</code>类型，其模板参数类型是一个封装了这个method所有的Out+In/Out类型的结构体。关于In/Out类型，AUTOSAR规定要将其分别放在入参和返回值中，而不是通过非常量引用或者指针形式传入参数，然后通过引用或者指针原地返回结果。也就是说In/Out method参数类型，只是一个语法糖，等同于分别在In,Out中分别增加一个相同类型的参数。不支持通过引用或者指针原地返回结果的原因也很简单：method的返回类型是一个<code class="language-plaintext highlighter-rouge">future</code>，且必须马上返回，而不是block等待；如果入参是一个非常量引用或者指针，则method的调用依赖于周围的环境，则必须block等待，失去了method调用的异步特性。</p>
-
-<hr />
-
-<h4 id="5361-one-way-aka-fire-and-forget-methods">5.3.6.1 One-Way aka Fire-and-Forget Methods</h4>
-
-<p>fire-and-forget模式返回类型为<code class="language-plaintext highlighter-rouge">void</code>，但是返回<code class="language-plaintext highlighter-rouge">void</code>的方法不一定是fire-and-forget:</p>
-
-<ul>
-  <li>fire-and-forget method的Proxy端不会等待Skeleton端的返回结果，而是在讲数据发送到网络后直接在本地的<code class="language-plaintext highlighter-rouge">promise</code>中<code class="language-plaintext highlighter-rouge">set_value</code></li>
-  <li>返回值为<code class="language-plaintext highlighter-rouge">void</code>但不是fire-and-forget的method，即便返回值是<code class="language-plaintext highlighter-rouge">void</code>，Proxy端也要在接收到Skeleton端的通知后才会讲<code class="language-plaintext highlighter-rouge">promise</code>设置值，即便这个值是<code class="language-plaintext highlighter-rouge">void</code></li>
-</ul>
-
-<h4 id="5362-event-driven-vs-polling-access-to-method-results">5.3.6.2 Event-Driven vs Polling access to method results</h4>
-
-<p>AUTOSAR method对事件event-driven和polling的支持是通过对<a href="https://en.cppreference.com/w/cpp/thread/future">std::future</a>的扩展实现的:</p>
-
-<ul>
-  <li>event-driven: AUTOSAR的<code class="language-plaintext highlighter-rouge">ara::core::Future</code>实现了如下接口，使<code class="language-plaintext highlighter-rouge">future</code>可以注册一个callback，当数据可用时直接异步回调</li>
-</ul>
-
-<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">F</span><span class="p">&gt;</span>
-<span class="k">auto</span> <span class="n">then</span><span class="p">(</span><span class="n">F</span><span class="o">&amp;&amp;</span> <span class="n">func</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Future</span><span class="o">&lt;</span><span class="n">SEE_COMMENT_ABOVE</span><span class="o">&gt;</span><span class="p">;</span>
-</code></pre></div></div>
-<p>这个callback被调用的线程可能是<code class="language-plaintext highlighter-rouge">then</code>被调用的线程；也可能是<code class="language-plaintext highlighter-rouge">promise</code>的<code class="language-plaintext highlighter-rouge">set_value</code>线程</p>
-
-<ul>
-  <li>polling: AUTOSAR的<code class="language-plaintext highlighter-rouge">ara::core::Future</code>提供<code class="language-plaintext highlighter-rouge">bool is_ready() const;</code>，这个接口是non-blocking的，如果返回<code class="language-plaintext highlighter-rouge">true</code>，则<code class="language-plaintext highlighter-rouge">wait</code>肯定不会block</li>
-</ul>
-
-<h4 id="5363-canceling-method-result">5.3.6.3 Canceling Method Result</h4>
-
-<p><code class="language-plaintext highlighter-rouge">promise/future</code> 是 <em>DefaultContructible</em> 和 <em>MoveConstructible</em>, 但不是<em>CopyConstructible</em> 或者 <em>CopyAssignable</em>的，所以如果想要放弃method结果，需要使用拷贝复制给<code class="language-plaintext highlighter-rouge">future</code>一个空的<code class="language-plaintext highlighter-rouge">ara::com::Future</code>，这样当<code class="language-plaintext highlighter-rouge">promise/future</code>的<code class="language-plaintext highlighter-rouge">shared state</code>就会只有<code class="language-plaintext highlighter-rouge">promise</code>的引用，当<code class="language-plaintext highlighter-rouge">promise</code>调用了<code class="language-plaintext highlighter-rouge">set_value</code>且生命周期结束后，<code class="language-plaintext highlighter-rouge">shared state</code>会自动释放。</p>
-
-<h3 id="537-fields">5.3.7 Fields</h3>
-
-<p>fields是event和method的集合，可以用如下几条总结fields的特点:</p>
-
-<ul>
-  <li>与event不同的时，一旦Proxy订阅了一个field，Skeleton会自动发送当前的值给Proxy</li>
-  <li><code class="language-plaintext highlighter-rouge">Get()/Set()</code>可以用来获取或者设定当前的field值，就是普通的method</li>
-</ul>
-
-<p>除此之外，field与event一样，也有<code class="language-plaintext highlighter-rouge">Subscribe</code>,<code class="language-plaintext highlighter-rouge">GetSubscriptionState</code>,<code class="language-plaintext highlighter-rouge">SetReceiveHandler</code>等方法。</p>
-
-<h3 id="538-triggers">5.3.8 Triggers</h3>
-
-<p>trigger是一个特殊的event，它没有数据，所以不需要<code class="language-plaintext highlighter-rouge">local cache</code>。除了<code class="language-plaintext highlighter-rouge">GetNewSamples</code>方法变成<code class="language-plaintext highlighter-rouge">size_t GetNewTriggers()</code>以外，其他都与event相同。</p>
-
-<h2 id="54-skeleton-class">5.4 Skeleton Class</h2>
-
-<h3 id="543-instantiation-constructors">5.4.3 Instantiation (Constructors)</h3>
-
-<blockquote>
-  <p>Exactly for this reason the skeleton class (just like the proxy class) does neither support
-copy construction nor copy assignment! Otherwise two “identical” instances would exist
-for some time with the same instance identifier and routing of method calls would be
-non-deterministic.</p>
-</blockquote>
-
-<hr />
-<p><strong>NOTE</strong></p>
-
-<p>每一个Skeleton和Proxy的<em>实例</em>都是全局唯一的，所以Skeleton和Proxy类都不是<em>CopyConstructible</em>和<em>CopyAssignable</em>的:</p>
-
-<ul>
-  <li>Skeleton的实例通过Instance ID唯一确定，全局唯一</li>
-  <li>Proxy通过Skeleton的Instance ID实例化，与对应的Skeleton创建链接</li>
-</ul>
-
-<p>面对不同通信协议，binding层需要根据各个协议的特点适配，从而在ComAPI层看起来有一致的行为：</p>
-
-<ul>
-  <li>Skeleton的实例必须是全局唯一的，且能够接收不同Proxy实例的连接，对它们提供服务</li>
-  <li>Proxy的实例必须能够与Skeleton进行一对一的通信，且要保证event订阅能够准确发送到Proxy实例；method的response能够和request准确配对，不能出现错乱</li>
-</ul>
-
-<hr />
-
-<p>Skeleton有三种类型的构造函数，分别接收：</p>
-
-<ul>
-  <li><code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifier</code>: 一个确定的服务Instance, 需要包含ID，底层通信协议等信息；Skeleton类可以通过它来实例化底层的通信协议</li>
-  <li><code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifierContainer</code>: 一组服务Instance；Skeleton会实例化其中所有的服务实例；称为multi-binding</li>
-  <li><code class="language-plaintext highlighter-rouge">ara::core::InstanceSpecifier</code>: 首先通过它来解析manifest，获取<code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifier</code>，然后再通过<code class="language-plaintext highlighter-rouge">ara::com::InstanceIdentifier</code>实例化Skeleton；根据manifest，也可能是multi-binding</li>
-</ul>
-
-<h3 id="544-offering-service-instance">5.4.4 Offering Service instance</h3>
-
-<blockquote>
-  <p>From this point in time, where you call it, method calls might be dispatched to your
-service instance — even if the call to OfferService() has not yet returned.</p>
-</blockquote>
-
-<p>在<code class="language-plaintext highlighter-rouge">OfferService()</code>内部，对外提供服务需要的系统资源，例如uds socket、共享内存、TCP/UDP监听端口，开始分配，并对外发送当前服务实例的存在；在<code class="language-plaintext highlighter-rouge">OfferService()</code>还未返回的时候，可能已经有Proxy的实例与当前Skeleton实例创建链接并发送订阅、method请求；Skeleton析构函数会间接停止对外提供服务，释放系统资源；也可以主动调用<code class="language-plaintext highlighter-rouge"> StopOfferService()</code>主动停止对外提供服务。</p>
-
-<h3 id="545-polling-and-event-driven-processing-modes">5.4.5 Polling and event-driven processing modes</h3>
-
-<p>Skeleton端的polling和event-driven主要体现在对method请求的处理上；Proxy端的polling和event-driven主要体现在对订阅的event数据处理上。在Skeleton的构造函数中，第二个参数用于指定method请求的处理方式： kPoll, kEvent, kEventSingleThread：</p>
-
-<ul>
-  <li>同一个Skeleton实例，其提供的所有方法都共用同一个处理方式</li>
-  <li>当Skeleton实例是multi-binding时，Skeleton实例包含的所有服务实例的所有method都共用同一个处理方式</li>
-  <li>默认是kEvent方式</li>
-</ul>
-
-<h4 id="5451-polling-mode">5.4.5.1 Polling Mode</h4>
-
-<p>polling模式通过<code class="language-plaintext highlighter-rouge">ara::core::Future&lt;bool&gt; ProcessNextMethodCall();</code>接口实现。在polling模式下当method的request请求到达后，不会触发method的处理，而是将请求以队列的形式缓存；等待用户主动调用<code class="language-plaintext highlighter-rouge">ara::core::Future&lt;bool&gt; ProcessNextMethodCall();</code>。这个方法返回一个Future，包含了一个布尔值，表示队列中是否包含下一个待处理的method请求。</p>
-
-<ul>
-  <li>在Skeleton API中用户的method实现虚接口的返回值类型是<code class="language-plaintext highlighter-rouge">ara::core::Future</code>：这表示用户的方法可能是异步的</li>
-  <li>在ProcessNextMethodCall方法中，根据底层通信协议的不同，一般应包含如下步骤：
-    <ul>
-      <li>将method请求数据反序列化</li>
-      <li>将反序列化后的参数列表传入用户的method实现，得到一个Future：在用户的方法实现可能是同步的；也可能是异步的</li>
-      <li>通过用户method实现返回的Future拿到处理结果</li>
-      <li>将这个结果序列化成response，发送给Proxy</li>
-      <li>检查是否存在下一个method请求，如果是返回true，否则返回false</li>
-    </ul>
-  </li>
-</ul>
-
-<p>在以上的步骤中，有两次返回Future：用户method处理实现返回和<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>返回，这两处只要有一处是异步的，则整个method请求的处理就是异步的。序列化、反序列化、检查是否有下一个请求等步骤可以在<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>的当前线程，也可以异步执行；用户method处理方法中，可以先返回Future，然后异步执行处理，也可以在<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>同一个线程中同步完成。<code class="language-plaintext highlighter-rouge">ProcessNextMethodCall</code>所在的线程、序列化/反序列化/调用用户实现/返送返回值的线程、用户实际处理method的线程，这三个上下文可以是同一个线程，可以是两个线程，也可以是三个不同的线程。</p>
-
-<h4 id="5452-event-driven-mode">5.4.5.2 Event-Driven Mode</h4>
-
-<p>kEvent模式和kEventSingleThread模式下，当通信协议接收到method的request请求后，会异步触发相关method处理，例如将任务放入线程池执行。kEvent模式下，请求到达后直接放入线程池处理；kEventSingleThread模式下只有一个线程，method的request按照先后顺序在同一个线程中执行。</p>
-
-<h3 id="546-methods">5.4.6 Methods</h3>
-
-<p>在Skeleton端用户的method实现返回一个Future这意味着，用户可以选择同步或者异步处理请求，例如用户可以在其中开启异步线程或者放入线程池，然后马上返回一个Future</p>
-
-<h3 id="547-events">5.4.7 Events</h3>
-
-<p>第一个发送接口使用拷贝的方式将用户数据拷贝到底层通信协议：<code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Send(const SampleType &amp;data);</code>; 为了减少拷贝AUTOSAR提供了另外一个发送接口：<code class="language-plaintext highlighter-rouge">ara::core::Result&lt;void&gt; Send(ara::com::SampleAllocateePtr&lt;SampleType&gt;data);</code>，其中<code class="language-plaintext highlighter-rouge">ara::com::SampleAllocateePtr&lt;SampleType&gt;</code>的行为可以当成<code class="language-plaintext highlighter-rouge">std::unique_ptr</code>，在调用这个发送接口前可以通过使用<code class="language-plaintext highlighter-rouge">ara::core::Result&lt;ara::com::SampleAllocateePtr&lt;SampleType&gt;&gt; Allocate();</code>接口向ComAPI层申请空间，申请到后用户将数据填充，然后调用<code class="language-plaintext highlighter-rouge">Send</code>，加入ComAPI在共享内存中开辟这些空间，则在同一个机器上的不同进程可以在Sender和Reciever之间实现<code class="language-plaintext highlighter-rouge">zero copy</code>。</p>]]></content><author><name></name></author><category term="autosar" /><summary type="html"><![CDATA[标准连接：ara::com API]]></summary></entry></feed>
+<p><code class="language-plaintext highlighter-rouge">pthread_mutex_t</code> and named semaphores in POSIX can be used to achieve inter-process synchronization. The C++ <code class="language-plaintext highlighter-rouge">std::mutex</code> is only designed for intra-process usage.</p>]]></content><author><name></name></author><category term="linux-programming" /><summary type="html"><![CDATA[In linux, pthread mutex pthread_mutex_t(on which std::mutex is based), and pthread_cond_t(on which std::condition_variable is based), and semaphores, all use futex kernel support as their internal implementation. Let’t dig into what is futex and the behavior of it.]]></summary></entry></feed>
