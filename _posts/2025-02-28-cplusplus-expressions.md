@@ -20,7 +20,7 @@ Each C++ expression (an operator with its operands, a literal, a variable name, 
 
 ## Type
 
-An expression can have basic type, user-defined type, const/non-const, reference/non-reference types. However, **If an expression initially has the type “reference to T” (8.3.2, 8.5.3), the type is adjusted to T prior to any further analysis.**, which indicates that expression can have reference types. [Expressions can have Reference Type]>(https://scottmeyers.blogspot.com/2015/02/expressions-can-have-reference-type.html):
+An expression can have basic type, user-defined type, const/non-const, reference/non-reference types. However, **If an expression initially has the type “reference to T” (8.3.2, 8.5.3), the type is adjusted to T prior to any further analysis.**, which indicates that expression can have reference types. [Expressions can have Reference Type](https://scottmeyers.blogspot.com/2015/02/expressions-can-have-reference-type.html):
 
 
 >Today I got email about some information in *Effective Modern C++*. The email included the statement, "An expression never has reference type." This is easily shown to be >incorrect, but people assert it to me often enough that I'm writing this blog entry so that I can refer people to it in the future.
