@@ -20,25 +20,26 @@ Each C++ expression (an operator with its operands, a literal, a variable name, 
 
 ## Type
 
-An expression can have basic type, user-defined type, const/non-const, reference/non-reference types. However, **If an expression initially has the type “reference to T” (8.3.2, 8.5.3), the type is adjusted to T prior to any further analysis.**, which indicates that expression can have reference types. [Expressions can have Reference Type](https://scottmeyers.blogspot.com/2015/02/expressions-can-have-reference-type.html):
+An expression can have basic type, user-defined type, const/non-const, reference/non-reference types. However, **If an expression initially has the type “reference to T” (8.3.2, 8.5.3), the type is adjusted to T prior to any further analysis.**, which indicates that expression can have reference types. [Expressions can have Reference Type]>(https://scottmeyers.blogspot.com/2015/02/expressions-can-have-reference-type.html):
 
-Today I got email about some information in *Effective Modern C++*. The email included the statement, "An expression never has reference type." This is easily shown to be incorrect, but people assert it to me often enough that I'm writing this blog entry so that I can refer people to it in the future.
 
-Section 5/5 of the Standard is quite clear (I've put the relevant text in bold):
-
+>Today I got email about some information in *Effective Modern C++*. The email included the statement, "An expression never has reference type." This is easily shown to be >incorrect, but people assert it to me often enough that I'm writing this blog entry so that I can refer people to it in the future.
+>
+>Section 5/5 of the Standard is quite clear (I've put the relevant text in bold):
+>
 >**If an expression initially has the type “reference to T”** (8.3.2, 8.5.3), the type is adjusted to T prior to any further analysis. The expression designates the object >or function denoted by the reference, and  the expression is an lvalue or an xvalue, depending on the expression.
-
-There'd clearly be no need for this part of the Standard if expressions couldn't have reference type.
-
-If that's not enough to settle the matter, consider the type of an expression that consists of a function call. For example:
-        int& f();                // f returns int&
-        auto x = f();            // a call to f
-        
-What is the type of the expression "f()", i.e., the type of the expression consisting of a call to f? It's hard to imagine anybody arguing that it's not int&, i.e., a reference type. But what does the Standard say? Per 5.2.2/3 (where I've again put the relevant text in bold and where I'm grateful to Marcel Wid for correcting the error I had in an earlier version of this post that referred to 5.2.2/10):
-
+>
+>There'd clearly be no need for this part of the Standard if expressions couldn't have reference type.
+>
+>If that's not enough to settle the matter, consider the type of an expression that consists of a function call. For example:
+        >int& f();                // f returns int&
+        >auto x = f();            // a call to f
+>        
+>What is the type of the expression "f()", i.e., the type of the expression consisting of a call to f? It's hard to imagine anybody arguing that it's not int&, i.e., a >reference type. But what does the Standard say? Per 5.2.2/3 (where I've again put the relevant text in bold and where I'm grateful to Marcel Wid for correcting the error >I had in an earlier version of this post that referred to 5.2.2/10):
+>
 >If the postfix-expression designates a destructor (12.4), the type of the function call expression is void; otherwise, the type of the function call expression is the >return type of the statically chosen function (i.e., ignoring the virtual keyword), even if the type of the function actually called is different. This return type shall >be an object type, a reference type or cv void.
-
-It's very clear that expressions can have reference type. Section 5/5 takes those expressions and strips the reference-ness off of them before doing anything else, but that's not the same as the reference-ness never being present in the first place.
+>
+>It's very clear that expressions can have reference type. Section 5/5 takes those expressions and strips the reference-ness off of them before doing anything else, but >that's not the same as the reference-ness never being present in the first place.
 
 
 ## Value Category
