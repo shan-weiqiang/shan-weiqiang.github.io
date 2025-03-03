@@ -14,7 +14,7 @@
 | AUE[5]                  | Pass                        | Runnable                 | Component(Coroutine) |
 | AAE[5]                  | Node[4]                     | Activity[3]              | Node[1]              |
 | Port[5]                 | Channel                     | Topic                    | Topic                |
-| Graph                   | Node DAG                    | Runnable/Activity DAG[2] | Component DAG        |
+| Graph                   | Node DAG[7]                 | Runnable/Activity DAG[2] | Component DAG        |
 | Graphlet                | Subgraph                    | NULL                     | NULL                 |
 | Model Format            | JSON(DAG)/YAML(STM)         | YAML                     | NULL                 |
 | Compiler                | `nodestub`/`stmcompiler`[6] | `yaaac`                  | NULL                 |
@@ -28,19 +28,29 @@ Note:
 2. AOS has DAG both for Runanble and Activity
 3. AOS Activity is consisted of a DAG of Runnables
 4. DriveWorks Node is consisted of a sequential(default) execution of Pass: [Compute Graph Framework SDK Reference](https://developer.nvidia.com/docs/drive/drive-os/6.0.9/public/driveworks-nvcgf/index.html)
+   1. By default, Pass inside one node is sequential. The first Pass check new messages, the last Pass send out messages in this Node: polling, instead of event triggering.
+   2. A Pass is mapped to a runnable in STM
 5. Those concept will be reflected in C++ code
 6. DriveWorks' CGF and STM is two different SKD: [System Task Manager SDK Reference](https://developer.nvidia.com/docs/drive/drive-os/6.0.7/public/driveworks-stm/index.html)
+7. DAG in DriveWorks is different from DAG in AOS and Cyberrt in that it only dictates **data pipeline**, not **triggering**. In both AOS and Cyberrt, node in DAG are triggered or cyclic, that the arrow in the graph not only indicates data flow, but also about activation. In DriveWorks, it's only about data flow, since all Pass exectuion are periodic in nature.
 
-The different concept leads to different strategy when dealing with those middleware, especially scheduling and deterministic replay. In all of those three middlewares, scheduling both happens at the AUE level. But for deterministic recompute control, DriveWorks and AOS use Node and Activity as control unit, Cyberrt use Component as control unit. 
+The different concept leads to different strategy when dealing with those middleware, especially scheduling and determinism. In all of those three middlewares, scheduling both happens at the AUE level. But for deterministic control, DriveWorks and AOS use Node and Activity as control unit, Cyberrt use Component as control unit. 
 
 # DriveWorks STM
 
 [Compute Graph And Constraints](https://developer.nvidia.com/docs/drive/drive-os/6.0.7/public/driveworks-stm/stm_compiler_computegraphandconstraints.html)
 
-The CGF and STM in DriveWorks has orthogonal relationship.
+The CGF and STM in DriveWorks has orthogonal relationship:
 
-- `runnable` in STM is directly mapped from `Pass` in CGF, which is a AUE
-- `client` in STM is a OS process, which can contain one or more `Node` in CGF
+- Hyperepochs: It's resource partition and it's periodic. Resources are mutually exclusive between different hyperepochs. Each hyperepoch is scheduled periodically. Each hyperepoch contain mulitiple epochs.
+- Epochs: A time slot inside hyperepoch. It belongs to hyperepoch and can have period and frame. Period means the interval between exectuion of the same epoch. Frame means the number of the same epoch inside the hyperepoch. The same epoch inside one hyperepoch are executed sequentially.
+
+Hyperepochs and epochs are concept used to divide compute resources: both hardware and time resources. 
+
+- Client: in STM is a OS process, which can contain one or more `Node` in CGF. Each client contain multiple runnables.
+- Runnable: in STM is directly mapped from `Pass` in CGF, which is a AUE. Those runables must be executed in epochs. Each epoch might contain runnables from different client(process). Runnables can only have dependencies inside *the same epoch*, which holds true even they come from different client(process).
+
+Clients and Runnables are concept used to represent compute tasks.
 
 The compute graph(YAMLs) for STM is compiled from CGF(JSON), taking the Node relationship into consideration.
 
@@ -83,6 +93,44 @@ Clients:
         - ProcessRadar:
 ```
 
+```yaml
+Clients:
+    - Client0:
+        Resources:
+        CUDA_STREAM:
+        - CUDA_STREAM0: GPU0
+        Epochs:
+        - Perception.Camera: # Camera epoch in Perception Hyperepoch
+            Runnables:
+            - ReadCamera: # Normal runnable
+                WCET: 10us
+                Resources:
+                - CPU # This runnable runs on a CPU
+                Priority: 2
+            - PreProcessImage: # Submitter runnable
+                WCET: 20ms
+                StartTime: 1ms # Starts 1ms after the camera epoch
+                Resources: # GPU Submitter needs CPU0 and a stream
+                - CPU0
+                CUDA_STREAM
+                Dependencies: [Client0.ReadCamera] # Depends on
+                ReadCamera
+                Submits: Client0.PreProcessGPUWork # Mentions
+                submittee
+            - PreProcessGPUWork: # Submittee runnable
+                WCET: 5000ns
+                Deadline: 30ms # Hint to schedule this before 30ms
+                Resources: [GPU]
+                Dependencies:
+                    - Client0.PreProcessImage # Optional for submittees
+                # Note: Inter-epoch dependencies are currently not
+                # supported. Inter-client dependencies are supported.
+        - Perception.Radar: # Radar epoch in Perception Hyperepoch
+                Runnables:
+                - ProcessRadar:
+                # Runnable specification...
+```
+
 Each runnable(Pass in CGF) in clients(OS processes) is configured in above yaml files and `stmcompiler` compiles them to final statical scheduling manifest. Each client has a thread pool to run all the runnables. STM daemon read the scheduling manifest and controls the execution in each client globally.
 
 [STM](https://developer.nvidia.com/docs/drive/drive-os/6.0.7/public/driveworks-stm/stm_introduction.html)
@@ -95,4 +143,22 @@ Features:
   - STM need WCET time to generate static configuration, it is a time-buget system!
   - After WCET is determined, STM can deterministically schedule all runnables
   - STM is non-preemptive, so internally it have to control the statically determined execution order. This implies that it can only keep the results deterministic, but not for the actual execution time.
+  - STM master works at the SOC level, controlling all clients(processes) in the SOC. This way all compute engine(CPU/GPU) are coordinated globally.
 - The execution time line is decided by hyperepoch and epoch, which acts very much like simulation time! All runnables are registered in periodical epochs!
+
+## Determinism
+
+First we suppose that there is only one hyperepoch in SOC(reasonable, considering that we use all compute CPU/GPU). First of all the schedule is flatten: *The compiler currently supports two heuristics for flattening the graph into a schedule.*. My understanding is that the scheduling is linear. Note that this does not necessarily mean that the execution of runnables is also linear. On the contrary, since one hyperepoch can have multiple compute engines exculsively, the execution is parallel in nature. I think DriveWorks can achieve deterministic behavior. This is because it's a time budget system:
+
+- Hyperepochs are scheduled using the period of the hyperepoch
+- Inside hyperepoch, frames of one same epoch is synchronized using framesync client, which can make sure that frames of the same epoch are executed sequentially
+- Inside each epoch, runnables can have dependency and can be executed sequentially.
+- Different epochs inside one hyperepoch are scheduled according to static start time inside hyperepoch, but the relative start/end time between different epochs are **NOT** guaranteed. **STM is only deterministic in scheduling, but cannot guarantee the compute output each time, because the real execution time for each runnable is variant**. Different epochs inside one hyperepoch are parallel. What if they are also synchronized? It will not result in deterministic output, the reason is that epoch is not Node, it does not necessarily accept inputs at the start and give output at the end. Epochs inside hyperepoch are not DAGs. The STM master can do is to make sure hyperepochs(compute resources) are used according to pre-defined, static time-based schedule, it's **determinism in compute, not in result**. What if each epoch also represent a functional unit, like a Node, which during this time slot, it accept inputs and give outputs at the end of this epoch? This way, we can use something like *epochsync* to synchronize, not only frames of same epoch, but also all frames of all epochs under the same hyperepoch: 1. Epoch frames are synchronized and determined. 2. Runables inside each epoch are synchronized(sequentially). When the hyperepoch is run, it should have a deterministic result. But it also have disadvantages: it creates stard/end order in different epochs and might introduce waiting. In reality, what is the desired result when one compute entity is taking time more than expected? should other dependent compute goes on with older data and give normal output, or should other compute be blocked by this abnormal compute entity? 
+
+>Epoch Boundaries
+>
+>All runnables in an epoch must complete before any runnable in the next epoch can begin. This is implemented via an additional, STM generated client called the framesync client. The framesync client waits on leaf node runnables to signal completion, and then sends a signal to root node runnables to begin executing in the next epoch. Given a schedule overrun, the STM runtime can operate in 2 modes: a frameskip mode and a free-running mode.
+>
+>- Frameskip Mode In this mode, the framesync client will block the start of the next epoch until the next multiple of the epoch length. For example, if the epoch length is 100ms, and the last runnable in an epoch completes at t=350ms, the next epoch will start at t=400ms. If the epoch length is 100ms and the last runnable in an epoch completes at t=90ms, the next epoch will start at t=100ms.
+>- No-Frameskip-on-Overrun Mode In this mode, the next epoch will start as soon as all runnables in the previous epoch have finished, if the previous epoch over-ran its scheduled length.
+
