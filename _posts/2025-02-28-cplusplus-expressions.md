@@ -263,6 +263,53 @@ class Gadget {
 };
 ```
 
+To create rvalue, `std::move`, `std::forward`, `static_cast` specifier has to be used:
+
+```c++
+
+#include <iostream>
+#include <utility>
+class A {
+public:
+  // Default constructor
+  A() { std::cout << "Default constructor called\n"; }
+
+  // Destructor
+  ~A() { std::cout << "Destructor called\n"; }
+
+  // Copy constructor
+  A(const A &) { std::cout << "Copy constructor called\n"; }
+
+  // Move constructor
+  A(A &&) noexcept { std::cout << "Move constructor called\n"; }
+
+  // Copy assignment operator
+  A &operator=(const A &) {
+    std::cout << "Copy assignment operator called\n";
+    return *this;
+  }
+
+  // Move assignment operator
+  A &operator=(A &&) noexcept {
+    std::cout << "Move assignment operator called\n";
+    return *this;
+  }
+};
+
+int main() {
+
+  A a;
+  A &&b = std::move(a);
+
+  // ! This will call copy constructor, NOT move constructor, even b is rvalue
+  // reference type, but it's lvalue
+  A c(b);
+
+  // ! This will call move constructor
+  A d(std::move(c));
+}
+```
+
 
 # decltype
 
