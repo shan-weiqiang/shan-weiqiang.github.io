@@ -261,6 +261,8 @@ Note: When doing all deduction the expression type `T` will use the non-referenc
 
 > If an expression initially has the type “reference to T” (8.3.2, 8.5.3), the type is adjusted to T prior to any further analysis.
 
+**`decltype` links valueness of an expression to type.**
+
 ## Print valueness
 
 First approach, we can check whether the yield type of decltype(expression) is lvalue or rvalue reference, if rvalue
