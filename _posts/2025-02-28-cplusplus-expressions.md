@@ -99,13 +99,13 @@ Widget var2 = static_cast<Widget&&>(var1);
 
 Note that the valueness of expression `static_cast` is decided by [`static_cast`](https://en.cppreference.com/w/cpp/language/static_cast) itself:
 
-<blockquote>
-As with all cast expressions, the result is:
 
-- An lvalue if target-type is an lvalue reference type or an rvalue reference to function type(since C++11);
-- A xvalue if target-type is an rvalue reference to object type; [swq: how `std::move` is implemented] (since C++11)
-- A prvalue otherwise.
-</blockquote>
+>As with all cast expressions, the result is:
+>
+>- An lvalue if target-type is an lvalue reference type or an rvalue reference to function type(since C++11);
+>- A xvalue if target-type is an rvalue reference to object type; [swq: how `std::move` is implemented] (since C++11)
+>- A prvalue otherwise.
+
 
 
 # Type Deduction
