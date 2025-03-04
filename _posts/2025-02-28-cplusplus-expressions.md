@@ -145,7 +145,7 @@ f(expr); // deduce T and ParamType from expr
   - As before, if expr’s type is a reference, ignore the reference part
   - If, after ignoring expr’s reference-ness, expr is const, ignore that, too. If it’s volatile, also ignore that.
 
-## `auto` deduction
+## auto deduction
 
 It's essentially the same as function template parameter type deduction like above, the mappings relationships are:
 
@@ -311,7 +311,7 @@ class Gadget {
 ```
 
 
-# `decltype`
+# decltype
 
 [C++ decltype](https://en.cppreference.com/w/cpp/language/decltype)
 
@@ -409,7 +409,7 @@ int main() {
 }
 ```
 
-# `declval`
+# declval
 
 [C++ declval](https://en.cppreference.com/w/cpp/utility/declval)
 
