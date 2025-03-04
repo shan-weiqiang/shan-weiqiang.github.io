@@ -204,11 +204,17 @@ int main() {
   std::vector<A> vec(2);
   std::for_each(vec.begin(), vec.end(),
                 // e is of lvalue, copy contructor called
+                // Note: e is not expression here, decltype get the real type of
+                // e, for universal reference, it's either non-reference type or
+                // lvalue reference type
                 [](auto &&e) { auto a = std::forward<decltype(e)>(e); });
 
   std::for_each(std::make_move_iterator(vec.begin()),
                 std::make_move_iterator(vec.end()),
                 // e is of xvalue, move contructor called
+                // Note: e is not expression here, decltype get the real type of
+                // e, for universal reference, it's either non-reference type or
+                // lvalue reference type
                 [](auto &&e) { auto a = std::forward<decltype(e)>(e); });
 }
 
