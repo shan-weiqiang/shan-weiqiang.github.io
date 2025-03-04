@@ -162,6 +162,58 @@ const auto& rx = x; // case 1 (rx is a non-universal ref.)
 // T --> auto; const auto& --> ParamType; x --> expr
 ```
 
+`auto` can also be used in lamda and support universal reference:
+
+```c++
+
+#include <algorithm>
+#include <iostream>
+#include <iterator>
+#include <utility>
+#include <vector>
+
+class A {
+public:
+  // Default constructor
+  A() { std::cout << "Default constructor called\n"; }
+
+  // Destructor
+  ~A() { std::cout << "Destructor called\n"; }
+
+  // Copy constructor
+  A(const A &) { std::cout << "Copy constructor called\n"; }
+
+  // Move constructor
+  A(A &&) noexcept { std::cout << "Move constructor called\n"; }
+
+  // Copy assignment operator
+  A &operator=(const A &) {
+    std::cout << "Copy assignment operator called\n";
+    return *this;
+  }
+
+  // Move assignment operator
+  A &operator=(A &&) noexcept {
+    std::cout << "Move assignment operator called\n";
+    return *this;
+  }
+};
+
+int main() {
+
+  std::vector<A> vec(2);
+  std::for_each(vec.begin(), vec.end(),
+                // e is of lvalue, copy contructor called
+                [](auto &&e) { auto a = std::forward<decltype(e)>(e); });
+
+  std::for_each(std::make_move_iterator(vec.begin()),
+                std::make_move_iterator(vec.end()),
+                // e is of xvalue, move contructor called
+                [](auto &&e) { auto a = std::forward<decltype(e)>(e); });
+}
+
+```
+
 ## More about Universal Reference
 
 [Universal References in C++11, Scott Meyers](https://github.com/shan-weiqiang/cplusplus/blob/main/expression/universal-references-and-reference-collapsing-scott-meyers.pdf)
