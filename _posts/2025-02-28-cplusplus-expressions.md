@@ -362,6 +362,29 @@ int main() {
 }
 ```
 
+# static_cast vs decltype
+
+Let's compare `static_cast` and `decltype`:
+
+With `static_cast`:
+
+>As with all cast expressions, the result is:
+>
+>- An lvalue if target-type is an lvalue reference type or an rvalue reference to function type(since C++11);
+>- A xvalue if target-type is an rvalue reference to object type; [swq: how `std::move` is implemented] (since C++11)
+>- A prvalue otherwise.(non-reference type)
+
+With `decltype`:
+
+>- if value category of expression is xvalue, it yields T&&
+>- if value category of expression is lvalue, it yields T&
+>- if value category of expression is prvalue, it yields T
+
+They do reverse operations:
+
+- `static_cast` sets the type/value category (via the target type).
+- `decltype` infers the type/value category (from the expression).
+
 # declval
 
 [C++ declval](https://en.cppreference.com/w/cpp/utility/declval)
