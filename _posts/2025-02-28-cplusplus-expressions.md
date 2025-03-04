@@ -233,56 +233,9 @@ void wrapper(T&& arg)
   - If T is deduced to lvalue reference type, the expression `forward<T>(arg).get()` will have type `int&` and have lvalueness. `decltype` will result int type `int&`
 - The second appearance of `forward<T>(arg).get()` just call proper implementation of `get()`
 
-Note: when using `decltype` as parameter argument to `std::forward`, we only need to care about whether the expression in `decltype` is lvalue or rvalue, no need to care about the type(only need to know the non-reference type of T). Since if the expression is lvalue, `decltype` will result in lvalue reference type, which result in lvalue reference type(lvalueness) for the `std::forward`. Otherwise, if the expression inside `decltype` is of xvalue or prvalue, `decltype` results in non-reference type or rvalue reference type, which both result in a rvalue reference type(rvalueness) for the `std::forward` expression. `decltype` and `std::forward` together to pass the valueness down to nested function calls.- Only use `std::forward` with universal reference. So the template argument for it should always be deduced, instead of specified.
-  - This implies that the deduced type T is either non-reference type or a lvalue reference.
-- `std::forward` is an *expression* and *function*, it's value category conform to normal C++ expression rules. It always return *reference*:
-  - When return lvalue reference, its value category is lvalue
-  - When return rvalue reference, its value category is rvalue(xvalue or prvalue)
-  - Above behavior is due to the fact that when cast to rvalue reference, the result of `static_cast` is of xvalue; when cast to non-reference, the result is of prvalue; when cast to lvalue reference, the result is of lvalue.
-- The type and valueness is decided by `static_cast`, which is the internal implementation of `std::forward`
-
-
-Usage1: Forwards lvalues as either lvalues or as rvalues, depending on T:
-
-```c++
-template<class T>
-void wrapper(T&& arg)
-{
-    // arg is always lvalue
-    foo(std::forward<T>(arg)); // Forward as lvalue or as rvalue, depending on T
-}
-```
-
-- When T is deduced to non-reference type,the expression `std::forward` is of:
-  - type: rvalue reference to T
-  - value category: rvalue
-- When T is deduced to lvalue reference type, the expression `std::forward` is of:
-  - type: T
-  - value category: lvalue
-
-Usage2: Forwards rvalues as rvalues and prohibits forwarding of rvalues as lvalues.
-
-```c++
-struct Arg
-{
-    int i = 1;
-    int  get() && { return i; } // call to this overload is rvalue
-    int& get() &  { return i; } // call to this overload is lvalue
-};
-// transforming wrapper
-template<class T>
-void wrapper(T&& arg)
-{
-    foo(forward<decltype(forward<T>(arg).get())>(forward<T>(arg).get()));
-}
-```
-
-- The `decltype(forward<T>(arg).get())` evalues the type:
-  - If T is deduced to non-reference type, the expression `forward<T>(arg).get()` will have type `int` and have xvalueness. `decltype` will result in type `int&&`
-  - If T is deduced to lvalue reference type, the expression `forward<T>(arg).get()` will have type `int&` and have lvalueness. `decltype` will result int type `int&`
-- The second appearance of `forward<T>(arg).get()` just call proper implementation of `get()`
-
 Note: when using `decltype` as parameter argument to `std::forward`, we only need to care about whether the expression in `decltype` is lvalue or rvalue, no need to care about the type(only need to know the non-reference type of T). Since if the expression is lvalue, `decltype` will result in lvalue reference type, which result in lvalue reference type(lvalueness) for the `std::forward`. Otherwise, if the expression inside `decltype` is of xvalue or prvalue, `decltype` results in non-reference type or rvalue reference type, which both result in a rvalue reference type(rvalueness) for the `std::forward` expression. `decltype` and `std::forward` together to pass the valueness down to nested function calls.
+
+
 
 # Named Variables
 
@@ -431,5 +384,4 @@ typename std::add_rvalue_reference<T>::type declval() noexcept
 [Why add rvalue reference, instead of lvalue reference?](https://stackoverflow.com/questions/20303250/is-there-a-reason-declval-returns-add-rvalue-reference-instead-of-add-lvalue-ref/20303350#20303350)
 
 The reason is related to reference collapsing rules: only by adding rvalue reference, `declval` might have the possibility return a rvalue reference, so as to have more possibility to call methods, such as methods that can only be called by rvalue.
-
 
