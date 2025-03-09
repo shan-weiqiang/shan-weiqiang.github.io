@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Docker CLI原理"
+title:  "Docker CLI"
 date:   2024-03-20 19:22:46 +0800
 tags: [linux-programming]
 ---

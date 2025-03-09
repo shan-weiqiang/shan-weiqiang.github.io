@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "unique_ptr不完整类型案例分析"
+title:  "unique_ptr incomplete type"
 date:   2023-12-24 19:22:46 +0800
 tags: [c++]
 ---

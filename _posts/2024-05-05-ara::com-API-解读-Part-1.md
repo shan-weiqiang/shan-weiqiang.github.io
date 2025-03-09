@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "ara::com API解析[Part 1]"
+title:  "ara::com API[Part 1]"
 date:   2024-05-05 13:22:46 +0800
 tags: [autosar]
 ---

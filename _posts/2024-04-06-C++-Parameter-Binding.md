@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++ 实参与形参绑定规则"
+title:  "Parameter binding"
 date:   2024-04-05 19:22:46 +0800
 tags: [c++]
 ---
