@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++: crtp与mixin设计模式"
+title:  "CRTP design pattern"
 date:   2023-10-13 19:22:46 +0800
 tags: [c++]
 ---
@@ -23,23 +23,20 @@ tags: [c++]
 template <typename Derived, typename ValueType> class Base {
 public:
   using and_then_callback = std::function<void(ValueType &)>;
-  /// 函数是公共接口函数，所有继承类通过该接口实现多态
-  /// 接口的实现在基类, 与虚函数相反，虚函数多态的实现在继承类
-  /// 中间有两次接口的约定：
-  /// 1. 因为在基类中调用继承类的方法，所以所有继承类必须实现相关方法
-  /// 2. 基类的方法暴露给用户，为提供给用户的接口
-  Derived &and_then(const and_then_callback &callback) {
-    /// 将指针cast成继承类的指针
-    auto derived = static_cast<Derived *>(this);
-    if (derived->has_data()) {
-      callback(derived->get_data());
-      // 可以在基类中调用继承类的成员，这也是这个设计模式的核心，因为按照正常逻辑，
-      // 此处这个函数基类并不知道（先声明，后使用），但是因为是模板类，
-      // 所以该类的实例化其实是在derived->other_implementation()之后进行的，
-      // 所以编译可以通过
-      derived->other_implementation();
+
+  // 1. do not repeat yourself
+  Derived &derived() { return static_cast<Derived &>(*this); }
+  Derived const &derived() const { return static_cast<Derived const &>(*this); }
+  // 2. use decltype to return types that unknow during this time
+  // but will be known at instantiation time
+  decltype(auto) and_then(const and_then_callback &callback) {
+    if (derived().has_data()) {
+      callback(derived().get_data());
+      // 3. and_then will be instantiated only at use time, at that time
+      // other_implementation is already defined
+      derived().other_implementation();
     }
-    return *derived;
+    return derived();
   }
 };
 
@@ -48,8 +45,8 @@ class Derived_A : public Base<Derived_A<ValueType>, ValueType>
 
 {
 public:
-  template <typename... Argu> void set_data(const Argu &...args) {
-    data = ValueType(args...);
+  template <typename... Argu> void set_data(Argu &&...args) {
+    data = ValueType(std::forward<Argu>(args)...);
     flag = true;
   }
   ValueType &get_data() { return data; }
@@ -66,8 +63,8 @@ private:
 template <typename ValueType>
 class Derived_B : public Base<Derived_B<ValueType>, ValueType> {
 public:
-  template <typename... Argu> void set_data(const Argu &...args) {
-    data = ValueType(args...);
+  template <typename... Argu> void set_data(Argu &&...args) {
+    data = ValueType(std::forward<Argu>(args)...);
     flag = true;
   }
   ValueType &get_data() { return data; }
@@ -84,7 +81,7 @@ private:
 struct MyType {
   int a;
   float b;
-  MyType(const int arg1, const float arg2) : a(arg1), b(arg2){};
+  MyType(int arg1, float arg2) : a(arg1), b(arg2) {};
   MyType() = default;
 };
 
@@ -94,8 +91,7 @@ int main(int argc, char const *argv[]) {
 
   DA.template set_data(1u, 2.1f);
   DB.template set_data(2u, 3.2f);
-  // and_then是基类的成员函数，继承类没有，但是在这里实现了多态，不同的成员可以有不同的实现
-  // 但是没有vptr table等，没有运行时消耗，是静态多态，可以节约资源
+
   DA.and_then(
       [](MyType &a) -> void { std::cout << "from DA: a = " << a.a << "\n"; });
   DB.and_then(
@@ -209,6 +205,8 @@ CRTP静态多态和虚函数动态多态区别在于没有 *vptr* 和 *vptr tabl
     - 动态多态要求继承类必须实现相应的虚函数
     - 静态多态要求继承类必须实现相应的成员方法，供基类接口方法调用
 - 静态多态只能在模板类使用，使用范围不如虚函数
+- 静态多态**没有统一的基类**，不能像动态多态那样使用一个基类接口，所以静态多态必须在编译时知晓所有的继承类
+  - 可以让动态多态的基类再继承自一个统一的基类，但是这样与动态多态混合后又失去了运行时的效率
 
 静态多态是不能完全替代虚函数的，因为静态多态要求在编译时已经知道所有的类型信息，其多态是通过模板的特化来实现的；虚函数不要求在编译时知道所有类型信息，只需要知道虚接口类型，而在运行时自动实现多态（其实运行时也不知道实际的类型信息，只是通过虚函数表实现多态）。
 
