@@ -80,8 +80,8 @@ private:
     - The receive operation should fill the buffer
     - After the buffer is filled, the lambda completion handler should be called
     Inside this call, it will register:
-        - Monitoring of this socket to `io_context`, when it's available to read, epoll will unblock
-        - Register software event and it's handler(the lambda) to this same `io_context`, expecting it to be called when the reading is completed. This call returns immediately.
+        - Monitoring of this socket to `io_context`, when it's available to read, epoll will unblock. **Note that after the reading is completed, inside the callback registered to the reactor, it will deregister the monitoring of this socket from the reactor. Then also inside the callback, it will trigger software events to make the execution context execute completion handler in next loop of epoll wait.**
+        - Register software event and it's handler(the lambda) to this same `io_context`, expecting it to be called when the reading is completed. This call returns immediately. 
 - Inside the lambda, `socket_.async_send_to` is called to give feedback. Again it's the same pattern as `socket_.async_receive_from` , except that this time the reactor will unblock when this socket is available to write. After the writing complete, the completion lambda is again called as software event.
 - Inside the `socket_.async_send_to` completion handler, `start_receive();` is called recursively, which starts the loop again.
 - Note that the send-recieve-send-recieve is executed in order.
