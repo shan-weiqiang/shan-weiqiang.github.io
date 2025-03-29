@@ -5,9 +5,6 @@ date:   2025-03-09 19:22:46 +0800
 tags: [middleware]
 ---
 
-https://didawiki.cli.di.unipi.it/lib/exe/fetch.php/magistraleinformatica/tdp/tpd_reactor_proactor.pdf
-https://www.boost.org/doc/libs/1_49_0/doc/html/boost_asio/overview/core/async.html
-
 Different robotic middleware have different concept and naming of their own in the definition of execution. However, they are all supposed to run in a thread based high performance multi-core operating system, so under different concept there are same meaning. Even though there is no directly one to one mapping of those different concept, I first try to generalize concepts and then try to map each middleware to these *generalized concepts*, many of which directly comes from one of those middlewares. In this blog, we consider: ROS2, Cyberrt, ETAS AOS, Nvidia DriveWorks.
 
 
