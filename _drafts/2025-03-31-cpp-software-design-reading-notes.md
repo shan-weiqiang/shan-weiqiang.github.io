@@ -1,1 +1,5 @@
 - all polymorphism(might be except pimpl) in c++ comes from two language features: template and virtual inheritance
+- template is compile time polymorphism and can only be used at compile time
+- virtual inheritance is runtime polymorphism and can be used at runtime
+- one design pattern can be actualized both in compile time and runtime
+- type erasure is combination of template and virtual inheritance
