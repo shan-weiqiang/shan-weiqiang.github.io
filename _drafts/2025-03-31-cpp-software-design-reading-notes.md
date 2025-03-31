@@ -2,8 +2,14 @@
 - template is compile time polymorphism and can only be used at compile time
 - virtual inheritance is runtime polymorphism and can be used at runtime
 - one design pattern can be actualized both in compile time and runtime
-- type erasure is combination of template and virtual inheritance
-    - std::function is classic example of type erasure:
-      - the template parameter is compile time polymorphism and can accept callable signature at compile time
-      - after the compile time polymorphism, the signature is determinied, at runtime, std::function object can be bound to any callable time that conforms to this signature
-      - as a result, the std::function itself can accept any signature at compile time and any callable object that is of the same signature type
+- external polymorphism is combination of compile time and runtime polymorphism
+  - at compile time, not only pass the type, but also pass the operation
+  - but even with virtual inheritance and abstract interface, the user still need to know the type of the base abstract class: concrete types are erased, but not the base interface type
+- type erasure is combination of external polymorphism and pimpl. type erasure types are not template types
+  - make the virtual inheritance abstract base class internal and use a pimpl to point to it
+  - after type erasion, to the user there is only one non-template type interface with template constructor, after construction, there is no type information inside this type anymore(memory wise)
+  - ​Type erasure is external polymorphism made generic and seamless.
+- std::function is a set of type erasure types, with each template signature a individual type erasure types:
+  - the template parameter is compile time polymorphism and can accept callable signature at compile time
+  - after the compile time polymorphism, the signature is determinied, it is instantiated to a type erasure type; at runtime, std::function object can be bound to any callable time that conforms to this signature
+  - as a result, the std::function itself can accept any signature at compile time and any callable object that is of the same signature type
