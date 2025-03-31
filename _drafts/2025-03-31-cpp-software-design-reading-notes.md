@@ -6,4 +6,4 @@
     - std::function is classic example of type erasure:
       - the template parameter is compile time polymorphism and can accept callable signature at compile time
       - after the compile time polymorphism, the signature is determinied, at runtime, std::function object can be bound to any callable time that conforms to this signature
-  
+      - as a result, the std::function itself can accept any signature at compile time and any callable object that is of the same signature type
