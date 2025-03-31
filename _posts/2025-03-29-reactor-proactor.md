@@ -36,7 +36,7 @@ Yet there is one brick missing to understanding the proactor pattern: *software 
 
 Let's understand above process with the help of following code snippet:
 
-```c++
+{% highlight cpp linenos %}
 #include "make_day_time.h"
 #include <asio.hpp>
 #include <memory>
@@ -74,7 +74,8 @@ private:
 };
 
 #endif
-```
+{% endhighlight %}
+
 - `io_context` serves as the sole execution context. It will be run inside one thread. The reactor is implemented inside `asio::io_context`
 - `socket_.async_receive_from` is the asyn operation initialized from user. It provides two requirements:
     - The receive operation should fill the buffer
