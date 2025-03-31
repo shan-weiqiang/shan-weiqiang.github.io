@@ -1,0 +1,1 @@
+- all polymorphism(might be except pimpl) in c++ comes from two language features: template and virtual inheritance
