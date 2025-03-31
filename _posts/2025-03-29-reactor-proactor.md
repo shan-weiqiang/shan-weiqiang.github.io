@@ -36,7 +36,7 @@ Yet there is one brick missing to understanding the proactor pattern: *software 
 
 Let's understand above process with the help of following code snippet:
 
-{% highlight cpp linenos %}
+{% highlight c++ linenos %}
 #include "make_day_time.h"
 #include <asio.hpp>
 #include <memory>
