@@ -3,3 +3,7 @@
 - virtual inheritance is runtime polymorphism and can be used at runtime
 - one design pattern can be actualized both in compile time and runtime
 - type erasure is combination of template and virtual inheritance
+    - std::function is classic example of type erasure:
+      - the template parameter is compile time polymorphism and can accept callable signature at compile time
+      - after the compile time polymorphism, the signature is determinied, at runtime, std::function object can be bound to any callable time that conforms to this signature
+  
