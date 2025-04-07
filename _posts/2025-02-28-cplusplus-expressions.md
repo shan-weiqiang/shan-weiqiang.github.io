@@ -139,7 +139,7 @@ f(expr); // deduce T and ParamType from expr
 // Above pseudo code can represent most cases, since reference, const are not allowed insdie parameter list: template<typename const T> and template<typename T&> and template<typename T&&> are both not valid. However, when user specify T, const and reference types can be used and reference collapsing rules apply.
 ```
 
-Note: `typename` can only be `class`, or `typename`, no additional qualifiers are possible: [type-parameter-key	- either typename or class](https://en.cppreference.com/w/cpp/language/template_parameters)(https://en.cppreference.com/w/cpp/language/template_parameters)
+Note: `typename` can only be `class`, or `typename`, no additional qualifiers are possible: [type-parameter-key	-either typename or class](https://en.cppreference.com/w/cpp/language/template_parameters)
 
 - Case 1: ParamType is a Reference or Pointer, but not a Universal Reference
   - If expr’s type is a reference, ignore the reference part
