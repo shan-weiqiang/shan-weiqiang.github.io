@@ -5,7 +5,7 @@ date:   2025-02-28 09:22:46 +0800
 tags: [c++]
 ---
 
-According to experience of myself, the most difficult part to understanding C++ is however the most basic one: the `expression`. Only by having a fully understanding of `expression`, one can further have a clear sight about lvalue, rvalue, type deduction, `auto` keyword, universal reference, `decltype`, move semantics,etc. As you can imagine, above mentioned concept are all at the core of C++ 11 and afterwards.
+According to my experience, the most difficult part in understanding C++ is however the most basic one: the `expression`. Only by having a comprehensive understanding of `expression`, one can further have a clear understanding about lvalue, rvalue, type deduction, `auto` keyword, universal reference, `decltype`, move semantics,etc. As you can see, above-mentioned concepts are at the core of C++ 11 and afterwards.
 
 This blog summarize information, concepts, references around `expression`. It does not provide additional knowledge, but act as a understanding note. 
 
