@@ -314,6 +314,8 @@ void wrapper(T&& arg)
   - type: lvalue reference to T
   - value category: lvalue
 
+Note: **This usage is to restore the value category of the passed parameter, whose valueness, due to the nested argument passing, is all treated as lvalue category.**
+
 Usage2: Forwards rvalues as rvalues and prohibits forwarding of rvalues as lvalues.
 
 ```c++
@@ -338,6 +340,7 @@ void wrapper(T&& arg)
 
 Note: when using `decltype` as parameter argument to `std::forward`, we only need to care about whether the expression in `decltype` is lvalue or rvalue, no need to care about the type(only need to know the non-reference type of T). Since if the expression is lvalue, `decltype` will result in lvalue reference type, which result in lvalue reference type(lvalueness) for the `std::forward`. Otherwise, if the expression inside `decltype` is of xvalue or prvalue, `decltype` results in non-reference type or rvalue reference type, which both result in a rvalue reference type(rvalueness) for the `std::forward` expression. `decltype` and `std::forward` together to pass the valueness down to nested function calls.
 
+Note: If we use `foo(forward<int&>(forward<T>(arg).get()));` and pass a rvalue of `Arg` instance to `wrapper`, there will be compile time error, since we try to forward rvalue as lvalue.
 
 
 # Named Variables
