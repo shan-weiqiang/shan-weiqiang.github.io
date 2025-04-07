@@ -123,7 +123,7 @@ We consider two occasions where type deduction happens:
 
 Additionally, a special kind of type deduction, universal reference is considered. 
 
-During compile time compiler has mainly two ways to deduce template parameter types: from user and auto deduction. In the case of user input, hatever user specifies, compiler will use them. If user specified reference, reference collapsing rules apply. Also in C++ 17, class template parameter type can also be deduced: [Class template argument deduction (CTAD) (since C++17)](https://en.cppreference.com/w/cpp/language/class_template_argument_deduction).
+During compile time compiler has mainly two ways to deduce template parameter types: from user and auto deduction. In the case of user input, whatever user specifies, compiler will use them. If user specified reference, reference collapsing rules apply. Also in C++ 17, class template parameter type can also be deduced: [Class template argument deduction (CTAD) (since C++17)](https://en.cppreference.com/w/cpp/language/class_template_argument_deduction).
 
 ## Function template parameter type deduction
 
