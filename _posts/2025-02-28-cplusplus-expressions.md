@@ -270,7 +270,7 @@ void wrapper(T&& arg)
   - type: rvalue reference to T
   - value category: rvalue
 - When T is deduced to lvalue reference type, the expression `std::forward` is of:
-  - type: T
+  - type: lvalue reference to T
   - value category: lvalue
 
 Usage2: Forwards rvalues as rvalues and prohibits forwarding of rvalues as lvalues.
