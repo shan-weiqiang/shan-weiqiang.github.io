@@ -6,7 +6,7 @@ tags: [c++]
 ---
 
 
-In this post, we talk about declaration and definition and their relationship with symbols and code in binaries. Then we discuss library dependency issues and finally the ODR rule. Those are things that we normally don't care about. However, understanding them give us more control over the binaries we produce.
+In this post, I talk about declaration and definition and their relationship with symbols and code in binaries. Then I discuss library dependency issues and finally the ODR rule. Those are things that we normally don't care about. However, understanding them give us more control over the binaries we produce.
 
 * toc
 {:toc}
