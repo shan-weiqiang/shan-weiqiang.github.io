@@ -248,12 +248,51 @@ int main() {
 
 - Only use `std::forward` with universal reference. So the template argument for it should always be deduced, instead of specified.
   - This implies that the deduced type T is either non-reference type or a lvalue reference.
+  - Always use universal reference template paramter `T` **directly** for `std::forward`'s template paramters, do not manually add additional const/reference to it. Note that `T` can be decorated: like `forward<decltype(forward<T>(arg).get())>`, as long as `T` itself is the same as the universal reference.
 - `std::forward` is an *expression* and *function*, it's value category conform to normal C++ expression rules. It always return *reference*:
   - When return lvalue reference, its value category is lvalue
   - When return rvalue reference, its value category is rvalue(xvalue or prvalue)
   - Above behavior is due to the fact that when cast to rvalue reference, the result of `static_cast` is of xvalue; when cast to non-reference, the result is of prvalue; when cast to lvalue reference, the result is of lvalue.
 - The type and valueness is decided by `static_cast`, which is the internal implementation of `std::forward`
 
+The standard implements `std::forward`:
+
+```cpp
+  /**
+   *  @brief  Forward an lvalue.
+   *  @return The parameter cast to the specified type.
+   *
+   *  This function is used to implement "perfect forwarding".
+   */
+  template<typename _Tp>
+    constexpr _Tp&&
+    forward(typename std::remove_reference<_Tp>::type& __t) noexcept
+    { return static_cast<_Tp&&>(__t); }
+
+  /**
+   *  @brief  Forward an rvalue.
+   *  @return The parameter cast to the specified type.
+   *
+   *  This function is used to implement "perfect forwarding".
+   */
+  template<typename _Tp>
+    constexpr _Tp&&
+    forward(typename std::remove_reference<_Tp>::type&& __t) noexcept
+    {
+      static_assert(!std::is_lvalue_reference<_Tp>::value, "template argument"
+		    " substituting _Tp is an lvalue reference type");
+      return static_cast<_Tp&&>(__t);
+    }
+```
+
+`_Tp` is the type deduced from universal references, which might be non-reference type or lvalue reference type. `__t` is the parameter passed to `std::forward`, which is of lvalue category, since inside function, parameters are passed always as lvalues. The aim of `std::forward` is to restore the value category of the passed parameter:
+
+- When `_Tp` is of non-reference type, which means the universal reference is deduced based on passed rvalue parameter:
+  - `__t` is of `_Tp&&` type, the second overload is used, `std::forward` return rvalue category, rvalue reference type object
+- When `_Tp` is of lvalue reference type, which means the universal reference is deduced based on passed lvalue parameter:
+  - `__t` is of `_Tp&` type, the first overload is used, `std::forward` return lvalue category, lvalue reference type object
+ 
+Note: **Type is not changed when parameters are passed down to nested function calls, only value category are changed. This is how `std:forward` do overload based on types**
 
 Usage1: Forwards lvalues as either lvalues or as rvalues, depending on T:
 
