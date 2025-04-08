@@ -342,6 +342,27 @@ Note: when using `decltype` as parameter argument to `std::forward`, we only nee
 
 Note: If we use `foo(forward<int&>(forward<T>(arg).get()));` and pass a rvalue of `Arg` instance to `wrapper`, there will be compile time error, since we try to forward rvalue as lvalue(the valueness of the return of `std::forward`).
 
+`std::forward` can be used together with `auto&&`, which needs the help of `decltype` to infer the correct type:
+
+```cpp
+  std::vector<std::string> source = {"a", "b", "c"};
+
+  //   This is totally generic
+  auto forwarder = [](auto &&container) {
+    // If container is of lvalue, it's type is lvalue reference type, decltype
+    // return lvalue reference.
+    // If container is of rvalue, it's type is rvalue reference type, decltype
+    // return rvalue reference
+    auto dest = std::forward<decltype(container)>(container);
+  };
+
+  forwarder(std::move(source));
+  std::cout << source.size() << std::endl;
+
+  std::vector<std::string> source2 = {"x", "y", "z"};
+  forwarder(source2);
+  std::cout << source2.size() << std::endl;
+```
 
 # Named Variables
 
