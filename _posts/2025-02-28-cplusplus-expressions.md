@@ -342,7 +342,7 @@ Note: when using `decltype` as parameter argument to `std::forward`, we only nee
 
 Note: If we use `foo(forward<int&>(forward<T>(arg).get()));` and pass a rvalue of `Arg` instance to `wrapper`, there will be compile time error, since we try to forward rvalue as lvalue(the valueness of the return of `std::forward`).
 
-`std::forward` can be used together with `auto&&`, which needs the help of `decltype` to infer the correct type:
+`std::forward` can be used together with `auto&&` in lambdas, which needs the help of `decltype` to infer the correct type:
 
 ```cpp
   std::vector<std::string> source = {"a", "b", "c"};
@@ -362,6 +362,53 @@ Note: If we use `foo(forward<int&>(forward<T>(arg).get()));` and pass a rvalue o
   std::vector<std::string> source2 = {"x", "y", "z"};
   forwarder(source2);
   std::cout << source2.size() << std::endl;
+```
+
+However, using of `std::forward` in range-based for loop with `auto&&` will not work as expected:
+
+```cpp
+  std::vector<std::string> source = {"a", "b", "c"};
+
+  //   item is std::string& type, even with std::move
+  for (auto &&item : std::move(source)) {
+    // After std::forward the return  type is still std::string&
+    auto dst = std::forward<decltype(item)>(item);
+  }
+  std::cout << source[0] << std::endl;
+```
+
+In above code snippet, `std::move(source)` will not trigger move operation for `source` and `item` is of lvalue category and lvalue reference type. This behavior can be explained by looking at the internal [implementation of range-based for](https://en.cppreference.com/w/cpp/language/range-for) in C++:
+
+```cpp
+
+{
+
+auto&& /* range */ = range-initializer ﻿;
+for (auto /* begin */ = /* begin-expr */, /* end */ = /* end-expr */;
+/* begin */ != /* end */; ++/* begin */)
+{
+item-declaration = */* begin */;
+statement
+}
+}
+```
+
+- First the `auto&&` universal reference is used to create a local variable, which is itself a lvalue
+- Then use iterator to iterate over this lvalue and dereference this lvalue and create a local variable using `item-declaration`, which is the user specified `auto &&item`
+- `auto &&item` will always be deduced as lvalue reference
+- If `auto item` is used, `item` will be a copy, and the original `const` qualifier will be removed
+
+To iterate and move element out of a container, move iterators can be used:
+
+```cpp
+  std::vector<std::string> source = {"a", "b", "c"};
+
+  //   This will move the element
+  for (auto it = std::make_move_iterator(source.begin());
+       it != std::make_move_iterator(source.end()); ++it) {
+    auto dst = *it;
+  }
+  std::cout << source[0] << std::endl;
 ```
 
 # Named Variables
