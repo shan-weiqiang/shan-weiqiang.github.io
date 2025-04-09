@@ -13,6 +13,10 @@
   - the template parameter is compile time polymorphism and can accept callable signature at compile time
   - after the compile time polymorphism, the signature is determinied, it is instantiated to a type erasure type; at runtime, std::function object can be bound to any callable time that conforms to this signature
   - as a result, the std::function itself can accept any signature at compile time and any callable object that is of the same signature type
+
+
+https://www.youtube.com/watch?v=p-qaf6OS_f4
+
  
 ```cpp
 #include <cstdlib>
@@ -42,7 +46,10 @@ bool less(const void *, const void *);
 // logic in source code, instead of in interface code.
 
 // Since type erasure is about abstraction of behavior, it alwarys involve
-// redirection of function pointers, no matter which way it is implemented.
+// redirection of function pointers, no matter which way it is implemented. This
+// redirection of function pointer is called dispatch, which is another core
+// brick in implementing type erasure. Dispatch might happen both at compile
+// time or runtime.
 
 // Compared with C, C++ ONLY add implementation methods for type erasure. In C,
 // we have to manually write different implementations, like the `less` and
@@ -62,6 +69,27 @@ bool less(const void *, const void *);
 // One more important fact is that all the C++ ways are of value semantics. The
 // implementation is stored as value(function pointers can be seen as value of
 // function variables).
+
+// Now we can summarize type erasure as follow:
+
+// Core logic of type erasure:
+// 1. Encapsulate type infomation in implementation, remove type information in
+// interface.
+// 2. The interface provide same behavior, regardless of specific type
+
+// Implementation steps of type erasure involve two distinct phase: how
+// implementation code is generated at compile time and how those implementation
+// is dispatched to at runtime:
+
+// 1. Statically write type erased code implementation, either manually, or by
+// compiler(C++). The type must be inside cpp, not in header(interface)
+// 2. Dynamically dispatch function call to the right implementation at runtime.
+// How the dispatch is done varies. It can simply be hard coded(like in C qsort
+// example in following code). Or it can be done using virtual inheritance in
+// C++. Either way, the dispatch, or redirection is determined during
+// construction phase. As soon as the construction is complete, the dispatch
+// manner is determined.
+
 void qsort(void *base, size_t nmeb, size_t size,
            bool (*compare)(const void *, const void *));
 
@@ -83,3 +111,8 @@ int main() {
   qsort(b, 10, 4, more);
 }
 ```
+
+- `std::variant` itself is not type erasure, it's a union and will record flags to indicate which type it currently stores
+- `std::visit` involves two phase:
+  - Dispatch right function according to specific type stored in std::variant at runtime
+  - Each function is stored type erased
