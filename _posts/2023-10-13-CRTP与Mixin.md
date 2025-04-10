@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "CRTP design pattern"
+title:  "CRTP and Mixin"
 date:   2023-10-13 19:22:46 +0800
 tags: [c++]
 ---
@@ -196,6 +196,12 @@ int main(int argc, char const *argv[]) {
 }
 ```
 
+CRTP能达到的效果是编译期的接口：
+
+- 通过继承CRTP基类获取接口，这些接口在编译器实现，无运行时成本
+  - 可以在基类接口中添加一些通用的功能实现，例如tracing/log等
+- 没有共同的基类；用户直接使用继承类
+
 ## 静态多态和虚函数多态的对比
 
 CRTP静态多态和虚函数动态多态区别在于没有 *vptr* 和 *vptr table* 等动态运行时的函数查找机制，是在编译时运用模板的特性来实现静态的多态：
@@ -219,7 +225,7 @@ Wikipedia的定义：
 
 根据这个定义C++并没有原生支持Mixin，因为C++必须通过模板参数+继承的方式实现Mixin。
 
-C++中的Mixin就是类继承它的模板参数。本质上就是继承。
+**C++中的Mixin就是类继承它的模板参数。本质上就是继承。**
 
 ```cpp
 #include <functional>
@@ -236,25 +242,62 @@ public:
   void say_hi() { std::cout << "你好\n"; }
 };
 
-template <typename Mixin> class Person : public Mixin {};
-
-template <typename Mixin1, typename Mixin2>
-class BilangPersion : public Mixin1, public Mixin2 {};
+// Person is users of Mixins
+template <typename Mixin> class Person : public Mixin {
+public:
+  // This is the general function added upon SayEn and SayCh
+  void say_hi_10() {
+    for (int i = 0; i < 10; ++i) {
+      this->say_hi();
+    }
+  }
+};
 
 int main(int argc, char const *argv[]) {
-  /// Person 可以通过继承不同的Mixin获得不同的方法
   Person<SayEn> en_person;
   Person<SayCh> ch_person;
 
-  BilangPersion<SayCh, SayEn> bi_persion;
-
-  en_person.say_hi();
-  ch_person.say_hi();
-
-  /// 必须具体指定是哪个类型的方法
-  bi_persion.SayEn::say_hi();
+  en_person.say_hi_10();
+  ch_person.say_hi_10();
 }
 ```
+
+以上用CRTP实现如下：
+
+```cpp
+#include <functional>
+#include <iostream>
+
+template <typename D> class Person {
+
+public:
+  void say_hi_10() {
+    for (int i = 0; i < 10; ++i) {
+      static_cast<D *>(this)->say_hi();
+    }
+  }
+};
+
+class SayEn : public Person<SayEn> {
+public:
+  void say_hi() { std::cout << "Hello\n"; }
+};
+
+class SayCh : public Person<SayCh> {
+public:
+  void say_hi() { std::cout << "你好\n"; }
+};
+
+int main(int argc, char const *argv[]) {
+  SayEn en_person;
+  SayCh ch_person;
+
+  en_person.say_hi_10();
+  ch_person.say_hi_10();
+}
+```
+- Mixin是作为模板参数，用户继承这个Mixin，通用功能在用户类中实现；**其核心用法是不改变Mixin基本功能颗粒，以其为基础将功能累加扩展**
+- CRTP是提供基类，用户继承这个基类，通用功能在基类中实现；**其核心用法是依靠CRTP基类，提供一套编译时的通用的接口，这些接口实现通用的功能**
 
 # CRTP基类用作Mixin
 
