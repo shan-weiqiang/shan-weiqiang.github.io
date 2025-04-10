@@ -5,22 +5,19 @@ date:   2024-07-14 10:20:46 +0800
 tags: [design_philosophy]
 ---
 
-Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg... They are all representation of types. Some of them are static, others are dynamic. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.
+Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg... They are all representation of types. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.
 
 * toc
 {:toc}
 
-## Type Systems
+## Type Interpretation
 
-Syntax rules for defining data types. It consists of pre-defined basic types and rules to build complex customized data types. It is compiled into machine code for static-typed languages like C/C++, or dynamically loaded as types in dynamic-typed languages like Python.
+JSON/XML/Proto/ROS/C/C++ are all *data format*. It consists of pre-defined basic types and rules to build complex customized data types. They can be interpreted statically or dynamically. *data format* by themselves have nothing to do with *dynamic* or *static*, it's the *interpreter* that parse them have the attributes of those two distinct feature. The same data format can be interpreted both dynamically and statically at the same time, depending on the interpreter/program used to parse them. Normally, C/C++ types are processed statically, which is why it's called static-typed language. Python types are processed by python interpreter dynamically. Proto/ROS/IDL are first compiled into C/C++ types and processed statically. JSON/XML both have dynamic and static interpreters. For example, the `nlohmann::json` library can dynamically parse *any* json files, while in many critical industries there is statical json parsers that is hard coded to only parse specific json data structure(like in AUTOSAR manifest files).
 
-It includes language-specific type system and language-neutral type systems that are defined by interface definition languages, which we will have detailed discussion later.
 
-I categorize type system in following way, according to their runtime behavior: static type system, introspection type system, dynamic type system, dynamic data system.
+### Static Interpretation
 
-### Static
-
-The main characteristic of those type system is that after compiling, all type information is lost. Type information of a variable, like type name, type, member name, member type, are translated by compiler into machine code directly. Those types only lives *before* compilation. Representitives of this kind of types is C. 
+The main characteristic of those type interpreter is that after compiling, all type information is lost. Type information of a variable, like type name, type, member name, member type, are translated by compiler into machine code directly. Those types only lives *before* compilation. Representitives of this kind of types is C. 
 
 ### Introspection
 
@@ -30,11 +27,11 @@ The main characteristic of those type system is that after compiling, all type i
 
 *The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* and *types* through *introspection*. 
 
-### Dynamic type
+### Dynamic interpretation
 
 Introspection and Reflection can be implemented *statically* or *dynamically*. Like we mentioned above, ROS2 supports *introspection* and *reflection* statically, since all the codes and static variables that contains type information are *statically* generated and compiled into machine code at compile time.
 
-What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* system and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types in more detail later, take the XTypes of OMG as example.
+What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* interpreter and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types interpreters in more detail later, take the XTypes of OMG as example.
 
 ### Dynamic data
 
