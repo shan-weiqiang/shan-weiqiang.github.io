@@ -25,11 +25,11 @@ The main characteristic of those type interpreter is that after compiling, all t
 
 ### Reflection
 
-*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* and *types* through *introspection*. 
+*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* and *types* through *introspection*.  Reflection needs support of a dynamic data format interpreter.
 
 ### Dynamic interpretation
 
-Introspection and Reflection can be implemented *statically* or *dynamically*. Like we mentioned above, ROS2 supports *introspection* and *reflection* statically, since all the codes and static variables that contains type information are *statically* generated and compiled into machine code at compile time.
+Introspection can be implemented *statically* or *dynamically*. Like we mentioned above, ROS2 supports *introspection*  statically, since all the codes and static variables that contains type information are *statically* generated and compiled into machine code at compile time.
 
 What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* interpreter and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types interpreters in more detail later, take the XTypes of OMG as example.
 
