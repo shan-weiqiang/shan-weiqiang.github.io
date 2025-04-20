@@ -127,7 +127,7 @@ int main() {
 
 ## Abstraction of type
 
-Type erasure, C++ template, C++ concept, virtual inheritence, what is the common characteristic among them?  **They both allow us to write code logic for a group of types, instead of just one type**. The code logic is the *common behavior** for those types. The binding of specific types are deferred to later times: for type erasure and virtual inheritence, this binding is defered to runtime; for C++ template and C++ concept, this binding is deferred to compile time:
+Type erasure, C++ template, C++ concept, virtual inheritence, what is the common characteristic among them?  **They both allow us to write code logic for a group of types, instead of just one type**. The code logic is the *common behavior* for those types. The binding of specific types are deferred to later times: for type erasure and virtual inheritence, this binding is defered to runtime; for C++ template and C++ concept, this binding is deferred to compile time:
 
 - We can write binary libraries which can be used on difference types using type erasure and virtual inheritence
 - We can write templated source code libraries which can be used on difference types using C++ template and C++ concept
@@ -137,7 +137,7 @@ C++ concept is more restricted C++ template. C++ virtual inheritence is special 
 
 ## std::function
 
-After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure, by virtual inheritence. No matter which type is used to contruct `std::function`, they will be used as *implementation* for a derived class for a callable base class. This base class will be stored inside `std::function`.  `std::function` has value semantics and whenever a `std::function` variable is assigned to another variable, it is reconstructed. After construction, the binding process is completed and the implementation detail is fixed.
+After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure, by virtual inheritence. No matter which type is used to contruct `std::function`, they will be used as *implementation* for a derived class for a callable base class. This base class will be stored inside `std::function`.  `std::function` has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a `std::function` variable is constructed, the *implementation* binding is fixed. 
 
 
 ## std::variant
