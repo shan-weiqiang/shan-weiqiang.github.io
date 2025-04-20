@@ -31,6 +31,15 @@ What's the benifit of type erasure? Even though there is a type erased interface
 
 Without this *abstraction*, we have to implement `qsort` for each individual type and the sorting algorithm has to be coded every time for each type. Now with type erasure, we only need to code the actual sorting algorithm *once* for all possible types. Of cource the compare function has to be implemented for each type, since each type has their own comparing logic. 
 
+## Implementation methods for type erasure
+
+1. Virtual inheritance: redirection hanppens when using base class pointer to call implementation in derived class(whose type is erased)
+2. Static templated functions: C++ compiler will generate code implementation for each template instantiation. It's the same as C, but code generated instead of manually written. Note that generated static functions are class members, which means that the amount of instantiations equals the number of generated class member functions.
+3. Vtable: similar as 2, this time use a vtable to point to generated static class member functions.
+
+Note: **Method 3 is how `std::function` is implemented**. 
+
+
 ```cpp
 #include <cstdlib>
 
@@ -137,7 +146,9 @@ C++ concept is more restricted C++ template. C++ virtual inheritence is special 
 
 ## std::function
 
-After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure, by virtual inheritence. No matter which type is used to contruct `std::function`, they will be used as *implementation* for a derived class for a callable base class. This base class will be stored inside `std::function`.  `std::function` has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a `std::function` variable is constructed, the *implementation* binding is fixed. 
+After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure. `std::function` has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a `std::function` instance is constructed, the *implementation* binding is fixed. 
+
+Note that `std::function` variables, like virtual base class pointers can be re-assigned to other `std::function` instance with the same signature at runtime, just like virtual base class pointers changed to point to other derived class instances. This is because, internally, `std::function` erased type for specific implementation type after an instance is constructed. Take the `qsort` for example, if i have a class instance that stores `qsort` and `less`, another instance can store `qsort` and `more`, since `less` and `more` have the same signature and are type erased. The external API of `std::function` works for any instances(which have different function pointer bindings, which happens at compile time, and have difference implementation code).
 
 
 ## std::variant
