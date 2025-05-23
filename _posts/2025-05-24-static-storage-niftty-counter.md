@@ -134,12 +134,10 @@ StreamInitializer::~StreamInitializer ()
   if (--nifty_counter == 0) stream.~Stream ();
 }
 ```
-<blockquote>
-The header file of the Stream class must be included before any member function can be called on the Stream object. An instance of the StreamInitializer class is included in each compilation unit. Any use of the Stream object follows the inclusion of the header, which ensures that the constructor of the initializer object is called before the Stream object is used.
+> The header file of the Stream class must be included before any member function can be called on the Stream object. An instance of the StreamInitializer class is included in each compilation unit. Any use of the Stream object follows the inclusion of the header, which ensures that the constructor of the initializer object is called before the Stream object is used.
 
-The Stream class' header file declares a reference to the Stream object. In addition this reference is extern, meaning it is defined in one translation unit and accesses to it are resolved by the linker rather than the compiler.
+>The Stream class' header file declares a reference to the Stream object. In addition this reference is extern, meaning it is defined in one translation unit and accesses to it are resolved by the linker rather than the compiler.
 The implementation file for the Stream class finally defines the Stream object, but in an unusual way: it first defines a static (i.e. local to the translation unit) buffer. This buffer is both properly aligned and big enough to store an object of type Stream. The reference to the Stream object defined in the header is then set to point to this buffer.
 This buffer workaround enables fine-grained control of when the Stream object's constructor and destructor are called. In the example above, the constructor is called within the constructor of the first StreamInitializer object, using placement new to place it within the buffer. The Stream object's destructor is called when the last StreamInitializer object is destroyed.
 
-This workaround is necessary because defining a Stream variable within Stream.cpp - be it static or not - would define it after the StreamInitializer, which is defined by including the header. Then, the StreamInitializer's constructor would run before theStream's constructor, and even worse, the initializer's destructor would run after the Stream object's destructor. The buffer solution above avoids this.
-</blockquote>
+>This workaround is necessary because defining a Stream variable within Stream.cpp - be it static or not - would define it after the StreamInitializer, which is defined by including the header. Then, the StreamInitializer's constructor would run before theStream's constructor, and even worse, the initializer's destructor would run after the Stream object's destructor. The buffer solution above avoids this.
