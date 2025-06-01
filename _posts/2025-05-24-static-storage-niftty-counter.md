@@ -5,7 +5,7 @@ date:   2025-05-23 21:22:46 +0800
 tags: [middleware]
 ---
 
-This is reading notes for [*static initialization order fiasco*](https://en.cppreference.com/w/cpp/language/siof) problem and it's solutions.
+This is reading notes for [*static initialization order fiasco*](https://en.cppreference.com/w/cpp/language/siof) problem and its solutions.
 
 [*static storage duration*](https://en.cppreference.com/w/cpp/language/storage_duration) includes:
 
@@ -14,20 +14,20 @@ This is reading notes for [*static initialization order fiasco*](https://en.cppr
 - *static* variables: *internal linkage*
 - *static* local variables inside functions: *no linkage*
 
-Since the *static initialization order fiasco* only happens between *static objects* which has *external linkage*, we only consider global variables and static members of a class. I call them *static objects* in following content.
+Since the *static initialization order fiasco* only happens between *static objects* which have *external linkage*, we only consider global variables and static members of a class. I call them *static objects* in the following content.
 
 # Initialization and destruction order of static objects
 
 Simply put:
 
-- Inside one translation unit(TU), static objects are initialized in the order of their appearance and deinitialized in reverse order.
-- Across TU, the order is unspecified.
+- Inside one translation unit (TU), static objects are initialized in the order of their appearance and deinitialized in reverse order.
+- Across TUs, the order is unspecified.
 - Initialization order:
     - Global variables and *static* class members: Initialization happens before `main`; Deinitialization happens after `main`
     - *static* local variables: initialization at first use and deinitialization after `main`
     - *static* variables inside TU: Initialization happens before `main`; Deinitialization happens after `main`
 
-*static initialization order fiasco* happens when *static objects* across TUs depends on each other:
+*static initialization order fiasco* happens when *static objects* across TUs depend on each other:
 
 ```c++
 // file1.h
@@ -58,7 +58,7 @@ int main() {
 ```
 # Construct On First Use Idiom
 
-[*Construction On First Use Idiom*](https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use) use *static* local variable inside function to avoid the problem. Since *static* local variable inside a function has *no linkage* and is initialized when first used, this will prevent the order problem:
+[*Construction On First Use Idiom*](https://isocpp.org/wiki/faq/ctors#static-init-order-on-first-use) uses *static* local variable inside function to avoid the problem. Since *static* local variable inside a function has *no linkage* and is initialized when first used, this will prevent the order problem:
 
 ```c++
 Fred& x()
@@ -68,7 +68,7 @@ Fred& x()
 }
 ```
 
-- The `ans` will *never* be destructed, which avoids problem of destruction order. The memory will be freed when process terminates by operating system.
+- The `ans` will *never* be destructed, which avoids the problem of destruction order. The memory will be freed when the process terminates by the operating system.
 
 If:
 
@@ -80,11 +80,11 @@ Fred& x()
 }
 ```
 
-If some *static object* that depend on `ans` is destructed after `ans` is destructed, there will be the same problem as *static initialization order fiasco*.
+If some *static object* that depends on `ans` is destructed after `ans` is destructed, there will be the same problem as *static initialization order fiasco*.
 
 # Nifty Counter Idiom
 
-[*Nifty Counter Idiom*](https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Nifty_Counter) can solve both initialization and deinitialization order problem. Here I quote the full explanation:
+[*Nifty Counter Idiom*](https://en.wikibooks.org/wiki/More_C%2B%2B_Idioms/Nifty_Counter) can solve both initialization and deinitialization order problems. Here I quote the full explanation:
 
 ```c++
 // Stream.h
