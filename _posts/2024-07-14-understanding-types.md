@@ -25,13 +25,15 @@ The main characteristic of those type interpreter is that after compiling, all t
 
 ### Reflection
 
-*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* and *types* through *introspection*.  Reflection needs support of a dynamic data format interpreter.
+*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* of variable instance through *introspection*. Note that reflection can not change *type*, only *value* for variable instance. Besides, reflection can also create new instance. One classic implementation of reflection is Google Protobuffers.
 
 ### Dynamic interpretation
 
 Introspection can be implemented *statically* or *dynamically*. Like we mentioned above, ROS2 supports *introspection*  statically, since all the codes and static variables that contains type information are *statically* generated and compiled into machine code at compile time.
 
 What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* interpreter and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types interpreters in more detail later, take the XTypes of OMG as example.
+
+*The key difference with reflection is that dynamic types can be created, modified, changed at runtime, not only it's value.*
 
 ### Dynamic data
 
@@ -76,16 +78,3 @@ Until now, there is no dynamic types involved. Like we said earlier, it's not en
 Note that the memory model for representing the data type in these two types of bindings are very different. For the plain language binding, the data might be contagious since it is represented using specificaly generated language types, like C++, the type is represented by a individual class. The memory model is decided by the generated class. For dynamic language binding, since there are no individual language specific data type to represent the data type, the memory model is decided by the implementation of the dynamic type program. 
 
 The dynamic type system mainly contain four parts. The first one is dynamic type system, this system should build starting from basic types and should recursively contains itself to support complex user defined types. Dynamic types system is built hierarchically, with each level a specific type kind and if one level contains members, it should contain another dynamic type recursively. This way the dynamic type itself is static, but at runtime it can represent any types that are defined in a schema. The second one is a dynamic data system. If we only have dynamic type system, it is not enough to decode data and inspect them in human readable way. Dynamic data system must use dynamic type and also recursively include itself to represent complex value of dynamic types. An instance of dynamic type is a specific type. An instance of dynamic data is a specific data of a specific type. Dynamic data is also static code. As you can imagine, there are lots of recursions going on here. The third one is the above mentioned *TypeObject*, which contain schema information. XTypes use *TypeObject* as source to build dynamic types. The final part is a global type management system. Types are inter-dependent. One types can depend on another and this is generally the normal way of how types are constructed. A global instance that manages all types, that recieves type registration, that create dynamic types is necessary to coordinate all dynamic type management.
-
-### Protocol Buffers dynamic type
-
-For Protocol Buffers, conceptually it's the same with XTypes, with some differences.
-
-- Type system: Protocol Buffers have it's own type system. Basic types, ways to construct complex user defined types and module management etc.
-- Type representation: it's more limited compared with XTypes, only *proto* files are supported.
-- Data representation: Protocol Buffers use it's own encoding format to encode data.
-
-As for language bindings, Protocol Buffers supports plain language binding and limited dynamic language binding.
-
-- Plain language binding: Protocol Buffers provide compiler to compile schema into language specific code representation, just like XTypes
-- Dynamic language binding: Compared with XTypes, Protocol Buffers' support for dynamic types is different and less complete. Protocol Buffers do have full representation at runtime using *Descriptor* class, but the dynamic type system is not hierarchically and recursively built like XTypes. Protocol Buffers use it's reflection system to support dynamic types. When building a dynamic type, Protocol Buffers does not hierarchically create dynamic data like XTypes, instead, it first allocate one chunk of memory, then recursively resolve *Descriptor* and use inplacement new operator to assign the position of every data member and create cooresponding *Field*, finally it use the reflection system to build a *Message*, which is *the same* type with the plain language binding. As we can see, the memory layout for plain language binding and dynamical language binding in Protocol Buffers is very similar. The most apparent difference compared with XTypes is that the dynamically created message and the plain language binding message is of the same type!
