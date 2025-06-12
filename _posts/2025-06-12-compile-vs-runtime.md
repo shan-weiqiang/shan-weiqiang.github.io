@@ -1,3 +1,12 @@
+---
+layout: post
+title:  "Python descriptors"
+date:   2025-06-12 19:22:46 +0800
+tags: [programming]
+---
+
+*This blog post was co-authored with AI assistance.*
+
 # Compile-Time vs. Run-Time
 
 Picture compile-time as the resume screener for a job, checking your credentials before you’re hired, and run-time as your actual performance on the job, where real-world challenges test your mettle.
