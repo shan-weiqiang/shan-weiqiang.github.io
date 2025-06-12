@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python descriptors"
+title:  "Compile-Time vs. Run-Time"
 date:   2025-06-12 19:22:46 +0800
 tags: [programming]
 ---
