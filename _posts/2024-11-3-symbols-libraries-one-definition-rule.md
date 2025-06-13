@@ -130,7 +130,8 @@ For definition of ODR, see [Definitions and ODR (One Definition Rule)](https://e
 
 Static linking
 
-This is when *executable* files are generated, including *executable* and *shared libraries*. During static linking, multiple *object* files are processed and merged into one *executable* file. ODR rules are checked during this phase, for example if multiple defintions exist in more than one *object* file, errors will be issued. Note that *object* file, aka translation unit is the smallest unit that are being operated by compiler. If static libraries are being linked, *object* files inside this archive file is choosed and used atomically. 
+This is when *executable* files are generated, including *executable* and *shared libraries*. During static linking, multiple *object* files are processed and merged into one *executable* file. ODR rules are checked during this phase, for example if multiple defintions exist in more than one *object* file, errors will be issued. Note that *object* file, aka translation unit is the smallest unit that are being operated by compiler. If static libraries are being linked, *object* files inside this archive file is choosed and used atomically. Use *object* file(one translation unit) as the smallest unit is based on that:
+  - If one symbol, for example a function name, is used from this TU, it is possible that this funtion will call other funtion or variables inside this same TU. If linker only abstract the funtion itself, it need to know the detail of the inner structure of this translation unit, which is the job of the compiler, not the linker. So, for simplicity, linker treat TU atomically.
 
 Dynamic linking - Compile time
 
