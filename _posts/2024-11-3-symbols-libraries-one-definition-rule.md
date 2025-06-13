@@ -126,6 +126,20 @@ When building libraries using cmake:
 
 For definition of ODR, see [Definitions and ODR (One Definition Rule)](https://en.cppreference.com/w/cpp/language/definition). I only share what I get from experiment and it's implifications in linking.
 
+### ODR check during linking
+
+Static linking
+
+This is when *executable* files are generated, including *executable* and *shared libraries*. During static linking, multiple *object* files are processed and merged into one *executable* file. ODR rules are checked during this phase, for example if multiple defintions exist in more than one *object* file, errors will be issued. Note that *object* file, aka translation unit is the smallest unit that are being operated by compiler. If static libraries are being linked, *object* files inside this archive file is choosed and used atomically. 
+
+Dynamic linking - Compile time
+
+This is when *executable* depend on another *shared library*. Linker will NOT check ODR and use the first one it can find.
+
+Dynamic linking - Run time
+
+This is when *executable* are being loaded. Linker will NOT check ODR and use the first one it can find. However, even though linker does not check ODR, it implement ODR strictly: if there are multiple defintions, the first one will be used for all.
+
 ### Which definition to use?
 
 In static libs there might be multiple definitions for the same symbols name in different object files(see [experiment](https://github.com/shan-weiqiang/cplusplus/tree/main/ODR/static)). In shared libs there might be multiple definitions for the same symbols in different shared libs when those libs are both required by an executable(see [experiment](https://github.com/shan-weiqiang/cplusplus/tree/main/ODR/shared)). When an executable is linked to those libs, how the compiler choose definitions if there are multiple definitions available? The answer is rather interesting:
