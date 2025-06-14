@@ -7,6 +7,9 @@ tags: [programming]
 
 I talked about types in [Type system and language bindings](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html). Today I go deep into one specific type system: Google Protocol Buffers(GPB). GPB support introspection, reflection, dynamic type, dynamic data. However, I do not consider GPB a true dynamic typing system and I will talk about why after we have a deep look at how GPB works.
 
+* toc
+{:toc}
+
 ## GPB Workflow 
 
 The main workflow starts from *proto* definition files and *protoc* compiler will compile them into C++ types, which user will use directly. The process can be illustrated like following:
