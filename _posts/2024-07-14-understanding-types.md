@@ -33,7 +33,7 @@ Introspection can be implemented *statically* or *dynamically*. Like we mentione
 
 What if we can read those type information at *runtime*, without knowing the type information at compile time? This is dynamic type system. It consists of *statically* compiled data structures and codes to represent all possible types at runtime, and *type representation* format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called *dynamic type* interpreter and it will dynamically build types based on any kinds of *type representation*, as long as it contains valid type information. We will talk about dynamic types interpreters in more detail later, take the XTypes of OMG as example.
 
-*The key difference with reflection is that dynamic types can be created, modified, changed at runtime, not only it's value.*
+*The key difference with reflection is that dynamic types can be created, modified, changed at runtime, not only it's value.* Even though some reflection implementation, like Google Protobuf, also support create new types at runtime, they do not support modifiying after type registration. 
 
 ### Dynamic data
 
