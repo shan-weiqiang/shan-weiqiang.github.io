@@ -25,7 +25,7 @@ The main characteristic of those type interpreter is that after compiling, all t
 
 ### Reflection
 
-*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* of variable instance through *introspection*. Note that reflection can not change *type*, only *value* for variable instance. Besides, reflection can also create new instance. One classic implementation of reflection is Google Protobuffers.
+*The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.* [source](https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful). According to this definition, reflection supports modification of the *values* of variable instance through *introspection*. Note that reflection can not change *type*, only *value* for variable instance. Besides, reflection can also create new instance. One classic [implementation of reflection is Google Protobuffers](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html).
 
 ### Dynamic interpretation
 
