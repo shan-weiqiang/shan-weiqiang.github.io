@@ -141,7 +141,7 @@ Type erasure, C++ template, C++ concept, virtual inheritence, what is the common
 - We can write binary libraries which can be used on difference types using type erasure and virtual inheritence
 - We can write templated source code libraries which can be used on difference types using C++ template and C++ concept
 
-C++ concept is more restricted C++ template. C++ virtual inheritence is special kind of type erasure, with vtable as runtime dispatch method. **All being said, at the core, they are all function pointer binding methods, at compile time, or at runtime**.
+C++ concept is more restricted C++ template. C++ virtual inheritence is special kind of type erasure, with vtable as runtime dispatch method. **All being said, at the core, they are all function pointer binding methods, at compile time, or at runtime. When bind at runtime, it's always during the construction phase**. 
 
 
 ## std::function
@@ -149,6 +149,29 @@ C++ concept is more restricted C++ template. C++ virtual inheritence is special 
 After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure. `std::function` has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a `std::function` instance is constructed, the *implementation* binding is fixed. 
 
 Note that `std::function` variables, like virtual base class pointers can be re-assigned to other `std::function` instance with the same signature at runtime, just like virtual base class pointers changed to point to other derived class instances. This is because, internally, `std::function` erased type for specific implementation type after an instance is constructed. Take the `qsort` for example, if i have a class instance that stores `qsort` and `less`, another instance can store `qsort` and `more`, since `less` and `more` have the same signature and are type erased. The external API of `std::function` works for any instances(which have different function pointer bindings, which happens at compile time, and have difference implementation code).
+
+## More about binding
+
+After a type is erased, we **have to** bind to the correct *implementations*. The implementation must coorespond to this type, otherwise, there will be errors if we pass a *void* pointer to this implementation, since inside this implementation, the *void* pointer will be cast back to this type. Of course, there can be multiple implementations for this type, **but, there is only one binding**. Better use examples:
+
+- Whether it's compile time or runtime, as long as the binding is finished, it *cannot* be changed.
+- For virtual class, when a derived class instance is created, it's vtable is bound to vtable of this class, it's *wrong* to change it.
+- For template functions, which binds at compile time, it's fixed after compilation, and cannot be changed.
+- For `std::function`, we can have multiple variable for the same signature: `std::function<int(int)> a`, `std::function<int(int)>b`, and they can have **different** implementations. However, after **construction** of `a`, `b`, their binding to implementation is *fixed*, we cannot change `a`'s implementation to `b`'s. Of course, we can assign `a` to `b`, which will create a copy of `b`, but this is *not* changing the binding of `a`.  Even though `a` and `b` are of the same type, but they contain and bind to different callables:
+```c++
+template <typename _Res, typename... _ArgTypes>
+template <typename _Functor, typename, typename>
+function<_Res(_ArgTypes...)>::function(_Functor __f) : _Function_base() {
+  typedef _Function_handler<_Res(_ArgTypes...), _Functor> _My_handler;
+
+  if (_My_handler::_M_not_empty_function(__f)) {
+    _My_handler::_M_init_functor(_M_functor, std::move(__f));
+    _M_invoker = &_My_handler::_M_invoke;
+    _M_manager = &_My_handler::_M_manager;
+  }
+}
+```
+After *construction* the binding is fixed and can not be changed.
 
 
 ## std::variant
