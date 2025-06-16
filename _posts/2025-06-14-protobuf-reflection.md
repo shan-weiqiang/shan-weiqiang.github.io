@@ -467,8 +467,8 @@ GPB supports ​​runtime descriptor construction​​ and ​​dynamic messa
 
 Python achieves the propagation of ​​type changes to existing instances​​ through its dynamic object model, leveraging two key features:
 
-​- Mutable class dictionaries​​.
-​​- Attribute lookup delegation​​.
+- Mutable class dictionaries
+- Attribute lookup delegation​​
 
 In Python, an instance (obj) stores only its ​​unique instance-level attributes​​ in its own __dict__ (dictionary).For ​​class-level attributes​​ (including methods), the instance delegates to its class. The class holds these attributes in its __dict__. If you modify a class’s __dict__ (e.g., add/change attributes), all existing instances immediately reflect the changes because attribute lookup always queries the class dynamically. When you access obj.attr: Python checks obj.__dict__ for an instance attribute attr. If not found, it delegates to the ​​class’s __dict__​​. If the class doesn’t have it, it checks base classes (MRO).
 ​​Class-level changes are ​​visible instantly​​ because the lookup happens at runtime, not at instance creation.
