@@ -144,11 +144,71 @@ Type erasure, C++ template, C++ concept, virtual inheritence, what is the common
 C++ concept is more restricted C++ template. C++ virtual inheritence is special kind of type erasure, with vtable as runtime dispatch method. **All being said, at the core, they are all function pointer binding methods, at compile time, or at runtime. When bind at runtime, it's always during the construction phase**. 
 
 
-## std::function
+## Type erasure of std::function
 
 After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure. `std::function` has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a `std::function` instance is constructed, the *implementation* binding is fixed. 
 
 Note that `std::function` variables, like virtual base class pointers can be re-assigned to other `std::function` instance with the same signature at runtime, just like virtual base class pointers changed to point to other derived class instances. This is because, internally, `std::function` erased type for specific implementation type after an instance is constructed. Take the `qsort` for example, if i have a class instance that stores `qsort` and `less`, another instance can store `qsort` and `more`, since `less` and `more` have the same signature and are type erased. The external API of `std::function` works for any instances(which have different function pointer bindings, which happens at compile time, and have difference implementation code).
+
+## Type erasure of std::shared_ptr deleter
+
+`std::shared_ptr` type use virtual base class to do type erasure. If user pass a custom deleter during construction, the pointer instance will be bound to a unified base class and points to the implementation of this custom deleter.
+
+```c++
+// Support for custom deleter and/or allocator
+template <typename _Ptr, typename _Deleter, typename _Alloc, _Lock_policy _Lp>
+class _Sp_counted_deleter final : public _Sp_counted_base<_Lp> {
+  class _Impl : _Sp_ebo_helper<0, _Deleter>, _Sp_ebo_helper<1, _Alloc> {
+    typedef _Sp_ebo_helper<0, _Deleter> _Del_base;
+    typedef _Sp_ebo_helper<1, _Alloc> _Alloc_base;
+
+  public:
+    _Impl(_Ptr __p, _Deleter __d, const _Alloc &__a) noexcept
+        : _M_ptr(__p), _Del_base(std::move(__d)), _Alloc_base(__a) {}
+
+    _Deleter &_M_del() noexcept { return _Del_base::_S_get(*this); }
+    _Alloc &_M_alloc() noexcept { return _Alloc_base::_S_get(*this); }
+
+    _Ptr _M_ptr;
+  };
+
+public:
+  using __allocator_type = __alloc_rebind<_Alloc, _Sp_counted_deleter>;
+
+  // __d(__p) must not throw.
+  _Sp_counted_deleter(_Ptr __p, _Deleter __d) noexcept
+      : _M_impl(__p, std::move(__d), _Alloc()) {}
+
+  // __d(__p) must not throw.
+  _Sp_counted_deleter(_Ptr __p, _Deleter __d, const _Alloc &__a) noexcept
+      : _M_impl(__p, std::move(__d), __a) {}
+
+  ~_Sp_counted_deleter() noexcept {}
+
+  virtual void _M_dispose() noexcept { _M_impl._M_del()(_M_impl._M_ptr); }
+
+  virtual void _M_destroy() noexcept {
+    __allocator_type __a(_M_impl._M_alloc());
+    __allocated_ptr<__allocator_type> __guard_ptr{__a, this};
+    this->~_Sp_counted_deleter();
+  }
+
+  virtual void *_M_get_deleter(const std::type_info &__ti) noexcept {
+#if __cpp_rtti
+    // _GLIBCXX_RESOLVE_LIB_DEFECTS
+    // 2400. shared_ptr's get_deleter() should use addressof()
+    return __ti == typeid(_Deleter) ? std::__addressof(_M_impl._M_del())
+                                    : nullptr;
+#else
+    return nullptr;
+#endif
+  }
+
+private:
+  _Impl _M_impl;
+};
+```
+`_Deleter` type is erased at compile time, `std::shared_ptr` type will only store a pointer of `_Sp_counted_base` type, which makes the `std::shared_ptr` type not depend on custom deleters.
 
 ## More about binding
 
