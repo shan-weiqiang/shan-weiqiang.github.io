@@ -76,10 +76,22 @@ Above obersevations are roots of some interesting behaviors of cmake, if A is st
 
 The normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behaviour for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
 
-This problem does not exist if A is a shared lib. The reasons are:
+If A is a shared lib:
 
 - For B, all depended code in B will be copied into A already, D does not need B's binary anymore
 - For C, even though it's not copied into A, but inside A there will be information record that says that A depend on C, so D does not need to have anything to do with C. During load time the dynamic linker will read info from A and load C into program automatically.
+
+About in which scenario PRIVATE keyword can be used:
+  - If A is static:
+    - If A's header contain B or C's header, then header and binary dependency both exist.
+    - If A's header does not contain B or C's header, then binary dependency exist.
+  - If A is shared:
+    - If A's header contain B or C's header, then header dependency exist.
+    - If A's header does not contain B or C's header, then:
+      - For static lib B, **PRIVATE keyword can be used**, since no header and binary dependency exist.
+      - For shared lib C:
+        - If A is linked during compile time, then C's information already inside DT_NEEDED section, **PRIVATE keyword can be used**.
+        - If A is not linked during compile time, then C's information is not inside DT_NEEDED section, binary dependecy exist.
 
 The key difference here is that static libraries are not *linked* and shared libraries are all *linked* already. Again, if in A's public API B and C's headers are used, then we need to change the keyword from PRIVATE to PUBLIC, then we will not have above problem anymore.
 
