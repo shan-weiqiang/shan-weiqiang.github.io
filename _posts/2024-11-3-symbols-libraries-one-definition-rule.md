@@ -136,6 +136,10 @@ This is when *executable* files are generated, including *executable* and *share
 Dynamic linking - Compile time
 
 This is when *executable* depend on another *shared library*. Linker will NOT check ODR and use the first one it can find.
+  - If the *executable* is dynamic libraries, and if it depend on another dynamic library, for example *liba.so*, then if not specially handled with linking options, *liba.so* can be linked and NOT linked during this phase, since dynamic libraries symbols are resolved during load time. But the resulting shared libraries binary is a little bit different:
+      - If *liba.so* is linked at this phase, in the *metadata*, the DT_NEEDED section of this library will contain *liba.so* and will automatically loaded during load time.
+      - If *liba.so* is not linked at this phase, there will be no *liba.so* in DT_NEEDED section. This means *liba.so* will not automatically loaded during load time. This dependency management is deferred for the executable which use this shared library.
+      - Other than that, the code inside the shared library is the same and shared lib can both be built succesfully.
 
 Dynamic linking - Run time
 
