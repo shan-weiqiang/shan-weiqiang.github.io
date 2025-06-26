@@ -82,18 +82,16 @@ If A is a shared lib:
 - For C, even though it's not copied into A, but inside A there will be information record that says that A depend on C, so D does not need to have anything to do with C. During load time the dynamic linker will read info from A and load C into program automatically.
 
 About in which scenario PRIVATE keyword can be used:
-  - If A is static:
-    - If A's header contain B or C's header, then header and binary dependency both exist.
-    - If A's header does not contain B or C's header, then binary dependency exist.
+  - If A is static: if A's header or A's binary depend on B or C, PUBLIC should be used.
   - If A is shared:
-    - If A's header contain B or C's header, then header dependency exist.
+    - If A's header contain B,  C's header, PUBLIC should be used.
     - If A's header does not contain B or C's header, then:
-      - For static lib B, **PRIVATE keyword can be used**, since no header and binary dependency exist.
+      - For static lib B, PUBLIC should be used, A has binary dependency on B.
       - For shared lib C:
-        - If A is linked during compile time, then C's information already inside DT_NEEDED section, **PRIVATE keyword can be used**.
+        - If A is linked during compile time, then C's information already inside DT_NEEDED section, **PRIVATE keyword can be used**. IS C STILL REQUIRED WHEN A IS USED DURING COMPILE TIME?
         - If A is not linked during compile time, then C's information is not inside DT_NEEDED section, binary dependecy exist.
 
-**Header only contains subset of symbols that a libary uses. Binaries contain all the symbols used**.
+**Header only contains subset of symbols that a libary uses. Binaries contain all the symbols used.**. From point view of cmake, header and binary dependency are independent from each other: each one can exist independently and co-exist.
 
 The key difference here is that static libraries are not *linked* and shared libraries are all *linked* already. Again, if in A's public API B and C's headers are used, then we need to change the keyword from PRIVATE to PUBLIC, then we will not have above problem anymore.
 
