@@ -93,6 +93,8 @@ About in which scenario PRIVATE keyword can be used:
         - If A is linked during compile time, then C's information already inside DT_NEEDED section, **PRIVATE keyword can be used**.
         - If A is not linked during compile time, then C's information is not inside DT_NEEDED section, binary dependecy exist.
 
+**Header only contains subset of symbols that a libary uses. Binaries contain all the symbols used**.
+
 The key difference here is that static libraries are not *linked* and shared libraries are all *linked* already. Again, if in A's public API B and C's headers are used, then we need to change the keyword from PRIVATE to PUBLIC, then we will not have above problem anymore.
 
 One last thing about static libraries is that when it's used only the relevent object files will be copied, not the whole archive. The linker copies code **in the unit of object files**. But if instead we seperately give the object files to gcc compiler in command, all the object files, even if they are not used by the final program will be copied into the executable.
