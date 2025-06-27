@@ -69,27 +69,28 @@ Static libraries are archives of object files. Static libraries are not *linked*
   - Binaries of thoese dependees are not required, since static libraries are *not* linked
   - Static libraries does not contain the information of it's dependees
 
-Above obersevations are roots of some interesting behaviors of cmake, if A is static lib we are building, B and C are two libs that A depends on. Let's suppose B is static and C is dynamic. If in A's public API, there is no use of B or C's any declaration or definitions(only includes B or C's header in cpp file):
+Above obersevations are roots of some interesting behaviors of cmake, if A is static lib we are building, B and C are two libs that A depends on. Let's suppose B is static and C is dynamic.:
 
 - A only needs B and C's header file location to succesfully compile
 - After compilation, Inside A's binary there are no B or C's dependency information
 
-The normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behaviour for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
+If in A's public API, there is no use of B or C's any declaration or definitions(only includes B or C's header in cpp file), the normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behaviour for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
 
-If A is a shared lib:
+If A is a shared lib, the situation is even more complex:
 
-- For B, all depended code in B will be copied into A already, D does not need B's binary anymore
-- For C, even though it's not copied into A, but inside A there will be information record that says that A depend on C, so D does not need to have anything to do with C. During load time the dynamic linker will read info from A and load C into program automatically.
+- For B, all depended code in B will be copied into A already, D does not need B's binary anymore(might still need it's headers!!)
+- For C, even though it's not copied into A, but inside A there will be information record in DT_NEEDED section that says that A depend on C, so D can find C according to this information, **both at compile/link time and load time!!**. During load time the dynamic linker will read info from A and load C into program automatically.
 
 About in which scenario PRIVATE keyword can be used:
-  - If A is static: if A's header or A's binary depend on B or C, PUBLIC should be used.
-  - If A is shared:
-    - If A's header contain B,  C's header, PUBLIC should be used.
-    - If A's header does not contain B or C's header, then:
-      - For static lib B, PUBLIC should be used, A has binary dependency on B.
+  - If in A's API there is any header dependency, PUBLIC should be used.
+  - If in A's API there is no header depencency:
+    - If A is static: if A's binary depend on B or C, PUBLIC should be used.
+    - If A is shared:
+      - For static lib B, if A has binary dependency on B, PUBLIC should be used, otherwise PRIVATE can be used: **A only used B's declaration headers in A's source file**
       - For shared lib C:
-        - If A is linked during compile time, then C's information already inside DT_NEEDED section, **PRIVATE keyword can be used**. IS C STILL REQUIRED WHEN A IS USED DURING COMPILE TIME?
-        - If A is not linked during compile time, then C's information is not inside DT_NEEDED section, binary dependecy exist.
+        - If A only used C's declaration headers in A's source file, hence no binary dependency, PRIVATE can be used. Otherwise:
+          - If A is linked during compile time, then C's information already inside DT_NEEDED section, PRIVATE keyword can be used, when A is used to link an executable, **linker will find C according to DT_NEEDED information**.
+          - If A is not linked during compile time, then C's information is not inside DT_NEEDED section, when A is used to link an executable, linker will need C specifed on command, so PUBLIC keyword should be used.
 
 **Header only contains subset of symbols that a libary uses. Binaries contain all the symbols used.**. From point view of cmake, header and binary dependency are independent from each other: each one can exist independently from each other and co-exist with each other.
 
