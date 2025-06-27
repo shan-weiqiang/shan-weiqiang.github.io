@@ -69,7 +69,28 @@ Static libraries are archives of object files. Static libraries are not *linked*
   - Binaries of thoese dependees are not required, since static libraries are *not* linked
   - Static libraries does not contain the information of it's dependees
 
-Above obersevations are roots of some interesting behaviors of cmake, if A is static lib we are building, B and C are two libs that A depends on. Let's suppose B is static and C is dynamic.:
+When it's used only the relevent object files will be copied, not the whole archive. The linker copies code **in the unit of object files**. But if instead we seperately give the object files to gcc compiler in command, all the object files, even if they are not used by the final program will be copied into the executable.
+
+### Shared libraries
+
+Shared libraries are *linked*(not necessarily fully linked, might contain unresolved symbols) executable files:
+
+- When a shared lib A depend on another static lib B:
+  - A *absorbs* B in binary level, after compilation and linking, in the eye of A there is no B anymore
+  - Thanks to the PRIVATE-becomes-PUBLIC behaviour mentioned above, all B's dependencies will be passed into A
+  - If A is about to be exported as a library, relevent headers of B, more in general relevent headers of all dependent static libs of A, should also be exported together with A's headers, as long as thoese headers are used in A's public API.
+    - Or lib B will still be used as individual lib and is requried in downstream target that depend on A, but this time only the headers of B is actually used. This can lead to another problem, that is when lib B is linked to multiple shared libs: Problem reproduction can be found at [here](https://github.com/shan-weiqiang/cplusplus/tree/main/ODR).
+- When a shared lib A depend on another shared lib B(A need B's header to compile, but can link or not link to B during compile time):
+  - A *works* with B. After compilation and linking, A stores dependency infomation on B and will see B during load time again(if B is linked during compile time, otherwise there is no B's information in A)
+  - See more in *More about libraries* section
+
+Shared libs contains unresloved symbols. Those undefined symbols further can be categorized into:
+- Unresolved symbols in linked dependencies: those symbols are *resolved* during compile time and the dependent shared libs infomation are recorded in shared lib
+- Unresolved symbols with no known provider at compile time: those symbols are *not resolved* at compile time and the resolution of them are deferred until this shared lib is used with an executable.
+
+### More about libraries
+
+If A is static lib we are building, B and C are two libs that A depends on. Let's suppose B is static and C is dynamic.:
 
 - A only needs B and C's header file location to succesfully compile
 - After compilation, Inside A's binary there are no B or C's dependency information
@@ -91,29 +112,18 @@ About in which scenario PRIVATE keyword can be used:
         - If A only used C's declaration headers in A's source file, hence no binary dependency, PRIVATE can be used. Otherwise:
           - If A is linked during compile time, then C's information already inside DT_NEEDED section, PRIVATE keyword can be used, when A is used to link an executable, **linker will find C according to DT_NEEDED information**.
           - If A is not linked during compile time, then C's information is not inside DT_NEEDED section, when A is used to link an executable, linker will need C specifed on command, so PUBLIC keyword should be used.
+         
+Refer to experiment: [shared_lib_link](https://github.com/shan-weiqiang/lab/tree/main/shared_lib_link)
 
-**Header only contains subset of symbols that a libary uses. Binaries contain all the symbols used.**. From point view of cmake, header and binary dependency are independent from each other: each one can exist independently from each other and co-exist with each other.
+From point view of cmake, header and binary dependency are independent from each other: each one can exist independently from each other and co-exist with each other：
 
-The key difference here is that static libraries are not *linked* and shared libraries are all *linked* already. Again, if in A's public API B and C's headers are used, then we need to change the keyword from PRIVATE to PUBLIC, then we will not have above problem anymore.
+1. When building and linking static libraries or shared libraries, only header files are required; all symbols can be unresolved.
 
-One last thing about static libraries is that when it's used only the relevent object files will be copied, not the whole archive. The linker copies code **in the unit of object files**. But if instead we seperately give the object files to gcc compiler in command, all the object files, even if they are not used by the final program will be copied into the executable.
+2. When building and linking executables, all dependent libraries must be present to the compiler and linker! Including those recursively dependent libraries.
 
-### Shared libraries
-
-Shared libraries are *linked*(not necessarily fully linked, might contain unresolved symbols) executable files:
-
-- When a shared lib A depend on another static lib B:
-  - A *absorbs* B in binary level and in API(headers) level, after compilation and linking, in the eye of A there is no B anymore
-  - Thanks to the PRIVATE-becomes-PUBLIC behaviour mentioned above, all B's dependencies will be passed into A
-  - If A is about to be exported as a library, relevent headers of B, more in general relevent headers of all dependent static libs of A, should also be exported together with A's headers, as long as thoese headers are used in A's public API. 
-- When a shared lib A depend on another shared lib B:
-  - A *works* with B. After compilation and linking, A stores dependency infomation on B and will see B during load time again
-  - If A is about to be exported as a library, and if in A's API B's headers are used, then B is PUBLIC depended. All users of A will automatically depend on B. If in A's API B's header are not used, PRIVATE dependency is used, users of A will not aware of B's existence, since users will not link to B. At load time, linker will load B according to A's dependencies infomation.
-
-Shared libs contains unresloved symbols. Those undefined symbols further can be categorized into:
-
-- Unresolved symbols in linked dependencies: those symbols are *resolved* during compile time and the dependent shared libs infomation are recorded in shared lib
-- Unresolved symbols with no known provider at compile time: those symbols are *not resolved* at compile time and the resolution of them are deferred until this shared lib is used with an executable.
+3. Compiler and linker will search libraries according to:
+   - Command line arguments (decided by CMake)
+   - DT_NEEDED section (in shared libraries)
 
 #### Symbol visibility
 
@@ -123,8 +133,6 @@ Except for .symtab section, shared libraries also have .dynsym section which sto
 - If it's used on undefined symbols, this symbol will not appear in .dynsym. If it's definition is not found inside current lib, compiler will issue not-defined error
 
 Visiblilty specifier can be used on both data definitions and code definitions.
-
-
 
 ### Best practices
 
