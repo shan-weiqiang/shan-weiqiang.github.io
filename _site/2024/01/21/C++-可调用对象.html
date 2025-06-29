@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>C++ 可调用实体 | shanweiqiang’s blog</title>
+<title>Callables | shanweiqiang’s blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="C++ 可调用实体" />
+<meta property="og:title" content="Callables" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="本文试图在作者的知识范围内解释清楚C++中Callable这个概念。通常Callable总是跟函数直接等价，但是同时也包括其他可调用对象，例如std::function、std::bind、lamda表达式、成员函数、可调用对象(实现()操作符的类)等。以下内容函数特指全局定义的函数。" />
 <meta property="og:description" content="本文试图在作者的知识范围内解释清楚C++中Callable这个概念。通常Callable总是跟函数直接等价，但是同时也包括其他可调用对象，例如std::function、std::bind、lamda表达式、成员函数、可调用对象(实现()操作符的类)等。以下内容函数特指全局定义的函数。" />
@@ -15,9 +15,9 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-01-21T19:22:46+08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="C++ 可调用实体" />
+<meta property="twitter:title" content="Callables" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-01-21T19:22:46+08:00","datePublished":"2024-01-21T19:22:46+08:00","description":"本文试图在作者的知识范围内解释清楚C++中Callable这个概念。通常Callable总是跟函数直接等价，但是同时也包括其他可调用对象，例如std::function、std::bind、lamda表达式、成员函数、可调用对象(实现()操作符的类)等。以下内容函数特指全局定义的函数。","headline":"C++ 可调用实体","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1.html"},"url":"http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-01-21T19:22:46+08:00","datePublished":"2024-01-21T19:22:46+08:00","description":"本文试图在作者的知识范围内解释清楚C++中Callable这个概念。通常Callable总是跟函数直接等价，但是同时也包括其他可调用对象，例如std::function、std::bind、lamda表达式、成员函数、可调用对象(实现()操作符的类)等。以下内容函数特指全局定义的函数。","headline":"Callables","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1.html"},"url":"http://localhost:4000/2024/01/21/C++-%E5%8F%AF%E8%B0%83%E7%94%A8%E5%AF%B9%E8%B1%A1.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -32,7 +32,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/about/">about</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -40,7 +40,7 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">C++ 可调用实体</h1>
+    <h1 class="post-title p-name" itemprop="name headline">Callables</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2024-01-21T19:22:46+08:00" itemprop="datePublished">Jan 21, 2024
       </time></p>

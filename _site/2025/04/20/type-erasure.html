@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Type Erasure | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="Type Erasure" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="This is understanding notes for this presentation: C++ Type Erasure Demystified - Fedor G Pikus - C++Now 2024. Ppt at here." />
+<meta property="og:description" content="This is understanding notes for this presentation: C++ Type Erasure Demystified - Fedor G Pikus - C++Now 2024. Ppt at here." />
+<link rel="canonical" href="http://localhost:4000/2025/04/20/type-erasure.html" />
+<meta property="og:url" content="http://localhost:4000/2025/04/20/type-erasure.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-04-20T09:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Type Erasure" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-04-20T09:22:46+08:00","datePublished":"2025-04-20T09:22:46+08:00","description":"This is understanding notes for this presentation: C++ Type Erasure Demystified - Fedor G Pikus - C++Now 2024. Ppt at here.","headline":"Type Erasure","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/04/20/type-erasure.html"},"url":"http://localhost:4000/2025/04/20/type-erasure.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Type Erasure</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2025-04-20T09:22:46+08:00" itemprop="datePublished">Apr 20, 2025
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>This is understanding notes for this presentation: <a href="https://www.youtube.com/watch?v=p-qaf6OS_f4">C++ Type Erasure Demystified - Fedor G Pikus - C++Now 2024</a>. Ppt at <a href="https://github.com/shan-weiqiang/shan-weiqiang.github.io/blob/main/assets/files/Cpp_Type_Erasure_Demystified.pdf">here</a>.</p>
+
+<ul id="markdown-toc">
+  <li><a href="#core-logic-behind-type-erasure" id="markdown-toc-core-logic-behind-type-erasure">Core logic behind type erasure</a></li>
+  <li><a href="#implementation-methods-for-type-erasure" id="markdown-toc-implementation-methods-for-type-erasure">Implementation methods for type erasure</a></li>
+  <li><a href="#abstraction-of-type" id="markdown-toc-abstraction-of-type">Abstraction of type</a></li>
+  <li><a href="#type-erasure-of-stdfunction" id="markdown-toc-type-erasure-of-stdfunction">Type erasure of std::function</a></li>
+  <li><a href="#type-erasure-of-stdshared_ptr-deleter" id="markdown-toc-type-erasure-of-stdshared_ptr-deleter">Type erasure of std::shared_ptr deleter</a></li>
+  <li><a href="#more-about-binding" id="markdown-toc-more-about-binding">More about binding</a></li>
+  <li><a href="#stdvariant" id="markdown-toc-stdvariant">std::variant</a></li>
+</ul>
+
+<h2 id="core-logic-behind-type-erasure">Core logic behind type erasure</h2>
+
+<ul>
+  <li>Encapsulate type infomation in implementation, remove type information in interface</li>
+  <li>Different implementation for different types might be manually coded or generated by compiler(C++)
+    <ul>
+      <li>Template instantiation</li>
+      <li>Virtual inheritence</li>
+    </ul>
+  </li>
+  <li>Dispatch of implementation happens at construction phase. It might happens at compile time or runtime:
+    <ul>
+      <li>For template instantiated implementations, it happens at compile time</li>
+      <li>For virtual inheritence, it happens at runtime
+<strong>Dispatch is all about redirection of function pointers</strong></li>
+    </ul>
+  </li>
+  <li>The user of the interface is not aware of the passed type information, hence the type is <em>erased</em>.</li>
+</ul>
+
+<p>What’s the benifit of type erasure? Even though there is a type erased interface, like <code class="language-plaintext highlighter-rouge">qsort</code>, but when the <code class="language-plaintext highlighter-rouge">qsort</code> is actually used, we still need to pass <em>correct implementation</em> of the comparision function to <code class="language-plaintext highlighter-rouge">qsort</code>, we just <strong>defer</strong> the choice of implementation to later time. The <code class="language-plaintext highlighter-rouge">qsort</code> function acts as a <em>variation point</em>, it <strong>abstract</strong> the sorting logic functionality by using only the type erased compare function. When <code class="language-plaintext highlighter-rouge">qsort</code> is called, it binds the sorting logic to the actual type compare implementation. Without <code class="language-plaintext highlighter-rouge">qsort</code> that use the type-erased compare interface to implement <em>common behavior</em> of sorting, the type-erased compare interface will have no practical meaning:</p>
+
+<ul>
+  <li>The <code class="language-plaintext highlighter-rouge">qsort</code> algorithm stands for the <em>common behavior</em>, which utilize the type-erased interface</li>
+  <li>The implementation of this <em>common behavior</em> abstract out any specific type information</li>
+  <li>When the implementation of this <em>common behavior</em> is used, user decides which type it is actually operates on(the <em>common behavior</em> implementation still know nothing about type whatsoever)</li>
+</ul>
+
+<p>Without this <em>abstraction</em>, we have to implement <code class="language-plaintext highlighter-rouge">qsort</code> for each individual type and the sorting algorithm has to be coded every time for each type. Now with type erasure, we only need to code the actual sorting algorithm <em>once</em> for all possible types. Of cource the compare function has to be implemented for each type, since each type has their own comparing logic.</p>
+
+<h2 id="implementation-methods-for-type-erasure">Implementation methods for type erasure</h2>
+
+<ol>
+  <li>Virtual inheritance: redirection hanppens when using base class pointer to call implementation in derived class(whose type is erased)</li>
+  <li>Static templated functions: C++ compiler will generate code implementation for each template instantiation. It’s the same as C, but code generated instead of manually written. Note that generated static functions are class members, which means that the amount of instantiations equals the number of generated class member functions.</li>
+  <li>Vtable: similar as 2, this time use a vtable to point to generated static class member functions.</li>
+</ol>
+
+<p>Note: <strong>Method 3 is how <code class="language-plaintext highlighter-rouge">std::function</code> is implemented</strong>.</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">&lt;cstdlib&gt;</span><span class="cp">
+</span>
+<span class="c1">// Following code are in *.cpp file, without Some exposed</span>
+<span class="c1">// But user will call this code through type erased interface: void</span>
+<span class="c1">// print_data(const void *p). This is the core of type erasure: encapsulate type</span>
+<span class="c1">// infomation in implementation, remove type information in interface.</span>
+<span class="k">struct</span> <span class="nc">Some</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">data</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="kt">bool</span> <span class="nf">less</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">l</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Some</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">&lt;</span>
+         <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Some</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// The declaration in *.h, exposed to external user</span>
+<span class="c1">// ! Here is where the type erasure happens</span>
+<span class="kt">bool</span> <span class="nf">less</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="c1">// User of type erasure: qsort does not need to know which type it will sort,</span>
+<span class="c1">// type is erased from qsort: type erasure is an abstraction for multiple</span>
+<span class="c1">// implementations that provide the same behavior, the relevent behavior is what</span>
+<span class="c1">// matters, not the type. In this example, `compare` parameter requires that two</span>
+<span class="c1">// elements can be compared, qsort does not care about how it is compared, as</span>
+<span class="c1">// long as it return a bool value. This gives chances to implement the compare</span>
+<span class="c1">// logic in source code, instead of in interface code.</span>
+
+<span class="c1">// Since type erasure is about abstraction of behavior, it alwarys involve</span>
+<span class="c1">// redirection of function pointers, no matter which way it is implemented. This</span>
+<span class="c1">// redirection of function pointer is called dispatch, which is another core</span>
+<span class="c1">// brick in implementing type erasure. Dispatch might happen both at compile</span>
+<span class="c1">// time or runtime.</span>
+
+<span class="c1">// Compared with C, C++ ONLY add implementation methods for type erasure. In C,</span>
+<span class="c1">// we have to manually write different implementations, like the `less` and</span>
+<span class="c1">// `more` function in below. In C++, we have the compiler to generate different</span>
+<span class="c1">// implementation code for us. They all involves template and are done at</span>
+<span class="c1">// construction phase. The three ways are:</span>
+<span class="c1">// 1. virtual inheritance: redirection hanppens when using base class pointer to</span>
+<span class="c1">// call implementation in derived class(whose type is erased)</span>
+<span class="c1">// 2. static templated functions: C++ compiler will generate</span>
+<span class="c1">// code implementation for each template instantiation. It's the same as C, but</span>
+<span class="c1">// code generated instead of manually written. Note that generated static</span>
+<span class="c1">// functions are class members, which means that the amount of instantiations</span>
+<span class="c1">// equals the number of generated class member functions.</span>
+<span class="c1">// 3. vtable: Similar as 2, this time use a vtable to point to instead of</span>
+<span class="c1">// generating static class member functions.</span>
+
+<span class="c1">// One more important fact is that all the C++ ways are of value semantics. The</span>
+<span class="c1">// implementation is stored as value(function pointers can be seen as value of</span>
+<span class="c1">// function variables).</span>
+
+<span class="c1">// Now we can summarize type erasure as follow:</span>
+
+<span class="c1">// Core logic of type erasure:</span>
+<span class="c1">// 1. Encapsulate type infomation in implementation, remove type information in</span>
+<span class="c1">// interface.</span>
+<span class="c1">// 2. The interface provide same behavior, regardless of specific type</span>
+
+<span class="c1">// Implementation steps of type erasure involve two distinct phase: how</span>
+<span class="c1">// implementation code is generated at compile time and how those implementation</span>
+<span class="c1">// is dispatched to at runtime:</span>
+
+<span class="c1">// 1. Statically write type erased code implementation, either manually, or by</span>
+<span class="c1">// compiler(C++). The type must be inside cpp, not in header(interface)</span>
+<span class="c1">// 2. Dynamically dispatch function call to the right implementation at runtime.</span>
+<span class="c1">// How the dispatch is done varies. It can simply be hard coded(like in C qsort</span>
+<span class="c1">// example in following code). Or it can be done using virtual inheritance in</span>
+<span class="c1">// C++. Either way, the dispatch, or redirection is determined during</span>
+<span class="c1">// construction phase. As soon as the construction is complete, the dispatch</span>
+<span class="c1">// manner is determined.</span>
+
+<span class="kt">void</span> <span class="nf">qsort</span><span class="p">(</span><span class="kt">void</span> <span class="o">*</span><span class="n">base</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">nmeb</span><span class="p">,</span> <span class="kt">size_t</span> <span class="n">size</span><span class="p">,</span>
+           <span class="kt">bool</span> <span class="p">(</span><span class="o">*</span><span class="n">compare</span><span class="p">)(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">));</span>
+
+<span class="c1">// Following give another type that also use qsort</span>
+<span class="k">struct</span> <span class="nc">Tome</span> <span class="p">{</span>
+  <span class="kt">int</span> <span class="n">data</span><span class="p">;</span>
+<span class="p">};</span>
+<span class="kt">bool</span> <span class="nf">more</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">l</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="n">r</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Tome</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">l</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">data</span> <span class="o">&lt;</span>
+         <span class="k">static_cast</span><span class="o">&lt;</span><span class="k">const</span> <span class="n">Tome</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="kt">bool</span> <span class="nf">more</span><span class="p">(</span><span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">,</span> <span class="k">const</span> <span class="kt">void</span> <span class="o">*</span><span class="p">);</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">Some</span> <span class="n">a</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+  <span class="n">Tome</span> <span class="n">b</span><span class="p">[</span><span class="mi">10</span><span class="p">];</span>
+  <span class="c1">// qsort is universal, thanks to the redirection of `compare` parameter</span>
+  <span class="n">qsort</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">less</span><span class="p">);</span>
+  <span class="n">qsort</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="n">more</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="abstraction-of-type">Abstraction of type</h2>
+
+<p>Type erasure, C++ template, C++ concept, virtual inheritence, what is the common characteristic among them?  <strong>They both allow us to write code logic for a group of types, instead of just one type</strong>. The code logic is the <em>common behavior</em> for those types. The binding of specific types are deferred to later times: for type erasure and virtual inheritence, this binding is defered to runtime; for C++ template and C++ concept, this binding is deferred to compile time:</p>
+
+<ul>
+  <li>We can write binary libraries which can be used on difference types using type erasure and virtual inheritence</li>
+  <li>We can write templated source code libraries which can be used on difference types using C++ template and C++ concept</li>
+</ul>
+
+<p>C++ concept is more restricted C++ template. C++ virtual inheritence is special kind of type erasure, with vtable as runtime dispatch method. <strong>All being said, at the core, they are all function pointer binding methods, at compile time, or at runtime. When bind at runtime, it’s always during the construction phase</strong>.</p>
+
+<h2 id="type-erasure-of-stdfunction">Type erasure of std::function</h2>
+
+<p>After the signature is specified through template paramter, <code class="language-plaintext highlighter-rouge">std::function</code> variable can be used to store difference kinds of <em>types</em>, as long as they both have the same signature. This is done through type erasure. <code class="language-plaintext highlighter-rouge">std::function</code> has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a <code class="language-plaintext highlighter-rouge">std::function</code> instance is constructed, the <em>implementation</em> binding is fixed.</p>
+
+<p>Note that <code class="language-plaintext highlighter-rouge">std::function</code> variables, like virtual base class pointers can be re-assigned to other <code class="language-plaintext highlighter-rouge">std::function</code> instance with the same signature at runtime, just like virtual base class pointers changed to point to other derived class instances. This is because, internally, <code class="language-plaintext highlighter-rouge">std::function</code> erased type for specific implementation type after an instance is constructed. Take the <code class="language-plaintext highlighter-rouge">qsort</code> for example, if i have a class instance that stores <code class="language-plaintext highlighter-rouge">qsort</code> and <code class="language-plaintext highlighter-rouge">less</code>, another instance can store <code class="language-plaintext highlighter-rouge">qsort</code> and <code class="language-plaintext highlighter-rouge">more</code>, since <code class="language-plaintext highlighter-rouge">less</code> and <code class="language-plaintext highlighter-rouge">more</code> have the same signature and are type erased. The external API of <code class="language-plaintext highlighter-rouge">std::function</code> works for any instances(which have different function pointer bindings, which happens at compile time, and have difference implementation code).</p>
+
+<h2 id="type-erasure-of-stdshared_ptr-deleter">Type erasure of std::shared_ptr deleter</h2>
+
+<p><code class="language-plaintext highlighter-rouge">std::shared_ptr</code> type use virtual base class to do type erasure. If user pass a custom deleter during construction, the pointer instance will be bound to a unified base class and points to the implementation of this custom deleter.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1">// Support for custom deleter and/or allocator</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">_Ptr</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">_Deleter</span><span class="p">,</span> <span class="k">typename</span> <span class="nc">_Alloc</span><span class="p">,</span> <span class="n">_Lock_policy</span> <span class="n">_Lp</span><span class="p">&gt;</span>
+<span class="k">class</span> <span class="nc">_Sp_counted_deleter</span> <span class="k">final</span> <span class="o">:</span> <span class="k">public</span> <span class="n">_Sp_counted_base</span><span class="o">&lt;</span><span class="n">_Lp</span><span class="o">&gt;</span> <span class="p">{</span>
+  <span class="k">class</span> <span class="nc">_Impl</span> <span class="o">:</span> <span class="n">_Sp_ebo_helper</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="n">_Deleter</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">_Sp_ebo_helper</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span> <span class="n">_Alloc</span><span class="o">&gt;</span> <span class="p">{</span>
+    <span class="k">typedef</span> <span class="n">_Sp_ebo_helper</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">,</span> <span class="n">_Deleter</span><span class="o">&gt;</span> <span class="n">_Del_base</span><span class="p">;</span>
+    <span class="k">typedef</span> <span class="n">_Sp_ebo_helper</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span> <span class="n">_Alloc</span><span class="o">&gt;</span> <span class="n">_Alloc_base</span><span class="p">;</span>
+
+  <span class="nl">public:</span>
+    <span class="n">_Impl</span><span class="p">(</span><span class="n">_Ptr</span> <span class="n">__p</span><span class="p">,</span> <span class="n">_Deleter</span> <span class="n">__d</span><span class="p">,</span> <span class="k">const</span> <span class="n">_Alloc</span> <span class="o">&amp;</span><span class="n">__a</span><span class="p">)</span> <span class="k">noexcept</span>
+        <span class="o">:</span> <span class="n">_M_ptr</span><span class="p">(</span><span class="n">__p</span><span class="p">),</span> <span class="n">_Del_base</span><span class="p">(</span><span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">__d</span><span class="p">)),</span> <span class="n">_Alloc_base</span><span class="p">(</span><span class="n">__a</span><span class="p">)</span> <span class="p">{}</span>
+
+    <span class="n">_Deleter</span> <span class="o">&amp;</span><span class="n">_M_del</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_Del_base</span><span class="o">::</span><span class="n">_S_get</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">);</span> <span class="p">}</span>
+    <span class="n">_Alloc</span> <span class="o">&amp;</span><span class="n">_M_alloc</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="k">return</span> <span class="n">_Alloc_base</span><span class="o">::</span><span class="n">_S_get</span><span class="p">(</span><span class="o">*</span><span class="k">this</span><span class="p">);</span> <span class="p">}</span>
+
+    <span class="n">_Ptr</span> <span class="n">_M_ptr</span><span class="p">;</span>
+  <span class="p">};</span>
+
+<span class="k">public</span><span class="o">:</span>
+  <span class="k">using</span> <span class="n">__allocator_type</span> <span class="o">=</span> <span class="n">__alloc_rebind</span><span class="o">&lt;</span><span class="n">_Alloc</span><span class="p">,</span> <span class="n">_Sp_counted_deleter</span><span class="o">&gt;</span><span class="p">;</span>
+
+  <span class="c1">// __d(__p) must not throw.</span>
+  <span class="n">_Sp_counted_deleter</span><span class="p">(</span><span class="n">_Ptr</span> <span class="n">__p</span><span class="p">,</span> <span class="n">_Deleter</span> <span class="n">__d</span><span class="p">)</span> <span class="k">noexcept</span>
+      <span class="o">:</span> <span class="n">_M_impl</span><span class="p">(</span><span class="n">__p</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">__d</span><span class="p">),</span> <span class="n">_Alloc</span><span class="p">())</span> <span class="p">{}</span>
+
+  <span class="c1">// __d(__p) must not throw.</span>
+  <span class="n">_Sp_counted_deleter</span><span class="p">(</span><span class="n">_Ptr</span> <span class="n">__p</span><span class="p">,</span> <span class="n">_Deleter</span> <span class="n">__d</span><span class="p">,</span> <span class="k">const</span> <span class="n">_Alloc</span> <span class="o">&amp;</span><span class="n">__a</span><span class="p">)</span> <span class="k">noexcept</span>
+      <span class="o">:</span> <span class="n">_M_impl</span><span class="p">(</span><span class="n">__p</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">__d</span><span class="p">),</span> <span class="n">__a</span><span class="p">)</span> <span class="p">{}</span>
+
+  <span class="o">~</span><span class="n">_Sp_counted_deleter</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{}</span>
+
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">_M_dispose</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span> <span class="n">_M_impl</span><span class="p">.</span><span class="n">_M_del</span><span class="p">()(</span><span class="n">_M_impl</span><span class="p">.</span><span class="n">_M_ptr</span><span class="p">);</span> <span class="p">}</span>
+
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="nf">_M_destroy</span><span class="p">()</span> <span class="k">noexcept</span> <span class="p">{</span>
+    <span class="n">__allocator_type</span> <span class="n">__a</span><span class="p">(</span><span class="n">_M_impl</span><span class="p">.</span><span class="n">_M_alloc</span><span class="p">());</span>
+    <span class="n">__allocated_ptr</span><span class="o">&lt;</span><span class="n">__allocator_type</span><span class="o">&gt;</span> <span class="n">__guard_ptr</span><span class="p">{</span><span class="n">__a</span><span class="p">,</span> <span class="k">this</span><span class="p">};</span>
+    <span class="k">this</span><span class="o">-&gt;~</span><span class="n">_Sp_counted_deleter</span><span class="p">();</span>
+  <span class="p">}</span>
+
+  <span class="k">virtual</span> <span class="kt">void</span> <span class="o">*</span><span class="n">_M_get_deleter</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">type_info</span> <span class="o">&amp;</span><span class="n">__ti</span><span class="p">)</span> <span class="k">noexcept</span> <span class="p">{</span>
+<span class="cp">#if __cpp_rtti
+</span>    <span class="c1">// _GLIBCXX_RESOLVE_LIB_DEFECTS</span>
+    <span class="c1">// 2400. shared_ptr's get_deleter() should use addressof()</span>
+    <span class="k">return</span> <span class="n">__ti</span> <span class="o">==</span> <span class="k">typeid</span><span class="p">(</span><span class="n">_Deleter</span><span class="p">)</span> <span class="o">?</span> <span class="n">std</span><span class="o">::</span><span class="n">__addressof</span><span class="p">(</span><span class="n">_M_impl</span><span class="p">.</span><span class="n">_M_del</span><span class="p">())</span>
+                                    <span class="o">:</span> <span class="nb">nullptr</span><span class="p">;</span>
+<span class="cp">#else
+</span>    <span class="k">return</span> <span class="nb">nullptr</span><span class="p">;</span>
+<span class="cp">#endif
+</span>  <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">_Impl</span> <span class="n">_M_impl</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div></div>
+<p><code class="language-plaintext highlighter-rouge">_Deleter</code> type is erased at compile time, <code class="language-plaintext highlighter-rouge">std::shared_ptr</code> type will only store a pointer of <code class="language-plaintext highlighter-rouge">_Sp_counted_base</code> type, which makes the <code class="language-plaintext highlighter-rouge">std::shared_ptr</code> type not depend on custom deleters.</p>
+
+<h2 id="more-about-binding">More about binding</h2>
+
+<p>After a type is erased, we <strong>have to</strong> bind to the correct <em>implementations</em>. The implementation must coorespond to this type, otherwise, there will be errors if we pass a <em>void</em> pointer to this implementation, since inside this implementation, the <em>void</em> pointer will be cast back to this type. Of course, there can be multiple implementations for this type, <strong>but, there is only one binding</strong>. Better use examples:</p>
+
+<ul>
+  <li>Whether it’s compile time or runtime, as long as the binding is finished, it <em>cannot</em> be changed.</li>
+  <li>For virtual class, when a derived class instance is created, it’s vtable is bound to vtable of this class, it’s <em>wrong</em> to change it.</li>
+  <li>For template functions, which binds at compile time, it’s fixed after compilation, and cannot be changed.</li>
+  <li>For <code class="language-plaintext highlighter-rouge">std::function</code>, we can have multiple variable for the same signature: <code class="language-plaintext highlighter-rouge">std::function&lt;int(int)&gt; a</code>, <code class="language-plaintext highlighter-rouge">std::function&lt;int(int)&gt;b</code>, and they can have <strong>different</strong> implementations. However, after <strong>construction</strong> of <code class="language-plaintext highlighter-rouge">a</code>, <code class="language-plaintext highlighter-rouge">b</code>, their binding to implementation is <em>fixed</em>, we cannot change <code class="language-plaintext highlighter-rouge">a</code>’s implementation to <code class="language-plaintext highlighter-rouge">b</code>’s. Of course, we can assign <code class="language-plaintext highlighter-rouge">a</code> to <code class="language-plaintext highlighter-rouge">b</code>, which will create a copy of <code class="language-plaintext highlighter-rouge">b</code>, but this is <em>not</em> changing the binding of <code class="language-plaintext highlighter-rouge">a</code>.  Even though <code class="language-plaintext highlighter-rouge">a</code> and <code class="language-plaintext highlighter-rouge">b</code> are of the same type, but they contain and bind to different callables:
+    <div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">_Res</span><span class="p">,</span> <span class="k">typename</span><span class="o">...</span> <span class="nc">_ArgTypes</span><span class="p">&gt;</span>
+<span class="k">template</span> <span class="o">&lt;</span><span class="k">typename</span> <span class="nc">_Functor</span><span class="p">,</span> <span class="k">typename</span><span class="p">,</span> <span class="k">typename</span><span class="p">&gt;</span>
+<span class="n">function</span><span class="o">&lt;</span><span class="n">_Res</span><span class="p">(</span><span class="n">_ArgTypes</span><span class="p">...)</span><span class="o">&gt;::</span><span class="n">function</span><span class="p">(</span><span class="n">_Functor</span> <span class="n">__f</span><span class="p">)</span> <span class="o">:</span> <span class="n">_Function_base</span><span class="p">()</span> <span class="p">{</span>
+<span class="k">typedef</span> <span class="n">_Function_handler</span><span class="o">&lt;</span><span class="n">_Res</span><span class="p">(</span><span class="n">_ArgTypes</span><span class="p">...),</span> <span class="n">_Functor</span><span class="o">&gt;</span> <span class="n">_My_handler</span><span class="p">;</span>
+
+<span class="k">if</span> <span class="p">(</span><span class="n">_My_handler</span><span class="o">::</span><span class="n">_M_not_empty_function</span><span class="p">(</span><span class="n">__f</span><span class="p">))</span> <span class="p">{</span>
+  <span class="n">_My_handler</span><span class="o">::</span><span class="n">_M_init_functor</span><span class="p">(</span><span class="n">_M_functor</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="n">move</span><span class="p">(</span><span class="n">__f</span><span class="p">));</span>
+  <span class="n">_M_invoker</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_My_handler</span><span class="o">::</span><span class="n">_M_invoke</span><span class="p">;</span>
+  <span class="n">_M_manager</span> <span class="o">=</span> <span class="o">&amp;</span><span class="n">_My_handler</span><span class="o">::</span><span class="n">_M_manager</span><span class="p">;</span>
+<span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>    </div>
+    <p>After <em>construction</em> the binding is fixed and can not be changed.</p>
+  </li>
+</ul>
+
+<h2 id="stdvariant">std::variant</h2>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">std::variant</code> itself is not type erasure, it’s a union and will record flags to indicate which type it currently stores</li>
+  <li><code class="language-plaintext highlighter-rouge">std::visit</code> involves two phase:
+    <ul>
+      <li>Dispatch right function according to specific type stored in std::variant at runtime</li>
+      <li>Each function is stored type erased, like <code class="language-plaintext highlighter-rouge">std::function</code></li>
+    </ul>
+  </li>
+</ul>
+
+  </div><a class="u-url" href="/2025/04/20/type-erasure.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

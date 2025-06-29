@@ -3,9 +3,9 @@
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
-<title>智能指针内存模型 | shanweiqiang’s blog</title>
+<title>Smart pointer memory model | shanweiqiang’s blog</title>
 <meta name="generator" content="Jekyll v4.3.3" />
-<meta property="og:title" content="智能指针内存模型" />
+<meta property="og:title" content="Smart pointer memory model" />
 <meta property="og:locale" content="en_US" />
 <meta name="description" content="shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。" />
 <meta property="og:description" content="shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。" />
@@ -15,9 +15,9 @@
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2024-04-20T12:22:46+08:00" />
 <meta name="twitter:card" content="summary" />
-<meta property="twitter:title" content="智能指针内存模型" />
+<meta property="twitter:title" content="Smart pointer memory model" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-20T12:22:46+08:00","datePublished":"2024-04-20T12:22:46+08:00","description":"shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。","headline":"智能指针内存模型","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"},"url":"http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-04-20T12:22:46+08:00","datePublished":"2024-04-20T12:22:46+08:00","description":"shared_ptr的删除器默认为delete操作符，但是由于shared_ptr指向的对象可能与控制块指向的对象不一致，所以删除器删除的对象可能与预期的不一致。理解智能指针的内存模型后，对理解这些行为很有帮助。","headline":"Smart pointer memory model","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"},"url":"http://localhost:4000/2024/04/20/smartPtr-%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -32,7 +32,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/about/">about</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -40,7 +40,7 @@
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">智能指针内存模型</h1>
+    <h1 class="post-title p-name" itemprop="name headline">Smart pointer memory model</h1>
     <p class="post-meta">
       <time class="dt-published" datetime="2024-04-20T12:22:46+08:00" itemprop="datePublished">Apr 20, 2024
       </time></p>

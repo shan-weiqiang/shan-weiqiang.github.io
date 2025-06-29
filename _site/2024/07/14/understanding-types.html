@@ -7,8 +7,8 @@
 <meta name="generator" content="Jekyll v4.3.3" />
 <meta property="og:title" content="Type system and language bindings" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. Some of them are static, others are dynamic. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive." />
-<meta property="og:description" content="Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. Some of them are static, others are dynamic. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive." />
+<meta name="description" content="Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive." />
+<meta property="og:description" content="Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive." />
 <link rel="canonical" href="http://localhost:4000/2024/07/14/understanding-types.html" />
 <meta property="og:url" content="http://localhost:4000/2024/07/14/understanding-types.html" />
 <meta property="og:site_name" content="shanweiqiang’s blog" />
@@ -17,7 +17,7 @@
 <meta name="twitter:card" content="summary" />
 <meta property="twitter:title" content="Type system and language bindings" />
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-07-14T10:20:46+08:00","datePublished":"2024-07-14T10:20:46+08:00","description":"Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. Some of them are static, others are dynamic. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.","headline":"Type system and language bindings","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/07/14/understanding-types.html"},"url":"http://localhost:4000/2024/07/14/understanding-types.html"}</script>
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-07-14T10:20:46+08:00","datePublished":"2024-07-14T10:20:46+08:00","description":"Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.","headline":"Type system and language bindings","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2024/07/14/understanding-types.html"},"url":"http://localhost:4000/2024/07/14/understanding-types.html"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
 <body><header class="site-header" role="banner">
@@ -32,7 +32,7 @@
           </span>
         </label>
 
-        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/archive/">archive</a><a class="page-link" href="/about/">about</a></div>
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/about/">about</a></div>
       </nav></div>
 </header>
 <main class="page-content" aria-label="Content">
@@ -47,14 +47,14 @@
   </header>
 
   <div class="post-content e-content" itemprop="articleBody">
-    <p>Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. Some of them are static, others are dynamic. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.</p>
+    <p>Everyday, I deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg… They are all representation of types. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.</p>
 
 <ul id="markdown-toc">
-  <li><a href="#type-systems" id="markdown-toc-type-systems">Type Systems</a>    <ul>
-      <li><a href="#static" id="markdown-toc-static">Static</a></li>
+  <li><a href="#type-interpretation" id="markdown-toc-type-interpretation">Type Interpretation</a>    <ul>
+      <li><a href="#static-interpretation" id="markdown-toc-static-interpretation">Static Interpretation</a></li>
       <li><a href="#introspection" id="markdown-toc-introspection">Introspection</a></li>
       <li><a href="#reflection" id="markdown-toc-reflection">Reflection</a></li>
-      <li><a href="#dynamic-type" id="markdown-toc-dynamic-type">Dynamic type</a></li>
+      <li><a href="#dynamic-interpretation" id="markdown-toc-dynamic-interpretation">Dynamic interpretation</a></li>
       <li><a href="#dynamic-data" id="markdown-toc-dynamic-data">Dynamic data</a></li>
     </ul>
   </li>
@@ -64,22 +64,17 @@
   <li><a href="#schema-and-data" id="markdown-toc-schema-and-data">Schema and Data</a></li>
   <li><a href="#interpreterdynamic-types-systems" id="markdown-toc-interpreterdynamic-types-systems">Interpreter/Dynamic types systems</a>    <ul>
       <li><a href="#omg-xtypes" id="markdown-toc-omg-xtypes">OMG XTypes</a></li>
-      <li><a href="#protocol-buffers-dynamic-type" id="markdown-toc-protocol-buffers-dynamic-type">Protocol Buffers dynamic type</a></li>
     </ul>
   </li>
 </ul>
 
-<h2 id="type-systems">Type Systems</h2>
+<h2 id="type-interpretation">Type Interpretation</h2>
 
-<p>Syntax rules for defining data types. It consists of pre-defined basic types and rules to build complex customized data types. It is compiled into machine code for static-typed languages like C/C++, or dynamically loaded as types in dynamic-typed languages like Python.</p>
+<p>JSON/XML/Proto/ROS/C/C++ are all <em>data format</em>. It consists of pre-defined basic types and rules to build complex customized data types. They can be interpreted statically or dynamically. <em>data format</em> by themselves have nothing to do with <em>dynamic</em> or <em>static</em>, it’s the <em>interpreter</em> that parse them have the attributes of those two distinct feature. The same data format can be interpreted both dynamically and statically at the same time, depending on the interpreter/program used to parse them. Normally, C/C++ types are processed statically, which is why it’s called static-typed language. Python types are processed by python interpreter dynamically. Proto/ROS/IDL are first compiled into C/C++ types and processed statically. JSON/XML both have dynamic and static interpreters. For example, the <code class="language-plaintext highlighter-rouge">nlohmann::json</code> library can dynamically parse <em>any</em> json files, while in many critical industries there is statical json parsers that is hard coded to only parse specific json data structure(like in AUTOSAR manifest files), they differ in that dynamic json parser will dynamically store any inputs in memory, which static json parser is programmed to parse pre-determined json data structures(json structure is pre-known before runtime, like Proto/IDL/ROS). <strong>In the rest of this artical, when we say <em>dynamic</em> or <em>static</em>, we mean the <em>program/interpreter</em> that parse types, NOT the type themselves</strong>.</p>
 
-<p>It includes language-specific type system and language-neutral type systems that are defined by interface definition languages, which we will have detailed discussion later.</p>
+<h3 id="static-interpretation">Static Interpretation</h3>
 
-<p>I categorize type system in following way, according to their runtime behavior: static type system, introspection type system, dynamic type system, dynamic data system.</p>
-
-<h3 id="static">Static</h3>
-
-<p>The main characteristic of those type system is that after compiling, all type information is lost. Type information of a variable, like type name, type, member name, member type, are translated by compiler into machine code directly. Those types only lives <em>before</em> compilation. Representitives of this kind of types is C.</p>
+<p>The main characteristic of those type interpreter is that after compiling, all type information is lost. Type information of a variable, like type name, type, member name, member type, are translated by compiler into machine code directly. Those types only lives <em>before</em> compilation. Representitives of this kind of types is C.</p>
 
 <h3 id="introspection">Introspection</h3>
 
@@ -87,13 +82,15 @@
 
 <h3 id="reflection">Reflection</h3>
 
-<p><em>The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.</em> <a href="https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful">source</a>. According to this definition, reflection supports modification of the <em>values</em> and <em>types</em> through <em>introspection</em>.</p>
+<p><em>The ability to inspect the code in the system and see object types is not reflection, but rather Type Introspection. Reflection is then the ability to make modifications at runtime by making use of introspection. The distinction is necessary here as some languages support introspection, but do not support reflection. One such example is C++.</em> <a href="https://stackoverflow.com/questions/37628/what-is-reflection-and-why-is-it-useful">source</a>. According to this definition, reflection supports modification of the <em>values</em> of variable instance through <em>introspection</em>. Note that reflection can not change <em>type</em>, only <em>value</em> for variable instance. Besides, reflection can also create new instance. One classic <a href="https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html">implementation of reflection is Google Protobuffers</a>.</p>
 
-<h3 id="dynamic-type">Dynamic type</h3>
+<h3 id="dynamic-interpretation">Dynamic interpretation</h3>
 
-<p>Introspection and Reflection can be implemented <em>statically</em> or <em>dynamically</em>. Like we mentioned above, ROS2 supports <em>introspection</em> and <em>reflection</em> statically, since all the codes and static variables that contains type information are <em>statically</em> generated and compiled into machine code at compile time.</p>
+<p>Introspection can be implemented <em>statically</em> or <em>dynamically</em>. Like we mentioned above, ROS2 supports <em>introspection</em>  statically, since all the codes and static variables that contains type information are <em>statically</em> generated and compiled into machine code at compile time.</p>
 
-<p>What if we can read those type information at <em>runtime</em>, without knowing the type information at compile time? This is dynamic type system. It consists of <em>statically</em> compiled data structures and codes to represent all possible types at runtime, and <em>type representation</em> format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called <em>dynamic type</em> system and it will dynamically build types based on any kinds of <em>type representation</em>, as long as it contains valid type information. We will talk about dynamic types in more detail later, take the XTypes of OMG as example.</p>
+<p>What if we can read those type information at <em>runtime</em>, without knowing the type information at compile time? This is dynamic type system. It consists of <em>statically</em> compiled data structures and codes to represent all possible types at runtime, and <em>type representation</em> format (.msg, .proto, .idl, xml, json, etc) to store type information and to be read by the before-mentioned static program. The static program is called <em>dynamic type</em> interpreter and it will dynamically build types based on any kinds of <em>type representation</em>, as long as it contains valid type information. We will talk about dynamic types interpreters in more detail later, take the XTypes of OMG as example.</p>
+
+<p><em>The key difference with reflection is that dynamic types can be created, modified, changed at runtime, not only it’s value.</em> Even though some reflection implementation, like Google Protobuf, also support create new types at runtime, they do not support modifiying after type registration.</p>
 
 <h3 id="dynamic-data">Dynamic data</h3>
 
@@ -139,23 +136,6 @@
 <p>Note that the memory model for representing the data type in these two types of bindings are very different. For the plain language binding, the data might be contagious since it is represented using specificaly generated language types, like C++, the type is represented by a individual class. The memory model is decided by the generated class. For dynamic language binding, since there are no individual language specific data type to represent the data type, the memory model is decided by the implementation of the dynamic type program.</p>
 
 <p>The dynamic type system mainly contain four parts. The first one is dynamic type system, this system should build starting from basic types and should recursively contains itself to support complex user defined types. Dynamic types system is built hierarchically, with each level a specific type kind and if one level contains members, it should contain another dynamic type recursively. This way the dynamic type itself is static, but at runtime it can represent any types that are defined in a schema. The second one is a dynamic data system. If we only have dynamic type system, it is not enough to decode data and inspect them in human readable way. Dynamic data system must use dynamic type and also recursively include itself to represent complex value of dynamic types. An instance of dynamic type is a specific type. An instance of dynamic data is a specific data of a specific type. Dynamic data is also static code. As you can imagine, there are lots of recursions going on here. The third one is the above mentioned <em>TypeObject</em>, which contain schema information. XTypes use <em>TypeObject</em> as source to build dynamic types. The final part is a global type management system. Types are inter-dependent. One types can depend on another and this is generally the normal way of how types are constructed. A global instance that manages all types, that recieves type registration, that create dynamic types is necessary to coordinate all dynamic type management.</p>
-
-<h3 id="protocol-buffers-dynamic-type">Protocol Buffers dynamic type</h3>
-
-<p>For Protocol Buffers, conceptually it’s the same with XTypes, with some differences.</p>
-
-<ul>
-  <li>Type system: Protocol Buffers have it’s own type system. Basic types, ways to construct complex user defined types and module management etc.</li>
-  <li>Type representation: it’s more limited compared with XTypes, only <em>proto</em> files are supported.</li>
-  <li>Data representation: Protocol Buffers use it’s own encoding format to encode data.</li>
-</ul>
-
-<p>As for language bindings, Protocol Buffers supports plain language binding and limited dynamic language binding.</p>
-
-<ul>
-  <li>Plain language binding: Protocol Buffers provide compiler to compile schema into language specific code representation, just like XTypes</li>
-  <li>Dynamic language binding: Compared with XTypes, Protocol Buffers’ support for dynamic types is different and less complete. Protocol Buffers do have full representation at runtime using <em>Descriptor</em> class, but the dynamic type system is not hierarchically and recursively built like XTypes. Protocol Buffers use it’s reflection system to support dynamic types. When building a dynamic type, Protocol Buffers does not hierarchically create dynamic data like XTypes, instead, it first allocate one chunk of memory, then recursively resolve <em>Descriptor</em> and use inplacement new operator to assign the position of every data member and create cooresponding <em>Field</em>, finally it use the reflection system to build a <em>Message</em>, which is <em>the same</em> type with the plain language binding. As we can see, the memory layout for plain language binding and dynamical language binding in Protocol Buffers is very similar. The most apparent difference compared with XTypes is that the dynamically created message and the plain language binding message is of the same type!</li>
-</ul>
 
   </div><a class="u-url" href="/2024/07/14/understanding-types.html" hidden></a>
 </article>

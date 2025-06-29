@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Protobuf Reflection | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="Protobuf Reflection" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="I talked about types in Type system and language bindings. Today I go deep into one specific type system: Google Protocol Buffers(GPB). GPB support introspection, reflection, dynamic type, dynamic data. However, I do not consider GPB a true dynamic typing system and I will talk about why after we have a deep look at how GPB works." />
+<meta property="og:description" content="I talked about types in Type system and language bindings. Today I go deep into one specific type system: Google Protocol Buffers(GPB). GPB support introspection, reflection, dynamic type, dynamic data. However, I do not consider GPB a true dynamic typing system and I will talk about why after we have a deep look at how GPB works." />
+<link rel="canonical" href="http://localhost:4000/2025/06/14/protobuf-reflection.html" />
+<meta property="og:url" content="http://localhost:4000/2025/06/14/protobuf-reflection.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-06-14T09:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Protobuf Reflection" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-06-14T09:22:46+08:00","datePublished":"2025-06-14T09:22:46+08:00","description":"I talked about types in Type system and language bindings. Today I go deep into one specific type system: Google Protocol Buffers(GPB). GPB support introspection, reflection, dynamic type, dynamic data. However, I do not consider GPB a true dynamic typing system and I will talk about why after we have a deep look at how GPB works.","headline":"Protobuf Reflection","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/06/14/protobuf-reflection.html"},"url":"http://localhost:4000/2025/06/14/protobuf-reflection.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Protobuf Reflection</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2025-06-14T09:22:46+08:00" itemprop="datePublished">Jun 14, 2025
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>I talked about types in <a href="https://shan-weiqiang.github.io/2024/07/14/understanding-types.html">Type system and language bindings</a>. Today I go deep into one specific type system: Google Protocol Buffers(GPB). GPB support introspection, reflection, dynamic type, dynamic data. However, I do not consider GPB a true dynamic typing system and I will talk about why after we have a deep look at how GPB works.</p>
+
+<ul id="markdown-toc">
+  <li><a href="#gpb-workflow" id="markdown-toc-gpb-workflow">GPB Workflow</a></li>
+  <li><a href="#how-reflection-work" id="markdown-toc-how-reflection-work">How reflection work</a></li>
+  <li><a href="#code-demo" id="markdown-toc-code-demo">Code demo</a></li>
+  <li><a href="#why-gpb-is-not-true-dynamic-type" id="markdown-toc-why-gpb-is-not-true-dynamic-type">Why GPB is not true dynamic type</a></li>
+</ul>
+
+<h2 id="gpb-workflow">GPB Workflow</h2>
+
+<p>The main workflow starts from <em>proto</em> definition files and <em>protoc</em> compiler will compile them into C++ types, which user will use directly. The process can be illustrated like following:</p>
+
+<p><img src="/assets/images/workflow.png" alt="alt text" /></p>
+
+<p>The main design pattern of GPB is static generation plus <a href="https://shan-weiqiang.github.io/2025/04/20/type-erasure.html">type erasure</a> in C++. All user-defined specific types inherit from the <em>Message</em> base type. All user-defined type information, like field name, field type, message name, field offsets are statically generated and stored in protoc-generated C++ files. During runtime, before main, those information will be registered into global <em>DescriptorPool</em>.</p>
+
+<h2 id="how-reflection-work">How reflection work</h2>
+
+<p>The message creation is based on type erasure. Member access is based on static offset information and type descriptor information. Dynamic type creation is based on <em>DynamicMessage</em> type.</p>
+
+<p><img src="/assets/images/reflection.png" alt="alt text" /></p>
+
+<p>When user calls <code class="language-plaintext highlighter-rouge">MessageFactory::generated_factory()-&gt;GetPrototype(descriptor)-&gt;New()</code>, GPB returns a <em>Message</em> type. Underneath this virtual type, there are two possibilities:</p>
+
+<ul>
+  <li>The protoc-generated C++ type, which is specific C++ type, and the returned <em>Message</em> type can be cast to it dynamically.</li>
+  <li><em>DynamicMessage</em> type, which is constructed at runtime by protobuf library.</li>
+</ul>
+
+<h2 id="code-demo">Code demo</h2>
+
+<p>Here I did a demonstration about protocol buffers advanced usage, the whole code can be found at <a href="https://github.com/shan-weiqiang/lab/tree/main/protobuf_reflection">protobuf reflection code demo</a>.</p>
+
+<div class="language-c++ highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"my_message.pb.h"</span><span class="c1"> // Generated by protoc</span><span class="cp">
+#include</span> <span class="cpf">&lt;absl/strings/string_view.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;google/protobuf/compiler/importer.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;google/protobuf/compiler/parser.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;google/protobuf/descriptor.pb.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;google/protobuf/dynamic_message.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;google/protobuf/text_format.h&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iomanip&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;iostream&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+</span>
+<span class="k">using</span> <span class="k">namespace</span> <span class="n">std</span><span class="p">;</span>
+
+<span class="c1">// Custom SourceTree for in-memory .proto files</span>
+<span class="k">class</span> <span class="nc">MemorySourceTree</span> <span class="o">:</span> <span class="k">public</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">compiler</span><span class="o">::</span><span class="n">SourceTree</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="n">MemorySourceTree</span><span class="p">(</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">name</span><span class="p">,</span> <span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="o">&amp;</span><span class="n">content</span><span class="p">)</span>
+      <span class="o">:</span> <span class="n">filename_</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="n">content_</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="p">{}</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">io</span><span class="o">::</span><span class="n">ZeroCopyInputStream</span> <span class="o">*</span>
+  <span class="n">Open</span><span class="p">(</span><span class="n">absl</span><span class="o">::</span><span class="n">string_view</span> <span class="n">filename</span><span class="p">)</span> <span class="k">override</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">filename</span> <span class="o">!=</span> <span class="n">filename_</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nb">nullptr</span><span class="p">;</span>
+    <span class="k">return</span> <span class="k">new</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">io</span><span class="o">::</span><span class="n">ArrayInputStream</span><span class="p">(</span>
+        <span class="n">content_</span><span class="p">.</span><span class="n">data</span><span class="p">(),</span> <span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">content_</span><span class="p">.</span><span class="n">size</span><span class="p">()));</span>
+  <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">filename_</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">content_</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">GOOGLE_PROTOBUF_VERIFY_VERSION</span><span class="p">;</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 1: Static Message Creation</span>
+  <span class="c1">// Demonstrates creating a message using the generated C++ class</span>
+  <span class="c1">// This is the most common and straightforward way to use protobuf</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">test</span><span class="o">::</span><span class="n">MyMessage</span> <span class="n">static_msg</span><span class="p">;</span>
+  <span class="n">static_msg</span><span class="p">.</span><span class="n">set_id</span><span class="p">(</span><span class="mi">123</span><span class="p">);</span>
+  <span class="n">static_msg</span><span class="p">.</span><span class="n">set_name</span><span class="p">(</span><span class="s">"Static Message"</span><span class="p">);</span>
+
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 1: Static Message Creation ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"----------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Message Content:</span><span class="se">\n</span><span class="s">"</span> <span class="o">&lt;&lt;</span> <span class="n">static_msg</span><span class="p">.</span><span class="n">DebugString</span><span class="p">();</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Type: "</span> <span class="o">&lt;&lt;</span> <span class="n">static_msg</span><span class="p">.</span><span class="n">GetTypeName</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 2: Dynamic Message Creation</span>
+  <span class="c1">// Shows how to create a message using the descriptor and reflection APIs</span>
+  <span class="c1">// This is useful when you don't have the generated C++ class at compile time</span>
+  <span class="c1">// ============================================</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Descriptor</span> <span class="o">*</span><span class="n">descriptor</span> <span class="o">=</span>
+      <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DescriptorPool</span><span class="o">::</span><span class="n">generated_pool</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">FindMessageTypeByName</span><span class="p">(</span>
+          <span class="s">"test.MyMessage"</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">descriptor</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Descriptor not found!"</span> <span class="o">&lt;&lt;</span> <span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Message</span> <span class="o">*</span><span class="n">dynamic_msg</span> <span class="o">=</span>
+      <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">MessageFactory</span><span class="o">::</span><span class="n">generated_factory</span><span class="p">()</span>
+          <span class="o">-&gt;</span><span class="n">GetPrototype</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span>
+          <span class="o">-&gt;</span><span class="n">New</span><span class="p">();</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 3: Type Identity Verification</span>
+  <span class="c1">// Proves that static and dynamic messages are of the same type</span>
+  <span class="c1">// Demonstrates that dynamic messages can be cast to their static counterparts</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 3: Type Identity Verification ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"-------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Are descriptors identical? "</span>
+       <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">descriptor</span> <span class="o">==</span> <span class="n">test</span><span class="o">::</span><span class="n">MyMessage</span><span class="o">::</span><span class="n">descriptor</span><span class="p">()</span> <span class="o">?</span> <span class="s">"YES"</span> <span class="o">:</span> <span class="s">"NO"</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="n">test</span><span class="o">::</span><span class="n">MyMessage</span> <span class="o">*</span><span class="n">converted_msg</span> <span class="o">=</span> <span class="k">dynamic_cast</span><span class="o">&lt;</span><span class="n">test</span><span class="o">::</span><span class="n">MyMessage</span> <span class="o">*&gt;</span><span class="p">(</span><span class="n">dynamic_msg</span><span class="p">);</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dynamic cast successful? "</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">converted_msg</span> <span class="o">?</span> <span class="s">"YES"</span> <span class="o">:</span> <span class="s">"NO"</span><span class="p">)</span>
+       <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 4: Memory Compatibility Test</span>
+  <span class="c1">// Shows that dynamic messages can be modified and accessed just like static</span>
+  <span class="c1">// ones Demonstrates the memory layout compatibility between static and</span>
+  <span class="c1">// dynamic messages</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 4: Memory Compatibility Test ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// Set the same values in dynamic_msg as in static_msg</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Reflection</span> <span class="o">*</span><span class="n">compat_reflection</span> <span class="o">=</span>
+      <span class="n">dynamic_msg</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Descriptor</span> <span class="o">*</span><span class="n">compat_desc</span> <span class="o">=</span>
+      <span class="n">dynamic_msg</span><span class="o">-&gt;</span><span class="n">GetDescriptor</span><span class="p">();</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">compat_id_field</span> <span class="o">=</span>
+      <span class="n">compat_desc</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"id"</span><span class="p">);</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">compat_name_field</span> <span class="o">=</span>
+      <span class="n">compat_desc</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"name"</span><span class="p">);</span>
+
+  <span class="n">compat_reflection</span><span class="o">-&gt;</span><span class="n">SetInt32</span><span class="p">(</span><span class="n">dynamic_msg</span><span class="p">,</span> <span class="n">compat_id_field</span><span class="p">,</span> <span class="n">static_msg</span><span class="p">.</span><span class="n">id</span><span class="p">());</span>
+  <span class="n">compat_reflection</span><span class="o">-&gt;</span><span class="n">SetString</span><span class="p">(</span><span class="n">dynamic_msg</span><span class="p">,</span> <span class="n">compat_name_field</span><span class="p">,</span>
+                               <span class="n">static_msg</span><span class="p">.</span><span class="n">name</span><span class="p">());</span>
+
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Static message content:</span><span class="se">\n</span><span class="s">"</span> <span class="o">&lt;&lt;</span> <span class="n">static_msg</span><span class="p">.</span><span class="n">DebugString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dynamic message content:</span><span class="se">\n</span><span class="s">"</span> <span class="o">&lt;&lt;</span> <span class="n">dynamic_msg</span><span class="o">-&gt;</span><span class="n">DebugString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// Compare serialized values</span>
+  <span class="n">string</span> <span class="n">compat_static_serialized</span><span class="p">,</span> <span class="n">compat_dynamic_serialized</span><span class="p">;</span>
+  <span class="n">static_msg</span><span class="p">.</span><span class="n">SerializeToString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">compat_static_serialized</span><span class="p">);</span>
+  <span class="n">dynamic_msg</span><span class="o">-&gt;</span><span class="n">SerializeToString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">compat_dynamic_serialized</span><span class="p">);</span>
+
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Serialized values identical? "</span>
+       <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">compat_static_serialized</span> <span class="o">==</span> <span class="n">compat_dynamic_serialized</span> <span class="o">?</span> <span class="s">"YES"</span> <span class="o">:</span> <span class="s">"NO"</span><span class="p">)</span>
+       <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">compat_static_serialized</span> <span class="o">!=</span> <span class="n">compat_dynamic_serialized</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Static serialized size: "</span> <span class="o">&lt;&lt;</span> <span class="n">compat_static_serialized</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+         <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dynamic serialized size: "</span> <span class="o">&lt;&lt;</span> <span class="n">compat_dynamic_serialized</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+         <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="p">}</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 5: Basic Reflection API Usage</span>
+  <span class="c1">// Demonstrates how to use the reflection API to access message fields</span>
+  <span class="c1">// Shows the basic operations for getting and setting field values</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">test</span><span class="o">::</span><span class="n">MyMessage</span> <span class="n">message</span><span class="p">;</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Reflection</span> <span class="o">*</span><span class="n">reflection</span> <span class="o">=</span> <span class="n">message</span><span class="p">.</span><span class="n">GetReflection</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Descriptor</span> <span class="o">*</span><span class="n">descriptor_message</span> <span class="o">=</span>
+      <span class="n">message</span><span class="p">.</span><span class="n">GetDescriptor</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">id_field</span> <span class="o">=</span>
+      <span class="n">descriptor_message</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"id"</span><span class="p">);</span>
+
+  <span class="kt">int32_t</span> <span class="n">id_value</span> <span class="o">=</span> <span class="n">reflection</span><span class="o">-&gt;</span><span class="n">GetInt32</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">id_field</span><span class="p">);</span>
+  <span class="n">reflection</span><span class="o">-&gt;</span><span class="n">SetInt32</span><span class="p">(</span><span class="o">&amp;</span><span class="n">message</span><span class="p">,</span> <span class="n">id_field</span><span class="p">,</span> <span class="mi">42</span><span class="p">);</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 5: Basic Reflection API Usage ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"-------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Message ID after reflection: "</span> <span class="o">&lt;&lt;</span> <span class="n">message</span><span class="p">.</span><span class="n">id</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="k">delete</span> <span class="n">dynamic_msg</span><span class="p">;</span> <span class="c1">// Must manage dynamic allocation</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">ShutdownProtobufLibrary</span><span class="p">();</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 6: Dynamic Message Type Creation</span>
+  <span class="c1">// Shows how to create a new message type programmatically</span>
+  <span class="c1">// Useful for creating message types at runtime without .proto files</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 6: Dynamic Message Type Creation ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"----------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DescriptorPool</span> <span class="nf">pool</span><span class="p">(</span>
+      <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DescriptorPool</span><span class="o">::</span><span class="n">generated_pool</span><span class="p">());</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FileDescriptorProto</span> <span class="n">file_proto</span><span class="p">;</span>
+  <span class="n">file_proto</span><span class="p">.</span><span class="n">set_name</span><span class="p">(</span><span class="s">"my_dynamic.proto"</span><span class="p">);</span>
+  <span class="n">file_proto</span><span class="p">.</span><span class="n">set_package</span><span class="p">(</span><span class="s">"mypackage"</span><span class="p">);</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DescriptorProto</span> <span class="o">*</span><span class="n">message_proto</span> <span class="o">=</span>
+      <span class="n">file_proto</span><span class="p">.</span><span class="n">add_message_type</span><span class="p">();</span>
+  <span class="n">message_proto</span><span class="o">-&gt;</span><span class="n">set_name</span><span class="p">(</span><span class="s">"MyDynamicMessage"</span><span class="p">);</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptorProto</span> <span class="o">*</span><span class="n">field</span> <span class="o">=</span> <span class="n">message_proto</span><span class="o">-&gt;</span><span class="n">add_field</span><span class="p">();</span>
+  <span class="n">field</span><span class="o">-&gt;</span><span class="n">set_name</span><span class="p">(</span><span class="s">"my_field"</span><span class="p">);</span>
+  <span class="n">field</span><span class="o">-&gt;</span><span class="n">set_number</span><span class="p">(</span><span class="mi">1</span><span class="p">);</span>
+  <span class="n">field</span><span class="o">-&gt;</span><span class="n">set_type</span><span class="p">(</span><span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptorProto</span><span class="o">::</span><span class="n">TYPE_STRING</span><span class="p">);</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FileDescriptor</span> <span class="o">*</span><span class="n">file_desc</span> <span class="o">=</span>
+      <span class="n">pool</span><span class="p">.</span><span class="n">BuildFile</span><span class="p">(</span><span class="n">file_proto</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">file_desc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to build file descriptor!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Descriptor</span> <span class="o">*</span><span class="n">message_desc</span> <span class="o">=</span> <span class="n">file_desc</span><span class="o">-&gt;</span><span class="n">message_type</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">message_desc</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to get message descriptor!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DynamicMessageFactory</span> <span class="n">factory</span><span class="p">;</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Message</span> <span class="o">*</span><span class="n">message_dyn</span> <span class="o">=</span>
+      <span class="n">factory</span><span class="p">.</span><span class="n">GetPrototype</span><span class="p">(</span><span class="n">message_desc</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">New</span><span class="p">();</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Reflection</span> <span class="o">*</span><span class="n">dyn_reflection</span> <span class="o">=</span>
+      <span class="n">message_dyn</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">();</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">field_desc</span> <span class="o">=</span>
+      <span class="n">message_desc</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"my_field"</span><span class="p">);</span>
+
+  <span class="n">dyn_reflection</span><span class="o">-&gt;</span><span class="n">SetString</span><span class="p">(</span><span class="n">message_dyn</span><span class="p">,</span> <span class="n">field_desc</span><span class="p">,</span>
+                            <span class="s">"Hello from dynamic message!"</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">value</span> <span class="o">=</span> <span class="n">dyn_reflection</span><span class="o">-&gt;</span><span class="n">GetString</span><span class="p">(</span><span class="o">*</span><span class="n">message_dyn</span><span class="p">,</span> <span class="n">field_desc</span><span class="p">);</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dynamic message field value: "</span> <span class="o">&lt;&lt;</span> <span class="n">value</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="c1">// Without this, there will be seg fault; this is a because the underlyting</span>
+  <span class="c1">// derived type is not protoc generated c++ class type anymore, it's</span>
+  <span class="c1">// DynamicMessage type, the reason is unknown</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">UnknownFieldSet</span> <span class="o">*</span><span class="n">unknown</span> <span class="o">=</span>
+      <span class="n">message_dyn</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">MutableUnknownFields</span><span class="p">(</span><span class="n">message_dyn</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">unknown</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">unknown</span><span class="o">-&gt;</span><span class="n">AddVarint</span><span class="p">(</span><span class="mi">999999</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">message_dyn</span><span class="o">-&gt;</span><span class="n">DebugString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 6.5: Immutability of built descriptors</span>
+  <span class="c1">// Demonstrates that once a descriptor is built, it cannot be modified</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 6.5: Immutability of built descriptors ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"----------------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// Try to add another field to message_proto</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptorProto</span> <span class="o">*</span><span class="n">field2</span> <span class="o">=</span> <span class="n">message_proto</span><span class="o">-&gt;</span><span class="n">add_field</span><span class="p">();</span>
+  <span class="n">field2</span><span class="o">-&gt;</span><span class="n">set_name</span><span class="p">(</span><span class="s">"another_field"</span><span class="p">);</span>
+  <span class="n">field2</span><span class="o">-&gt;</span><span class="n">set_number</span><span class="p">(</span><span class="mi">2</span><span class="p">);</span>
+  <span class="n">field2</span><span class="o">-&gt;</span><span class="n">set_type</span><span class="p">(</span><span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptorProto</span><span class="o">::</span><span class="n">TYPE_INT32</span><span class="p">);</span>
+
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Added 'another_field' to FileDescriptorProto in memory.</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// The existing message_desc is immutable and won't see the change.</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">field_desc2</span> <span class="o">=</span>
+      <span class="n">message_desc</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"another_field"</span><span class="p">);</span>
+
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Is 'another_field' found in the original descriptor? "</span>
+       <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">field_desc2</span> <span class="o">?</span> <span class="s">"YES"</span> <span class="o">:</span> <span class="s">"NO"</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Original descriptor field count: "</span> <span class="o">&lt;&lt;</span> <span class="n">message_desc</span><span class="o">-&gt;</span><span class="n">field_count</span><span class="p">()</span>
+       <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// To use the new field, you would have to build a new FileDescriptor.</span>
+  <span class="c1">// Building with the same name will fail because it's already in the pool.</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FileDescriptor</span> <span class="o">*</span><span class="n">new_file_desc_fail</span> <span class="o">=</span>
+      <span class="n">pool</span><span class="p">.</span><span class="n">BuildFile</span><span class="p">(</span><span class="n">file_proto</span><span class="p">);</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Trying to build with same name again: "</span>
+       <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">new_file_desc_fail</span> <span class="o">?</span> <span class="s">"succeeded (unexpected!)"</span>
+                              <span class="o">:</span> <span class="s">"failed as expected"</span><span class="p">)</span>
+       <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// We have to change the name to build a new version.</span>
+  <span class="n">file_proto</span><span class="p">.</span><span class="n">set_name</span><span class="p">(</span><span class="s">"my_dynamic_v2.proto"</span><span class="p">);</span>
+  <span class="c1">// We must also change the message name to avoid a symbol collision in the</span>
+  <span class="c1">// pool.</span>
+  <span class="n">message_proto</span><span class="o">-&gt;</span><span class="n">set_name</span><span class="p">(</span><span class="s">"MyDynamicMessageV2"</span><span class="p">);</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FileDescriptor</span> <span class="o">*</span><span class="n">new_file_desc_ok</span> <span class="o">=</span>
+      <span class="n">pool</span><span class="p">.</span><span class="n">BuildFile</span><span class="p">(</span><span class="n">file_proto</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">new_file_desc_ok</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Building with a new file and message name succeeded.</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Descriptor</span> <span class="o">*</span><span class="n">new_message_desc</span> <span class="o">=</span>
+        <span class="n">new_file_desc_ok</span><span class="o">-&gt;</span><span class="n">FindMessageTypeByName</span><span class="p">(</span><span class="s">"MyDynamicMessageV2"</span><span class="p">);</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">new_message_desc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Found new message: '"</span> <span class="o">&lt;&lt;</span> <span class="n">new_message_desc</span><span class="o">-&gt;</span><span class="n">full_name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"'</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+      <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"New descriptor field count: "</span> <span class="o">&lt;&lt;</span> <span class="n">new_message_desc</span><span class="o">-&gt;</span><span class="n">field_count</span><span class="p">()</span>
+           <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+      <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">new_field_desc</span> <span class="o">=</span>
+          <span class="n">new_message_desc</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"another_field"</span><span class="p">);</span>
+      <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Is 'another_field' found in the new descriptor? "</span>
+           <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">new_field_desc</span> <span class="o">?</span> <span class="s">"YES"</span> <span class="o">:</span> <span class="s">"NO"</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+      <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to find 'MyDynamicMessageV2' in new file "</span>
+              <span class="s">"descriptor.</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="p">}</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Building with a new name failed unexpectedly.</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 7: Proto File String Parsing</span>
+  <span class="c1">// Demonstrates how to create message types from a .proto file content string</span>
+  <span class="c1">// Shows how to use the compiler infrastructure to parse proto definitions</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 7: Proto File String Parsing ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">proto_content</span> <span class="o">=</span> <span class="s">R"(
+        syntax = "proto3";
+        package dynamic;
+        
+        message DynamicPerson {
+            string name = 1;
+            int32 age = 2;
+            repeated string hobbies = 3;
+            bool is_active = 4;
+        }
+    )"</span><span class="p">;</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DescriptorPool</span> <span class="nf">descriptor_pool</span><span class="p">(</span>
+      <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DescriptorPool</span><span class="o">::</span><span class="n">generated_pool</span><span class="p">());</span>
+  <span class="n">MemorySourceTree</span> <span class="nf">source_tree</span><span class="p">(</span><span class="s">"person.proto"</span><span class="p">,</span> <span class="n">proto_content</span><span class="p">);</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">compiler</span><span class="o">::</span><span class="n">SourceTreeDescriptorDatabase</span> <span class="nf">source_tree_db</span><span class="p">(</span>
+      <span class="o">&amp;</span><span class="n">source_tree</span><span class="p">);</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FileDescriptorProto</span> <span class="n">file_desc_proto</span><span class="p">;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">source_tree_db</span><span class="p">.</span><span class="n">FindFileByName</span><span class="p">(</span><span class="s">"person.proto"</span><span class="p">,</span> <span class="o">&amp;</span><span class="n">file_desc_proto</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to parse proto content!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FileDescriptor</span> <span class="o">*</span><span class="n">file_desc_dyn</span> <span class="o">=</span>
+      <span class="n">descriptor_pool</span><span class="p">.</span><span class="n">BuildFile</span><span class="p">(</span><span class="n">file_desc_proto</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">file_desc_dyn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to build file descriptor!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Descriptor</span> <span class="o">*</span><span class="n">descriptor_dyn</span> <span class="o">=</span>
+      <span class="n">file_desc_dyn</span><span class="o">-&gt;</span><span class="n">FindMessageTypeByName</span><span class="p">(</span><span class="s">"DynamicPerson"</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">descriptor_dyn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to find message descriptor!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">DynamicMessageFactory</span> <span class="nf">factory_dyn</span><span class="p">(</span><span class="o">&amp;</span><span class="n">descriptor_pool</span><span class="p">);</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Message</span> <span class="o">*</span><span class="n">prototype</span> <span class="o">=</span>
+      <span class="n">factory_dyn</span><span class="p">.</span><span class="n">GetPrototype</span><span class="p">(</span><span class="n">descriptor_dyn</span><span class="p">);</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">prototype</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to get message prototype!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">unique_ptr</span><span class="o">&lt;</span><span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Message</span><span class="o">&gt;</span> <span class="n">message_dyn_</span><span class="p">(</span><span class="n">prototype</span><span class="o">-&gt;</span><span class="n">New</span><span class="p">());</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">message_dyn_</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to create dynamic message!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Without this, there will be seg fault</span>
+  <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">UnknownFieldSet</span> <span class="o">*</span><span class="n">unknown_fields</span> <span class="o">=</span>
+      <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">MutableUnknownFields</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">());</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">unknown_fields</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">unknown_fields</span><span class="o">-&gt;</span><span class="n">AddVarint</span><span class="p">(</span><span class="mi">999999</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">Reflection</span> <span class="o">*</span><span class="n">reflection_dyn</span> <span class="o">=</span>
+      <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">();</span>
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">reflection_dyn</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to get reflection interface!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">name_field</span> <span class="o">=</span>
+      <span class="n">descriptor_dyn</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"name"</span><span class="p">);</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">age_field</span> <span class="o">=</span>
+      <span class="n">descriptor_dyn</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"age"</span><span class="p">);</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">hobbies_field</span> <span class="o">=</span>
+      <span class="n">descriptor_dyn</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"hobbies"</span><span class="p">);</span>
+  <span class="k">const</span> <span class="n">google</span><span class="o">::</span><span class="n">protobuf</span><span class="o">::</span><span class="n">FieldDescriptor</span> <span class="o">*</span><span class="n">is_active_field</span> <span class="o">=</span>
+      <span class="n">descriptor_dyn</span><span class="o">-&gt;</span><span class="n">FindFieldByName</span><span class="p">(</span><span class="s">"is_active"</span><span class="p">);</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">name_field</span> <span class="o">||</span> <span class="o">!</span><span class="n">age_field</span> <span class="o">||</span> <span class="o">!</span><span class="n">hobbies_field</span> <span class="o">||</span> <span class="o">!</span><span class="n">is_active_field</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cerr</span> <span class="o">&lt;&lt;</span> <span class="s">"Failed to find required fields!"</span> <span class="o">&lt;&lt;</span> <span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="n">reflection_dyn</span><span class="o">-&gt;</span><span class="n">SetString</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">name_field</span><span class="p">,</span> <span class="s">"John Doe"</span><span class="p">);</span>
+  <span class="n">reflection_dyn</span><span class="o">-&gt;</span><span class="n">SetInt32</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">age_field</span><span class="p">,</span> <span class="mi">30</span><span class="p">);</span>
+  <span class="n">reflection_dyn</span><span class="o">-&gt;</span><span class="n">SetBool</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">is_active_field</span><span class="p">,</span> <span class="nb">true</span><span class="p">);</span>
+  <span class="n">reflection_dyn</span><span class="o">-&gt;</span><span class="n">AddString</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">hobbies_field</span><span class="p">,</span> <span class="s">"Reading"</span><span class="p">);</span>
+  <span class="n">reflection_dyn</span><span class="o">-&gt;</span><span class="n">AddString</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">hobbies_field</span><span class="p">,</span> <span class="s">"Hiking"</span><span class="p">);</span>
+  <span class="n">reflection_dyn</span><span class="o">-&gt;</span><span class="n">AddString</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">(),</span> <span class="n">hobbies_field</span><span class="p">,</span> <span class="s">"Programming"</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">Debug Information:</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Message Type: "</span> <span class="o">&lt;&lt;</span> <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">GetTypeName</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Descriptor Name: "</span> <span class="o">&lt;&lt;</span> <span class="n">descriptor_dyn</span><span class="o">-&gt;</span><span class="n">full_name</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Number of Fields: "</span> <span class="o">&lt;&lt;</span> <span class="n">descriptor_dyn</span><span class="o">-&gt;</span><span class="n">field_count</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Unknown Fields Size: "</span>
+            <span class="o">&lt;&lt;</span> <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">()</span>
+                   <span class="o">-&gt;</span><span class="n">GetUnknownFields</span><span class="p">(</span><span class="o">*</span><span class="n">message_dyn_</span><span class="p">)</span>
+                   <span class="p">.</span><span class="n">field_count</span><span class="p">()</span>
+            <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">Trying DebugString():</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">DebugString</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="c1">// ============================================</span>
+  <span class="c1">// Section 8: Static vs Dynamic Message Comparison</span>
+  <span class="c1">// Creates a static DynamicPerson message and compares its serialization</span>
+  <span class="c1">// with the dynamic message to verify they are identical</span>
+  <span class="c1">// ============================================</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">=== Section 8: Static vs Dynamic Message Comparison ===</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"------------------------------------------</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">test</span><span class="o">::</span><span class="n">DynamicPerson</span> <span class="n">static_person</span><span class="p">;</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">set_name</span><span class="p">(</span><span class="s">"John Doe"</span><span class="p">);</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">set_age</span><span class="p">(</span><span class="mi">30</span><span class="p">);</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">set_is_active</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">add_hobbies</span><span class="p">(</span><span class="s">"Reading"</span><span class="p">);</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">add_hobbies</span><span class="p">(</span><span class="s">"Hiking"</span><span class="p">);</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">add_hobbies</span><span class="p">(</span><span class="s">"Programming"</span><span class="p">);</span>
+
+  <span class="c1">// Clear unknown fields before serialization for fair comparison</span>
+  <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">GetReflection</span><span class="p">()</span>
+      <span class="o">-&gt;</span><span class="n">MutableUnknownFields</span><span class="p">(</span><span class="n">message_dyn_</span><span class="p">.</span><span class="n">get</span><span class="p">())</span>
+      <span class="o">-&gt;</span><span class="n">Clear</span><span class="p">();</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">string</span> <span class="n">static_serialized</span><span class="p">,</span> <span class="n">dynamic_serialized</span><span class="p">;</span>
+  <span class="n">static_person</span><span class="p">.</span><span class="n">SerializeToString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">static_serialized</span><span class="p">);</span>
+  <span class="n">message_dyn_</span><span class="o">-&gt;</span><span class="n">SerializeToString</span><span class="p">(</span><span class="o">&amp;</span><span class="n">dynamic_serialized</span><span class="p">);</span>
+
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Static vs Dynamic Message Comparison:</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Serialized data identical? "</span>
+            <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="n">static_serialized</span> <span class="o">==</span> <span class="n">dynamic_serialized</span> <span class="o">?</span> <span class="s">"YES"</span> <span class="o">:</span> <span class="s">"NO"</span><span class="p">)</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">static_serialized</span> <span class="o">!=</span> <span class="n">dynamic_serialized</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Static serialized size: "</span> <span class="o">&lt;&lt;</span> <span class="n">static_serialized</span><span class="p">.</span><span class="n">size</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Dynamic serialized size: "</span> <span class="o">&lt;&lt;</span> <span class="n">dynamic_serialized</span><span class="p">.</span><span class="n">size</span><span class="p">()</span>
+              <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+
+    <span class="c1">// Print hex representation of both serialized messages for debugging</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"Static serialized (hex): "</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">c</span> <span class="o">:</span> <span class="n">static_serialized</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">"%02x "</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">std</span><span class="o">::</span><span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">Dynamic serialized (hex): "</span><span class="p">;</span>
+    <span class="k">for</span> <span class="p">(</span><span class="kt">unsigned</span> <span class="kt">char</span> <span class="n">c</span> <span class="o">:</span> <span class="n">dynamic_serialized</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">printf</span><span class="p">(</span><span class="s">"%02x "</span><span class="p">,</span> <span class="n">c</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="n">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<h2 id="why-gpb-is-not-true-dynamic-type">Why GPB is not true dynamic type</h2>
+
+<p>GPB support dynamic type creation, dynamic data creation, why is it not considered true dynamic type(at least by me)? I think the reason are following:</p>
+
+<ol>
+  <li>Runtime type creation is just defered compile time type registration. When user use protoc to generate types and those types are registered during program start up, before main. The registration process is the same as the so-called runtime type creation, both reading from a text and compose a type descriptor, then register it to <em>DescriptorPool</em>. More importantly, once the type has been registered, it can not be modified: GPB can not update all instance of this type if the type itself can be modified during runtime. Think about what happens if one type is changed, might be a new field is added, and the existing instancees can not be updated to contain this new field in data.</li>
+  <li><em>DynamicMessage</em> type do bring GPB one step close to true dynamic type. It works very much like <em>PyObject</em> class in Python. However, it still depend on <em>Descriptor</em> to contruct one message, yet again <em>Descriptor</em> can not be changed once registered. In Python, class attributes and instance attributes are added into a dynamic expanding list, which can be added and deleted at runtime. This can not be done with GPB’s descriptor. For GPB to be truely dynamic, it must make <em>Descriptor</em> type dynamic at runtime, since the descriptors are the real ones that defines a <em>type</em>. But in GPB, <em>Descriptor</em> can be created and changed during runtime, but it can not be changed once registered.</li>
+</ol>
+
+<p>GPB supports ​​runtime descriptor construction​​ and ​​dynamic message handling​​ (via DynamicMessage), but the ​​immutability of registered descriptors​​ and the ​​inability to propagate type changes to existing instances​​ make it a ​​static type system​​ with limited runtime flexibility—not a true dynamic type system. This design prioritizes performance, safety, and serialization reliability over full runtime dynamism.</p>
+
+<p>Python achieves the propagation of ​​type changes to existing instances​​ through its dynamic object model, leveraging two key features:</p>
+
+<ul>
+  <li>Mutable class dictionaries</li>
+  <li>Attribute lookup delegation​​</li>
+</ul>
+
+<p>In Python, an instance (obj) stores only its ​​unique instance-level attributes​​ in its own <strong>dict</strong> (dictionary).For ​​class-level attributes​​ (including methods), the instance delegates to its class. The class holds these attributes in its <strong>dict</strong>. If you modify a class’s <strong>dict</strong> (e.g., add/change attributes), all existing instances immediately reflect the changes because attribute lookup always queries the class dynamically. When you access obj.attr: Python checks obj.<strong>dict</strong> for an instance attribute attr. If not found, it delegates to the ​​class’s <strong>dict</strong>​​. If the class doesn’t have it, it checks base classes (MRO).
+​​Class-level changes are ​​visible instantly​​ because the lookup happens at runtime, not at instance creation.</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">class</span> <span class="nc">MyClass</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+
+<span class="k">def</span> <span class="nf">new_method</span><span class="p">(</span><span class="n">self</span><span class="p">):</span>
+    <span class="nf">print</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">x</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<span class="n">obj1</span> <span class="o">=</span> <span class="nc">MyClass</span><span class="p">()</span>
+<span class="n">MyClass</span><span class="p">.</span><span class="n">double_x</span> <span class="o">=</span> <span class="n">new_method</span>
+<span class="n">obj1</span><span class="p">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">obj2</span> <span class="o">=</span> <span class="nc">MyClass</span><span class="p">()</span>
+
+<span class="c1"># obj1 can find double_x and x, can success
+</span><span class="n">obj1</span><span class="p">.</span><span class="nf">double_x</span><span class="p">()</span>
+<span class="c1"># obj2 can find double_x, but not x, fail
+</span><span class="n">obj2</span><span class="p">.</span><span class="nf">double_x</span><span class="p">()</span>
+
+</code></pre></div></div>
+
+<p><strong>For dynamic types, the programmer are programming towards <em>interpreter</em>, programmer are acutually writing <em>text</em>; For static types, the programmer are programming towards <em>compiler</em>, the programmer are writing <em>code</em></strong></p>
+
+
+  </div><a class="u-url" href="/2025/06/14/protobuf-reflection.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

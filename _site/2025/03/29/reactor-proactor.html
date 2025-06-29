@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Reactor and Proactor Exectuion Context | shanweiqiang’s blog</title>
+<meta name="generator" content="Jekyll v4.3.3" />
+<meta property="og:title" content="Reactor and Proactor Exectuion Context" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Following content aggregates materials about reactor and proactor, along with some keynotes about it." />
+<meta property="og:description" content="Following content aggregates materials about reactor and proactor, along with some keynotes about it." />
+<link rel="canonical" href="http://localhost:4000/2025/03/29/reactor-proactor.html" />
+<meta property="og:url" content="http://localhost:4000/2025/03/29/reactor-proactor.html" />
+<meta property="og:site_name" content="shanweiqiang’s blog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2025-03-29T09:22:46+08:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Reactor and Proactor Exectuion Context" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2025-03-29T09:22:46+08:00","datePublished":"2025-03-29T09:22:46+08:00","description":"Following content aggregates materials about reactor and proactor, along with some keynotes about it.","headline":"Reactor and Proactor Exectuion Context","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2025/03/29/reactor-proactor.html"},"url":"http://localhost:4000/2025/03/29/reactor-proactor.html"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="shanweiqiang&apos;s blog" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">shanweiqiang&#39;s blog</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/tags/">tags</a><a class="page-link" href="/about/">about</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Reactor and Proactor Exectuion Context</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2025-03-29T09:22:46+08:00" itemprop="datePublished">Mar 29, 2025
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>Following content aggregates materials about <em>reactor</em> and <em>proactor</em>, along with some keynotes about it.</p>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://github.com/shan-weiqiang/shan-weiqiang.github.io/blob/main/assets/files/tpd_reactor_proactor.pdf">Reactor and Proactor, Examples of event handling patterns</a>: Great material on what is reactor and what is proactor.</li>
+  <li><a href="https://github.com/shan-weiqiang/shan-weiqiang.github.io/blob/main/assets/files/The%20Proactor%20Design%20Pattern.pdf">The Proactor Design Pattern: Concurrency Without Threads</a>: Explains the boost.asio proactor design pattern. What is key about this material is that it also explains the relationship between reactor and proactor in Linux: proactor is implemented on top of reactor(epoll).</li>
+  <li><a href="https://en.wikipedia.org/wiki/Proactor_pattern">Proactor Wikipedia</a>: The wiki page reveals an important fact about proactor: <strong>The proactor pattern can be considered to be an asynchronous variant of the synchronous reactor pattern.</strong></li>
+</ul>
+
+<h2 id="keynotes">Keynotes</h2>
+
+<ul>
+  <li>Reactor in Linux has native OS support through system primitives like <code class="language-plaintext highlighter-rouge">epoll</code>. But Linux does not have native support for proactor. Windows have native support for proactor, IOCP</li>
+  <li>In Linux, proactor is implemented on top of reactor.</li>
+  <li>Reactor is <em>synchronous</em> I/O, while proactor is <em>asynchronous</em> I/O.</li>
+  <li>Again and important: <strong>The proactor pattern can be considered to be an asynchronous variant of the synchronous reactor pattern.</strong></li>
+  <li>Reactor in Linux can be simplified as I/O multiplexing.</li>
+</ul>
+
+<h2 id="execution-context">Execution Context</h2>
+
+<p>One thing that have long been confusing me about proactor is it’s execution context. For reactor, it occupies one execution context(eg, a thread) and blockingly waiting for any of file descriptors to be ready for relevant events. Since in Linux proactors are implemented on top of reactor, does proactor need additional execution context? In Boost, proactor is called <a href="https://live.boost.org/doc/libs/1_47_0/doc/html/boost_asio/overview/core/async.html"><em>The Proactor Design Pattern: Concurrency Without Threads</em></a>, which indicates that there are no additional threads required for proactor. Then how to implement proactor in one thread, knowing that reactor itself already occupies one thread?</p>
+
+<p>The foundation here is to know that(in the context of <code class="language-plaintext highlighter-rouge">boost.asio</code>):</p>
+
+<ul>
+  <li>There is a underlying reactor, which is normally implemented using <code class="language-plaintext highlighter-rouge">epoll</code> in Linux.</li>
+  <li>There is one execution context, <code class="language-plaintext highlighter-rouge">io_context</code>, which will be called in one thread <code class="language-plaintext highlighter-rouge">io_context.run()</code>, which will call <code class="language-plaintext highlighter-rouge">epoll</code> wait under the hood.</li>
+  <li>That <code class="language-plaintext highlighter-rouge">epoll</code> can monitor multiple file descriptors and can be updated.</li>
+</ul>
+
+<p>Yet there is one brick missing to understanding the proactor pattern: <em>software events</em>. Epoll can only monitor file descriptors, like if a file descriptor is readable, writable, etc. But proactor requires that the <em>epoll_wait</em> be unblocked if a user async operation is completed. How can epoll monitor these kinds of events? In the reactor that is used to implement proactor, there is an pre-defined additional file descriptor, it might be a pipe, uds socket, or something else, as long as it can be written and read. This fd is used to unblock <em>epoll_wait</em> whenever there is software events. For example, <em>epoll_wait</em> monitor this fd, <em>fd_events</em> and another socket fd, <em>fd_socket</em>. <em>fd_socket</em> is to read bytes from a connection. <em>fd_events</em> is a, for example, pipe. There is a async reading operation initiated by user to read n bytes from <em>fd_socket</em>, and also a completion handler is provided and registered. Now the <em>epoll_wait</em> is blocked waiting to read from <em>fd_socket</em>, and the execution context thread is suspended in OS. Now n-1 bytes are recieved from kernel and is ready to be read. The <em>epoll_wait</em> is unblocked and find that <em>fd_socket</em> is ready to read from. The reactor calls relevant callbacks to read from this socket. Since the callback only read n-1 bytes, not n bytes, which is required by the async operation, it exit the loop and give control to <em>epoll_wait</em> again. Next, the last one byte finally arrived, again the <em>epoll_wait</em> is unblocked and the registered callback is called to read the last one byte. After reading, inside the callback, it knows that the operation is finally completed as required from the async operation. It now writes the completion information to the <em>fd_events</em> and exit the loop to go back to <em>epoll_wait</em> again. This time the <em>epoll_wait</em> immediately unblocks since there are content to be read from <em>fd_events</em>, software events happen. The reactor calls relevant software events callback and process the software events. Inside the callback, it first read from the <em>fd_events</em> and knows which software events happen and according to the information,it finds the corresponding completion handler and executes it. It goes on until all completed software events handlers are executed, then goes to <em>epoll_wait</em> again.</p>
+
+<p>Let’s understand above process with the help of following code snippet:</p>
+
+<div class="language-cpp highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="cp">#include</span> <span class="cpf">"make_day_time.h"</span><span class="cp">
+#include</span> <span class="cpf">&lt;asio.hpp&gt;</span><span class="cp">
+#include</span> <span class="cpf">&lt;memory&gt;</span><span class="cp">
+</span>
+<span class="cp">#ifndef ASYNC_UDP
+#define ASYNC_UDP
+</span>
+<span class="k">using</span> <span class="n">asio</span><span class="o">::</span><span class="n">ip</span><span class="o">::</span><span class="n">udp</span><span class="p">;</span>
+<span class="k">class</span> <span class="nc">udp_server</span> <span class="p">{</span>
+<span class="nl">public:</span>
+  <span class="n">udp_server</span><span class="p">(</span><span class="n">asio</span><span class="o">::</span><span class="n">io_context</span> <span class="o">&amp;</span><span class="n">io_context</span><span class="p">)</span>
+      <span class="o">:</span> <span class="n">socket_</span><span class="p">(</span><span class="n">io_context</span><span class="p">,</span> <span class="n">udp</span><span class="o">::</span><span class="n">endpoint</span><span class="p">(</span><span class="n">udp</span><span class="o">::</span><span class="n">v4</span><span class="p">(),</span> <span class="mi">5002</span><span class="p">))</span> <span class="p">{</span>
+    <span class="n">start_receive</span><span class="p">();</span>
+  <span class="p">}</span>
+
+<span class="k">private</span><span class="o">:</span>
+  <span class="n">udp</span><span class="o">::</span><span class="n">socket</span> <span class="n">socket_</span><span class="p">;</span>
+  <span class="n">udp</span><span class="o">::</span><span class="n">endpoint</span> <span class="n">remote_endpoint</span><span class="p">;</span>
+  <span class="n">std</span><span class="o">::</span><span class="n">array</span><span class="o">&lt;</span><span class="kt">char</span><span class="p">,</span> <span class="mi">1</span><span class="o">&gt;</span> <span class="n">buffer</span><span class="p">;</span>
+
+  <span class="kt">void</span> <span class="nf">start_receive</span><span class="p">()</span> <span class="p">{</span>
+    <span class="n">socket_</span><span class="p">.</span><span class="n">async_receive_from</span><span class="p">(</span>
+        <span class="n">asio</span><span class="o">::</span><span class="n">buffer</span><span class="p">(</span><span class="n">buffer</span><span class="p">),</span> <span class="n">remote_endpoint</span><span class="p">,</span>
+        <span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">error_code</span> <span class="o">&amp;</span><span class="n">error</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+            <span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span> <span class="n">msg</span> <span class="o">=</span>
+                <span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="p">(</span><span class="n">make_daytime_string</span><span class="p">());</span>
+            <span class="n">socket_</span><span class="p">.</span><span class="n">async_send_to</span><span class="p">(</span>
+                <span class="n">asio</span><span class="o">::</span><span class="n">buffer</span><span class="p">(</span><span class="o">*</span><span class="n">msg</span><span class="p">),</span> <span class="n">remote_endpoint</span><span class="p">,</span>
+                <span class="p">[](</span><span class="k">const</span> <span class="n">std</span><span class="o">::</span><span class="n">error_code</span> <span class="o">&amp;</span><span class="n">error</span><span class="p">,</span> <span class="n">std</span><span class="o">::</span><span class="kt">size_t</span><span class="p">)</span> <span class="p">{});</span>
+            <span class="n">start_receive</span><span class="p">();</span>
+          <span class="p">}</span>
+        <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">};</span>
+
+<span class="cp">#endif
+</span></code></pre></div></div>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">io_context</code> serves as the sole execution context. It will be run inside one thread. The reactor is implemented inside <code class="language-plaintext highlighter-rouge">asio::io_context</code></li>
+  <li><code class="language-plaintext highlighter-rouge">socket_.async_receive_from</code> is the asyn operation initialized from user. It provides two requirements:
+    <ul>
+      <li>The receive operation should fill the buffer</li>
+      <li>After the buffer is filled, the lambda completion handler should be called
+  Inside this call, it will register:
+        <ul>
+          <li>Monitoring of this socket to <code class="language-plaintext highlighter-rouge">io_context</code>, when it’s available to read, epoll will unblock. <strong>Note that after the reading is completed, inside the callback registered to the reactor, it will deregister the monitoring of this socket from the reactor. Then also inside the callback, it will trigger software events to make the execution context execute completion handler in next loop of <em>epoll_wait</em>.</strong></li>
+          <li>Register software event and it’s handler(the lambda) to this same <code class="language-plaintext highlighter-rouge">io_context</code>, expecting it to be called when the reading is completed. This call returns immediately.</li>
+        </ul>
+      </li>
+    </ul>
+  </li>
+  <li>Inside the lambda, <code class="language-plaintext highlighter-rouge">socket_.async_send_to</code> is called to give feedback. Again it’s the same pattern as <code class="language-plaintext highlighter-rouge">socket_.async_receive_from</code> , except that this time the reactor will unblock when this socket is available to write. After the writing complete, the completion lambda is again called as software event.</li>
+  <li>Inside the <code class="language-plaintext highlighter-rouge">socket_.async_send_to</code> completion handler, <code class="language-plaintext highlighter-rouge">start_receive();</code> is called recursively, which starts the loop again.</li>
+  <li>Note that the send-recieve-send-recieve is executed in order.</li>
+</ul>
+
+<p>Do not call async read and write operations before the last one is completed. There is no meaning to do that anyway:</p>
+
+<ul>
+  <li>Interleaved read/write is meaningless, even if it is possible(I don’t know if it is possible in <code class="language-plaintext highlighter-rouge">asio</code>)</li>
+  <li>Even if the async operations are queued by <code class="language-plaintext highlighter-rouge">asio</code>(again I don’t know if it is the case in <code class="language-plaintext highlighter-rouge">asio</code>), we can chain the read/write in completion handlers to have the same effect.</li>
+</ul>
+
+  </div><a class="u-url" href="/2025/03/29/reactor-proactor.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">shanweiqiang&#39;s blog</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">shanweiqiang&#39;s blog</li><li><a class="u-email" href="mailto:schmessi@163.com">schmessi@163.com</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/shan-weiqiang"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">shan-weiqiang</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p></p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

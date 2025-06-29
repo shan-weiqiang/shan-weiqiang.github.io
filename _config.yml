@@ -32,7 +32,6 @@ plugins:
 
 header_pages:
   - tags.markdown
-  - archive.markdown
   - about.markdown
 
 # Exclude from processing.
