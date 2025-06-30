@@ -148,7 +148,7 @@ C++ concept is more restricted C++ template. C++ virtual inheritence is special 
 
 After the signature is specified through template paramter, `std::function` variable can be used to store difference kinds of *types*, as long as they both have the same signature. This is done through type erasure. `std::function` has value semantics and can be copied and moved. After the template signature is determined the code for all methods is fixed for the compiler. After a `std::function` instance is constructed, the *implementation* binding is fixed. 
 
-Note that `std::function` variables, like virtual base class pointers can be re-assigned to other `std::function` instance with the same signature at runtime, just like virtual base class pointers changed to point to other derived class instances. This is because, internally, `std::function` erased type for specific implementation type after an instance is constructed. Take the `qsort` for example, if i have a class instance that stores `qsort` and `less`, another instance can store `qsort` and `more`, since `less` and `more` have the same signature and are type erased. The external API of `std::function` works for any instances(which have different function pointer bindings, which happens at compile time, and have difference implementation code).
+See [std::function implementation](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
 
 ## Type erasure of std::shared_ptr deleter
 
