@@ -59,6 +59,21 @@ Data definitions(global variables) and code declaration(global functions, class 
 
 Normally, every object file and shared library file contains a section `.symtab` to store all symbols.
 
+### Symbol tables
+
+1. Symbols are a collection of items that describe where the name is defined and other attributes of symbols.It includes:
+   - Symbols that are defined in this object file
+   - Symbols that are referenced by this object file
+2. Only globals, including global function names and variables, and static local variables have names in symbol table. Local variable do not have names in symbol table
+3. `.symtab` and `.dynsym` section of ELF file store symbol table, difference:
+   - `.symtab` stores all symbols; `.dynsym` stores symbols that to be used by dynamic linker: either symbols that provided by this object file or symbols that need to find in another shared libs.
+   - `.symtab` do not need to load into memory during execution
+   - `.dynsym` must be loaded into memory, and used to do dynamic symbol resolution
+   - `.dynsym` is a subset of `.symtab`
+4. Compiler generate one symbol item whenever it encounter a global or static names during compilation
+   - This means if one symbol is not used in program, compiler will not generate the symbol, for example, if only define `extern double data`, plus not using it inside any function, their will be no `data` symbol, because it is `extern` and never used inside this object file, meaning that it has no relationship with this object file. But if define `double data`, then `data` is valid symbol because, this means that this object file has a global name `data`. `extern double data` is *declaration*, while `double data` is *definition*. Only have *declaration*, but not using it, does not add symbol to tables. Defintion only will add symbols to table.
+   - **Symbols defined but ​​unused​​ within the object file are still generated. They represent potential exports or data. Symbols merely declared but ​​unused​​ do ​​not​​ get an entry.**. At the source code level, if a declaration is not used, it will not be added into symbol tables, so it will not generate *undefined reference...* error during linking, since linker will only resolve symbols inside symbol table.
+
 ### Static libraries
 
 Static libraries are archives of object files. Static libraries are not *linked*, which has many implications:
