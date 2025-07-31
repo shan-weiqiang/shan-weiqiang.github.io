@@ -1,0 +1,3 @@
+- json is inherently dynamic, sicne user directly write *data* instead of *schema*
+- nlohmann::json is dynamic, which almost always contains a union
+- there are static json parsers
