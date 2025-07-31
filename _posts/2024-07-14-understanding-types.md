@@ -60,7 +60,7 @@ After we understand what is self-hosting, we better take the chance to have a de
 
 ## Interpreter/Dynamic types systems
 
-In our context this seems not the same as dynamic type in dynamic-typed language. Here we specifically mean *dynamically representing the value of a type.* While in dynamic-typed language context, dynamic type means a type of a variable can change dynamically. However, deep down, they are the same thing, both operating types at runtime, while the operator is statically compiled program, normally called interpreter. One of the example of the implementation of dynamic type system is the JSON Schema parser called [nlohmann json](https://github.com/nlohmann/json), it can dynamically read json file and parse it into C++ native types. Other dynamic type systems such as OMG XTypes, Protocol Buffers Reflection have similar functionality.
+In our context this seems not the same as dynamic type in dynamic-typed language. Here we specifically mean *dynamically representing the value of a type.* While in dynamic-typed language context, dynamic type means a type of a variable can change dynamically. However, deep down, they are the same thing, both operating types at runtime, while the operator is statically compiled program, normally called interpreter. One of the example of the implementation of dynamic type system is the JSON Schema parser called [nlohmann json](https://github.com/nlohmann/json), it can dynamically read json file and parse it into C++ native types. Other dynamic type systems such as OMG XTypes,  have similar functionality.
 
 ### OMG XTypes
 
