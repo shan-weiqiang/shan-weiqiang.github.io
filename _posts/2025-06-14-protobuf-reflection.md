@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Protobuf Reflection"
+title:  "Type systems: Part II Protobuf Reflection"
 date:   2025-06-14 9:22:46 +0800
 tags: [programming]
 ---
