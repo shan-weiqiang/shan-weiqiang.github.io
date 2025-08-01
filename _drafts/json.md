@@ -115,5 +115,6 @@ message {
 }
 ```
 - json schema define types without names, all `properties` are expanded in-place. Properties have names, but without types, their types are descripted in-place.
-- whenever you create a json, there is a cooresponding schema, this schema can be seen as a type. so json is dynamic in nature
+- whenever you create a json, there is a cooresponding schema, this schema can be seen as a type. so json is dynamic in nature, because user directly write data!
+- 
 
