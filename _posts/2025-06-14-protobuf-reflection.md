@@ -5,7 +5,7 @@ date:   2025-06-14 9:22:46 +0800
 tags: [programming]
 ---
 
-I talked about types in [Type systems](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html). Today I go deeper into one specific type system: Google Protocol Buffers(GPB). GPB provides static interpreter(*protoc* compiler) and also support dynamic interpreter functionality through library. However, GPB is NOT dynamic typing system.
+I talked about types in [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html). Today I go deeper into one specific type system: Google Protocol Buffers(GPB). GPB provides static interpreter(*protoc* compiler) and also support dynamic interpreter functionality through library. However, GPB is NOT dynamic typing system.
 
 * toc
 {:toc}
