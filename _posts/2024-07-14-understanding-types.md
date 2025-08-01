@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type systems"
+title:  "Type systems: Part I"
 date:   2024-07-14 10:20:46 +0800
 tags: [design_philosophy]
 ---
