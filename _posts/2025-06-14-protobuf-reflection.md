@@ -5,14 +5,14 @@ date:   2025-06-14 9:22:46 +0800
 tags: [programming]
 ---
 
-I talked about types in [Type system and language bindings](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html). Today I go deep into one specific type system: Google Protocol Buffers(GPB). GPB support introspection, reflection, dynamic type, dynamic data. However, I do not consider GPB a true dynamic typing system and I will talk about why after we have a deep look at how GPB works.
+I talked about types in [Type systems](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html). Today I go deeper into one specific type system: Google Protocol Buffers(GPB). GPB provides static interpreter(*protoc* compiler) and also support dynamic interpreter functionality through library. However, GPB is NOT dynamic typing system.
 
 * toc
 {:toc}
 
 ## GPB Workflow 
 
-The main workflow starts from *proto* definition files and *protoc* compiler will compile them into C++ types, which user will use directly. The process can be illustrated like following:
+The main workflow starts from *proto* definition files and the static interpreter *protoc* compiler will compile them into C++ types, which user will use directly. The process can be illustrated like following:
 
 ![alt text](/assets/images/workflow.png)
 
@@ -456,9 +456,9 @@ int main() {
 }
 ```
 
-## Why GPB is not true dynamic type
+## GPB is not true dynamic type
 
-GPB support dynamic type creation, dynamic data creation, why is it not considered true dynamic type(at least by me)? I think the reason are following:
+GPB support dynamic type creation, dynamic data creation, but it relies on pre-defined *schema* and once the type is built, it is immutable:
 
 1. Runtime type creation is just defered compile time type registration. When user use protoc to generate types and those types are registered during program start up, before main. The registration process is the same as the so-called runtime type creation, both reading from a text and compose a type descriptor, then register it to *DescriptorPool*. More importantly, once the type has been registered, it can not be modified: GPB can not update all instance of this type if the type itself can be modified during runtime. Think about what happens if one type is changed, might be a new field is added, and the existing instancees can not be updated to contain this new field in data.
 2. *DynamicMessage* type do bring GPB one step close to true dynamic type. It works very much like *PyObject* class in Python. However, it still depend on *Descriptor* to contruct one message, yet again *Descriptor* can not be changed once registered, it's *immutable*. In Python, class attributes and instance attributes are added into a dynamic expanding list, which can be added and deleted at runtime. This can not be done with GPB's descriptor. For GPB to be truely dynamic, it must make *Descriptor* type dynamic at runtime, since the descriptors are the real ones that defines a *type*. But in GPB, *Descriptor* can be created and changed during runtime, but it can not be changed once registered.
@@ -494,5 +494,5 @@ obj2.double_x()
 
 ```
 
-**For dynamic types, the programmer are programming towards *interpreter*, programmer are acutually writing *text*; For static types, the programmer are programming towards *compiler*, the programmer are writing *code***
+**For dynamic types, the programmer are programming towards *interpreter*. For static types, the programmer are programming towards *compiler***
 
