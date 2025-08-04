@@ -5,7 +5,9 @@ date:   2025-08-01 9:22:46 +0800
 tags: [programming]
 ---
 
-I talked about types in [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html), and discussed Google Protobuffers in [Type systems: Part II Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html). Today I go deeper into another type, the most common one, json. Json is **inherently** dynamic, even though there are both dynamic and static interpreters.
+We talked about types in [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html), and discussed Google Protobuffers in [Type systems: Part II Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html). First we have to be clear about following concepts:
+
+- json itself is a kind of *data format*, NOT type system. To operate on json, we need a *type system*, which is the program to operate json data. This program might be a dynamic typing system, like `nolmann::json` or static typing system, for example a program that can only parse data that are of specific json format.
 
 * toc
 {:toc}
