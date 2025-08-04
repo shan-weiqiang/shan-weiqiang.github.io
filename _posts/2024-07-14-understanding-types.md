@@ -11,8 +11,6 @@ Everyday, We deal with all kinds of *data format*: C++ types, Python types, JSON
 - *type system*: format of *one group* of *data*. Those data share same attributes and is generalized as a *type*. This is about *how data should be organized* and is *abstract idea* about types. It still has nothing to do with *dynamic* or *static* typing.
 - *dynamic* and *static* typing system: On top of a *type system*, we can implement a *static* program that can only represent a specific *type*. For example we can define a type: `message Msg{string name = 1;}` in protobuf and write programs to use this type of data. This program can only operate on this specific `Msg` type and no other protobuf messages. So protobuf is essentially a *static typing system*. With *type eraure*, we can implement a *dynamic* typing system, which can represent any kinds of type in one type system. For example, `nlohmann::json` implementation can represent any json data. Note that even though json is not a type system, but a *type system* is required to represent json data, `nlohmann::json` actually defines a *type system* as well as a dynamic typing system based on this *type system*. Python also has it's own *type system* and a dynamic typing system on top of it, also using *type erasure* essentially.
 
-* toc
-{:toc}
 
 ## Data definition = type system
 
