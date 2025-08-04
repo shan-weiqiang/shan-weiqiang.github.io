@@ -5,7 +5,11 @@ date:   2024-07-14 10:20:46 +0800
 tags: [design_philosophy]
 ---
 
-Everyday, We deal with all kinds of types: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg... They are all representation of types. If you think about them carefully, there are a lot going on beneath the surface. There are some facts that are rather counter intuitive.
+Everyday, We deal with all kinds of *data format*: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg, etc. JSON and XML are *data format*, others are *type system*. They are two different concepts:
+
+- *data format*: format of the actual *data*. This *data* can come from instances of any *type system*. For example, `struct Msg {string name;}` is a C++ type and it's instances, *data*, can be represented using json as `{"name": "weiqiang.shan"}`
+- *type system*: format of *one group* of *data*. Those data share same attributes and is generalized as a *type*. This is about *how data should be organized* and is *abstract idea* about types. It still has nothing to do with *dynamic* or *static* typing.
+- *dynamic* and *static* typing system: On top of a *type system*, we can implement a *static* program that can only represent a specific *type*. For example we can define a type: `message Msg{string name = 1;}` in protobuf and write programs to use this type of data. This program can only operate on this specific `Msg` type and no other protobuf messages. So protobuf is essentially a *static typing system*. With *type eraure*, we can implement a *dynamic* typing system, which can represent any kinds of type in one type system. For example, `nlohmann::json` implementation can represent any json data. Note that even though json is not a type system, but a *type system* is required to represent json data, `nlohmann::json` actually defines a *type system* as well as a dynamic typing system based on this *type system*. Python also has it's own *type system* and a dynamic typing system on top of it, also using *type erasure* essentially.
 
 * toc
 {:toc}
