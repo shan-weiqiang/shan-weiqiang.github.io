@@ -8,8 +8,6 @@ tags: [programming]
 Previously:
 - [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
 
-* toc
-{:toc}
 
 ## GPB Workflow 
 
