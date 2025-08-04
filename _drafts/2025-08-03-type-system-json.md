@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Type systems: Part III Json"
-date:   2025-08-01 9:22:46 +0800
+date:   2025-08-03 9:22:46 +0800
 tags: [programming]
 ---
 
@@ -13,7 +13,7 @@ Now:
 - json itself is a kind of *data format*, NOT type system. To operate on json, we need a *type system*, which is the program to operate json data. This program might be a dynamic typing system, like `nolmann::json` or static typing system, for example a program that can only parse data that are of specific json format.
 - *json schema* can be loosely compared with *type*, since a *json schema* actually defines a *class* of json data format, like what the *type* does
 - Since user directly write *json data*, which means that the format is *inherently* dynamic, so json inherently needs a dynamic type system to represent *json data*. Of course, static type system can also be used, but this requires that the user write the *json data* with fixed format, otherwise, the parse will fail.
-- `nlohmann::json` is a *dynamic type* system to represent json. It's *dynamic* in the sense of that it can represent any json, but itself is *static*. All programs are *static* in the low level, *dynamic* only are acheived through static programs. 
+- `nlohmann::json` is a *dynamic type* system to represent json. It's *dynamic* in the sense of that it can represent any json, but itself is *static*. All programs are *static* in the low level, *dynamic* only are acheived through static programs. To dynamically support json data format, `nlohmann::json` combines *type system* and *dynamic typing sytem* into one, and also support compile time conversion with user type through C++ meta-programming.
 
 This is a json file. It's a *data format*, meaning that this is a piece of *data*. It is unique and can not have any other *instantiation*.
 ```json
