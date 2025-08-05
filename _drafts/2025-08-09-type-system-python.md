@@ -1,3 +1,34 @@
+---
+layout: post
+title:  "Type systems: Part IV Python"
+date:   2025-08-09 9:22:46 +0800
+tags: [programming]
+---
+
+Previously:
+- [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
+- [Type systems: Part II Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html)
+
+Now:
+
+```c
+typedef struct _object {
+_PyObject_HEAD_EXTRA
+Py_ssize_t ob_refcnt;
+struct _typeobject *ob_type;
+} PyObject;
+```
+- `_PyObject_HEAD_EXTRA` macro: pointers that points to previous PyObject and next PyObject
+- `ob_refcnt`: reference counter
+- `ob_type`: *type* of current PyObject instance
+
+The `PyTypeObject` is the most important type in Python implementation that enables dynamic typing. Type erasure is achieved through this type. See the [C-API for CPython](https://docs.python.org/3/c-api/typeobj.html). The most important thing that this type object contains are *function pointers*, which are responsible for various operations on instances of this type: allocation, deallocation, hash, etc. This is exactly where the type erasure happens: *binding of function pointers during construction and hide detailed operation inside implementation*. Once the binding is finished, an instance, even it's Python variable, it's type is fixed, the functions that used to operate on this instance is fixed, until it's destruction. Even though this Python variable can be bind to another Python instance, might be a different typed instance, but the underlying PyObject's type is fixed. Compare this with `std::function`:
+
+- `std::function` variable can be used to bind to different typed callables, underneath `std::function` keeps different function pointers that implement these callables.
+- `std::function` variable can be reassigned to another callable with the same signature, with the previous callable properly deallocated by it's bound deallocators and with new instance + new set of function pointers kept inside the same `std::function`
+
+Python's dynamic typing works very much like `std::function`, using type erasure technique.
+
 Object Creation and Type Assignment:
 
 When a new object is created, its ob_type is set to the appropriate PyTypeObject. For example:
