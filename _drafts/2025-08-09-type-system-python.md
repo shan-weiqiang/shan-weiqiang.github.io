@@ -27,45 +27,17 @@ The `PyTypeObject` is the most important type in Python implementation that enab
 - `std::function` variable can be used to bind to different typed callables, underneath `std::function` keeps different function pointers that implement these callables.
 - `std::function` variable can be reassigned to another callable with the same signature, with the previous callable properly deallocated by it's bound deallocators and with new instance + new set of function pointers kept inside the same `std::function`
 
-Python's dynamic typing works very much like `std::function`, using type erasure technique.
+Python's dynamic typing works very much like `std::function`, using type erasure technique. **A PyTypeObject is itself a PyObject instance at runtime**.
 
-Object Creation and Type Assignment:
+When a new object is created, its ob_type is set to the appropriate PyTypeObject(**binding during construction, as in type erasure**). For example:
 
-When a new object is created, its ob_type is set to the appropriate PyTypeObject. For example:
+A list object has ob_type set to &PyList_Type. An integer object has ob_type set to &PyLong_Type. For custom types, you define a PyTypeObject and set the object's ob_type to point to it.
 
-A list object has ob_type set to &PyList_Type.
-An integer object has ob_type set to &PyLong_Type.
-For custom types, you define a PyTypeObject and set the object's ob_type to point to it.
+ob_type is used for type checking functions like isinstance(obj, cls) and issubclass(cls1, cls2). For instance, PyObject_IsInstance(inst, cls) checks if inst->ob_type is cls or if cls is in the base classes of inst->ob_type. This is supported by Python C API: Object Protocol, which lists functions like PyObject_IsInstance and P_IsSubclass, relying on the type hierarchy defined by tp_base and tp_bases in PyTypeObject.
 
+When an operation is performed on an object, Python uses ob_type to find the appropriate function pointers in the PyTypeObject. For example: Calling len() on a list uses list->ob_type->tp_as_sequence->sq_length.
 
-This is evident from c-extension-tutorial: C Level Representation, which states: "The ob_type field is a pointer to the Python type for the object. This is how objects communicate their runtime type. For example: if a given PyObject* points to a unicode object, then the ob_type field will be set to &PyUnicode_Type where PyUnicode_Type is the Python unicode type."
-
-
-Type Checking and Inheritance:
-
-ob_type is used for type checking functions like isinstance(obj, cls) and issubclass(cls1, cls2). For instance, PyObject_IsInstance(inst, cls) checks if inst->ob_type is cls or if cls is in the base classes of inst->ob_type.
-This is supported by Python C API: Object Protocol, which lists functions like PyObject_IsInstance and P_IsSubclass, relying on the type hierarchy defined by tp_base and tp_bases in PyTypeObject.
-
-
-Method Resolution:
-
-When an operation is performed on an object, Python uses ob_type to find the appropriate function pointers in the PyTypeObject. For example:
-
-Calling len() on a list uses list->ob_type->tp_as_sequence->sq_length.
-Accessing an attribute uses tp_getattro.
-
-
-This is detailed in Python C API: Type Objects, which describes fields like tp_as_number, tp_as_sequence, tp_as_mapping, and others for method resolution.
-
-
-Memory Management:
-
-ob_type also points to functions for memory management, such as tp_dealloc for deallocation or tp_traverse and tp_clear for garbage collection, as seen in Python C API: Type Object Structures.
-
-
-Changing ob_type:
-
-While possible, changing ob_type (e.g., via __class__ assignment) is restricted. From Python C API: Type Objects, it's noted that __class__ assignment is only supported for mutable types or ModuleType subclasses, to prevent crashes or undefined behavior.
+While possible, changing ob_type (e.g., via __class__ assignment) is restricted. From Python C API: Type Objects, it's noted that __class__ assignment is only supported for mutable types or ModuleType subclasses, to prevent crashes or undefined behavior:
 
 ```python
 class MyClass:
