@@ -40,6 +40,12 @@ When an operation is performed on an object, Python uses ob_type to find the app
 While possible, changing ob_type (e.g., via __class__ assignment) is restricted. From Python C API: Type Objects, it's noted that __class__ assignment is only supported for mutable types or ModuleType subclasses, to prevent crashes or undefined behavior:
 
 ```python
+# Class definion in Python actually will instantiate a PyTypeObject
+# instance in C during runtime. It is also a PyObject instance and
+# have the same lifetime management with other Python instances.
+# When this type is not used anymore, it is deallocated. When defined
+# this type belongs to a module, tmp.py, and it is reference by this
+# module.
 class MyClass:
     class_var = 10
 
@@ -50,12 +56,18 @@ class MyClass:
         print(f"Original method, class_var={self.class_var}")
 
 
-# Create an instance
+# Create an instance using this type. This instance is also
+# a PyObject and add one more reference count to MyClass's
+# PyTypeObject. The type binding happens here during instance
+# construction.
 obj = MyClass(5)
 obj.method()  # Outputs: Original method, class_var=10
 
 
-# Redefine the class
+# Redefine the class. This creates a new PyTypeObject instance and
+# makes the original MyClass's reference count one less count. Since
+# Now tmp.py module has a new MyClass type. But the original MyClass
+# is still in memory, because the obj instance still refers to it.
 class MyClass:
     class_var = 20
 
@@ -67,10 +79,12 @@ class MyClass:
         print(f"New method, class_var={self.class_var}")
 
 
-# Check existing instance
+# Check existing instance. obj still use the original MyClass, since
+# the binding is not changed.
 obj.method()  # Outputs: Original method, class_var=10
 
-# Create a new instance
+# Create a new instance. Now the new MyClass is used, since inside
+# module tmp.py, the MyClass now is the new PyTypeObject.
 new_obj = MyClass(5, 10)
 new_obj.method()  # Outputs: New method, class_var=20
 
@@ -79,15 +93,17 @@ def m(self, sec):
     print("New individual method")
 
 
+# We can change the class attributes like any other python instance
+# Underneath, a type in Python is just a PyTypeObject in C.
 MyClass.method = m
 # error
 # new_obj.method("dummy")
 new_obj.method("dummy")
 
-# This is dangerous!! since it will reduce reference count of the 
-# orinal MyClass object(class are also runtime PyObject instances) 
-# to zero, and it will be freed from memory. This will change the 
-# type of obj, which determines member function poitners, 
+# This is dangerous!! Since it will reduce reference count of the
+# orinal MyClass object(class are also runtime PyObject instances)
+# to zero, and it will be freed from memory. This will change the
+# type of obj, which determines member function poitners,
 # destructor pointers, etc, hence create a inconsistency between
 #  obj's memory and it's type, since it's memory is created by the
 #  original MyClass type.
