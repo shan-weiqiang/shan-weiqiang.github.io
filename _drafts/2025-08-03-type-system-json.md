@@ -10,10 +10,10 @@ Previously:
 - [Type systems: Part II Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html)
 
 Now:
-- json itself is a kind of *data format*, NOT type system. To operate on json, we need a *type system*, which is the program to operate json data. This program might be a dynamic typing system, like `nolmann::json` or static typing system, for example a program that can only parse data that are of specific json format.
+- json itself is a kind of *data format*, NOT *type format*. To operate on json, we need a *type format*, which is the program to operate json data. This program might be a dynamic typing system, like `nolmann::json` or static typing system, for example a program that can only parse data that are of specific json format.
 - *json schema* can be loosely compared with *type*, since a *json schema* actually defines a *class* of json data format, like what the *type* does
 - Since user directly write *json data*, which means that the format is *inherently* dynamic, so json inherently needs a dynamic type system to represent *json data*. Of course, static type system can also be used, but this requires that the user write the *json data* with fixed format, otherwise, the parse will fail.
-- `nlohmann::json` is a *dynamic type* system to represent json. It's *dynamic* in the sense of that it can represent any json, but itself is *static*. All programs are *static* in the low level, *dynamic* only are acheived through static programs. To dynamically support json data format, `nlohmann::json` combines *type system* and *dynamic typing sytem* into one, and also support compile time conversion with user type through C++ meta-programming.
+- `nlohmann::json` is a *dynamic typing* system to represent json. It's *dynamic* in the sense of that it can represent any json, but itself is *static*. All programs are *static* in the low level, *dynamic* only are acheived through static programs. To dynamically support json data format, `nlohmann::json` combines underlying *type format* and *dynamic typing sytem* into one, and also support compile time conversion with user type through C++ meta-programming.
 
 This is a json file. It's a *data format*, meaning that this is a piece of *data*. It is unique and can not have any other *instantiation*.
 ```json
@@ -74,7 +74,7 @@ This is a *json schema*. It describes one kind of  *json data*. This schema can 
   "additionalProperties": false
 } 
 ```
-This is a *mirror* protobuf definition for above json schema. It can be used to represent above json data. If we use this protobuf definiton to write a program, we build a *static type system* for above json schema, which can only parse this kinds of json data. Unlike json schema, every type has a *name*, which can be used to *instantiate* type instance and can be *reused*.
+This is a *mirror* protobuf definition for above json schema. It can be used to represent above json data. If we use this protobuf definiton to write a program, we build a *static typing system* for above json schema, which can only parse this kind of json data. Unlike json schema, every type has a *name*, which can be used to *instantiate* type instance and can be *reused*.
 ```
 syntax = "proto3";
 
@@ -105,7 +105,7 @@ message AgeObject {
   int32 age = 1;
 } 
 ```
-This how the `nlohmann::json` dynamically represents all json data. At it's core, it actually is a *type erasure* system. All json data, whether it's numbers, strings, binary, object , list are type erased and be represent using one single type. Type erasure happens during construction, *when the binding of constructor and destructor is finished*, through `value_t`, which is enum to represent type of json data. Different `value_t` will be created and destructed differently. This is the core idea of *type erasure*: **hide specific type information in implementation, while in the interface expose unified type representation and complete the binding during construction.**.
+This is how the `nlohmann::json` dynamically represents all json data. At it's core, it actually is a *type erasure* system. All json data, whether it's numbers, strings, binary, object , list are type erased and be represent using one single type. Type erasure happens during construction, *when the binding of constructor and destructor is finished*, through `value_t`, which is enum to represent type of json data. Different `value_t` will be created and destructed differently. This is the core idea of *type erasure*: **hide specific type information in implementation, while in the interface expose unified type representation and complete the binding during construction.**.
 
 - [Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
 - [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
