@@ -20,7 +20,7 @@
 
 title: "shanweiqiang's blog"
 email: "schmessi@163.com"
-description: "Technical articles on C++, type systems, and software engineering." >- # this means to ignore newlines until "baseurl:"
+description: >- # this means to ignore newlines until "baseurl:"
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://shan-weiqiang.github.io"  # <-- add this line
 github_username:  shan-weiqiang
