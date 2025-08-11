@@ -20,10 +20,14 @@
 
 title: "shanweiqiang's blog"
 email: "schmessi@163.com"
-description: >- # this means to ignore newlines until "baseurl:"
+description: "Technical articles on C++, type systems, and software engineering." >- # this means to ignore newlines until "baseurl:"
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://shan-weiqiang.github.io"  # <-- add this line
 github_username:  shan-weiqiang
+
+author:
+  name: "Shan Weiqiang"
+  email: "schmessi@163.com"
 
 # Build settings
 theme: minima
@@ -34,8 +38,6 @@ header_pages:
   - tags.markdown
   - about.markdown
 
-plugins:
-  - jekyll-feed
 feed:
   posts_limit: 1000
 
