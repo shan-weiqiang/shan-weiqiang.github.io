@@ -50,6 +50,11 @@ kramdown:
       line_numbers: false
       wrap: false   # <-- disable <div class="highlight"> wrapper so Medium keeps code
 
+minima:
+  skin: classic
+  include:
+    - assets/css/code.css
+
 # Exclude from processing.
 # The following items will not be processed, by default.
 # Any item listed under the `exclude:` key here will be automatically added to
