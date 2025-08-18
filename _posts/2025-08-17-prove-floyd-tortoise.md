@@ -5,3 +5,4 @@ date:   2025-08-117 9:22:46 +0800
 tags: [algorithm]
 ---
 
+![alt text](/assets/images/prof_floyd.png)
