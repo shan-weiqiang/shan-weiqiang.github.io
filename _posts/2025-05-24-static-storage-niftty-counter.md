@@ -21,7 +21,7 @@ Since the *static initialization order fiasco* only happens between *static obje
 Simply put:
 
 - Inside one translation unit (TU), static objects are initialized in the order of their appearance and deinitialized in reverse order.
-- Across TUs, the order is unspecified.
+- Across TUs, the order is unspecified.(Deinitialization is the reverse of the initialization)
 - Initialization order:
     - Global variables and *static* class members: Initialization happens before `main`; Deinitialization happens after `main`
     - *static* local variables: initialization at first use and deinitialization after `main`
