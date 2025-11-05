@@ -149,6 +149,26 @@ Except for .symtab section, shared libraries also have .dynsym section which sto
 
 Visibility specifier can be used on both data definitions and code definitions.
 
+#### Recursive Deps & Uused Deps
+
+> --as-needed --no-as-needed
+> This option affects ELF DT_NEEDED tags for dynamic libraries mentioned on the command line after the --as-needed option. Normally the linker will add a DT_NEEDED tag for each dynamic library mentioned on the command line, regardless of whether the library is actually needed or not. --as-needed causes a DT_NEEDED tag to only be emitted for a library that satisfies an undefined symbol reference from a regular object file or, if the library is not found in the DT_NEEDED lists of other libraries linked up to that point, an undefined symbol reference from another dynamic library. --no-as-needed restores the default behaviour.
+
+`--no-as-needed` (default)
+
+- Every shared library you specify (e.g. -lfoo) gets a DT_NEEDED entry.
+- Even if none of its symbols are used by your program.
+- So it will be loaded at runtime, wasting memory and startup time.
+
+`--as-needed`
+
+- The linker only records a library in DT_NEEDED if:
+   - The executable or previously linked libraries actually use a symbol from it, and
+   - That symbol is not already provided by another library linked earlier.
+- So unused libraries are skipped entirely — they won’t be recorded or loaded.
+- It reduces unnecessary runtime dependencies.
+- But order on the linker command line matters, because if you link a library before it’s “needed,” the linker may drop it.
+
 ### Best practices
 
 When building libraries using cmake:
