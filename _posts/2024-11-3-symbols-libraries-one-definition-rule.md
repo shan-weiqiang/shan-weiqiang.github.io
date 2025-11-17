@@ -110,7 +110,7 @@ If A is a static lib we are building, B and C are two libs that A depends on. Le
 - A only needs B and C's header file location to successfully compile
 - After compilation, inside A's binary there are no B or C's dependency information
 
-If in A's public API, there is no use of B or C's any declaration or definitions (only includes B or C's header in cpp file), the normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended on by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behavior for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
+If in A's public API, there is no use of B or C's any declaration or definitions (only includes B or C's header in cpp file), the normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended on by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behavior for static libraries. See: [Why is my library consumer getting a PRIVATE library dependency]([https://cmake.org/pipermail/cmake/2016-May/063400.html](https://discourse.cmake.org/t/why-is-my-library-consumer-getting-a-private-library-dependency/5776))
 
 If A is a shared lib, the situation is even more complex:
 
