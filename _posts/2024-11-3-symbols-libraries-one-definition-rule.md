@@ -92,7 +92,7 @@ Shared libraries are *linked* (not necessarily fully linked, might contain unres
 
 - When a shared lib A depends on another static lib B:
   - A *absorbs* B at binary level, after compilation and linking, in the eyes of A there is no B anymore
-  - Thanks to the PRIVATE-becomes-PUBLIC behavior mentioned above, all B's dependencies will be passed into A
+  - Thanks to the PRIVATE-becomes-PUBLIC behavior mentioned below, all B's dependencies will be passed into A
   - If A is about to be exported as a library, relevant headers of B, more in general relevant headers of all dependent static libs of A, should also be exported together with A's headers, as long as those headers are used in A's public API.
     - Or lib B will still be used as individual lib and is required in downstream target that depends on A, but this time only the headers of B are actually used. This can lead to another problem, that is when lib B is linked to multiple shared libs: Problem reproduction can be found at [here](https://github.com/shan-weiqiang/cplusplus/tree/main/ODR).
 - When a shared lib A depends on another shared lib B (A needs B's header to compile, but can link or not link to B during compile time):
@@ -121,6 +121,7 @@ About in which scenario PRIVATE keyword can be used:
   - If in A's API there is any header dependency, PUBLIC should be used.
   - If in A's API there is no header dependency:
     - If A is static: if A's binary depends on B or C, PUBLIC should be used.
+      - **This means the ONLY situation to use PRIVATE when linking a static lib is that it only use POD data declaration headers from another lib in it's source file**
     - If A is shared:
       - For static lib B, if A has binary dependency on B, PUBLIC should be used, otherwise PRIVATE can be used: **A only used B's declaration headers in A's source file**
       - For shared lib C:
