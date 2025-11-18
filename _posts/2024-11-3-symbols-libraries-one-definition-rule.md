@@ -113,7 +113,10 @@ Shared libs contain unresolved symbols. Those undefined symbols can further be c
 | Fully Linked at Compile?   | No     | No(Default, See `--no-allow-shlib-undefined`) | Yes        |
 | Contain Deps Info?         | No     | Yes(See `--as-needed`)                        | Yes        |
 
+
 **no-allow-shlib-undefined**
+
+
        --no-undefined
        -z defs
            Report unresolved symbol references from regular object files.   This  is  done  even  if  the  linker  is
