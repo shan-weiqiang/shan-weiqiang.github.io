@@ -151,6 +151,8 @@ Shared libs contain unresolved symbols. Those undefined symbols can further be c
                The BeOS kernel for example patches shared libraries at load time to select whichever function is most
                appropriate for the current architecture.  This  is  used,  for  example,  to  dynamically  select  an
                appropriate memset function.
+
+
 which means:
 - **By default, shared libraries do not need to be fully linked**
 - **DT_NEEDED section only contains libs that are linked during compile time**
@@ -170,6 +172,8 @@ which means:
 
            Note: On Linux based systems the --as-needed option also has an affect on the behaviour of the --rpath  and  --rpath-link  options.
            See the description of --rpath-link for more details.
+
+
 which means:
 - By default, the linker always adds a DT_NEEDED entry for libfoo.so and libbar.so in the final executable, even if your program doesn’t actually use any symbols from them.
 - By specifying `--as-needed`, if you list a library that you don’t actually use, it won’t be added.
