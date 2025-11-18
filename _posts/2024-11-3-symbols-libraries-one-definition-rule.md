@@ -103,6 +103,80 @@ Shared libs contain unresolved symbols. Those undefined symbols can further be c
 - Unresolved symbols in linked dependencies: those symbols are *resolved* during compile time and the dependent shared libs information are recorded in shared lib
 - Unresolved symbols with no known provider at compile time: those symbols are *not resolved* at compile time and the resolution of them is deferred until this shared lib is used with an executable.
 
+### Comparison
+
+| Type                       | Static | Shared                                        | Executable |
+| -------------------------- | ------ | --------------------------------------------- | ---------- |
+| Compile Need Dep Headers?  | Yes    | Yes                                           | Yes        |
+| Compile Need Dep Binaries? | No     | No                                            | Yes        |
+| Link at Compile?           | No     | Yes                                           | Yes        |
+| Fully Linked at Compile?   | No     | No(Default, See `--no-allow-shlib-undefined`) | Yes        |
+| Contain Deps Info?         | No     | Yes(See `--as-needed`)                        | Yes        |
+
+**no-allow-shlib-undefined**
+       --no-undefined
+       -z defs
+           Report unresolved symbol references from regular object files.   This  is  done  even  if  the  linker  is
+           creating  a  non-symbolic  shared library.  The switch --[no-]allow-shlib-undefined controls the behaviour
+           for reporting unresolved references found in shared libraries being linked in.
+
+           The effects of this option can be reverted by using "-z undefs".
+
+       --allow-multiple-definition
+       -z muldefs
+           Normally when a symbol is defined multiple times, the linker will report  a  fatal  error.  These  options
+           allow multiple definitions and the first definition will be used.
+
+       --allow-shlib-undefined
+       --no-allow-shlib-undefined
+           Allows  or  disallows  undefined  symbols  in  shared libraries.  This switch is similar to --no-undefined
+           except that it determines the behaviour when the undefined symbols are in a shared library rather  than  a
+           regular object file.  It does not affect how undefined symbols in regular object files are handled.
+
+           The  default behaviour is to report errors for any undefined symbols referenced in shared libraries if the
+           linker is being used to create an executable, but to allow them if the linker is being used  to  create  a
+           shared library.
+
+           The reasons for allowing undefined symbol references in shared libraries specified at link time are that:
+
+           •   A shared library specified at link time may not be the same as the one that is available at load time,
+               so the symbol might actually be resolvable at load time.
+
+           •   There  are  some  operating systems, eg BeOS and HPPA, where undefined symbols in shared libraries are
+               normal.
+
+               The BeOS kernel for example patches shared libraries at load time to select whichever function is most
+               appropriate for the current architecture.  This  is  used,  for  example,  to  dynamically  select  an
+               appropriate memset function.
+which means:
+- **By default, shared libraries do not need to be fully linked**
+- **DT_NEEDED section only contains libs that are linked during compile time**
+- **Different linking libraries produce different shared lib**
+
+**as-needed**
+
+       --as-needed
+       --no-as-needed
+           This option affects ELF DT_NEEDED tags for dynamic libraries mentioned on the command line after the --as-needed option.   Normally
+           the  linker  will  add a DT_NEEDED tag for each dynamic library mentioned on the command line, regardless of whether the library is
+           actually needed or not.  --as-needed causes a DT_NEEDED tag to only be emitted for a  library  that  at  that  point  in  the  link
+           satisfies  a  non-weak undefined symbol reference from a regular object file or, if the library is not found in the DT_NEEDED lists
+           of other needed libraries, a non-weak undefined symbol reference from another needed dynamic library.  Object  files  or  libraries
+           appearing  on  the command line after the library in question do not affect whether the library is seen as needed.  This is similar
+           to the rules for extraction of object files from archives.  --no-as-needed restores the default behaviour.
+
+           Note: On Linux based systems the --as-needed option also has an affect on the behaviour of the --rpath  and  --rpath-link  options.
+           See the description of --rpath-link for more details.
+which means:
+- By default, the linker always adds a DT_NEEDED entry for libfoo.so and libbar.so in the final executable, even if your program doesn’t actually use any symbols from them.
+- By specifying `--as-needed`, if you list a library that you don’t actually use, it won’t be added.
+- During load time:
+    - Start with the executable’s DT_NEEDED list.
+    - For each library listed in DT_NEEDED (left-to-right order on command line):
+    - Load it (if not already loaded).
+    - Recursively load its DT_NEEDED entries before moving to the next library.
+    - This produces a depth-first traversal of dependencies.
+
 ### More about libraries
 
 If A is a static lib we are building, B and C are two libs that A depends on. Let's suppose B is static and C is dynamic:
