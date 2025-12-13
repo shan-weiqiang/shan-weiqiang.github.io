@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python singal handling"
+title:  "Python signal handling"
 date:   2025-12-13 9:22:46 +0800
 tags: [python]
 ---
