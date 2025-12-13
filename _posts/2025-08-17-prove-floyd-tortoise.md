@@ -1,0 +1,8 @@
+---
+layout: post
+title:  "Proof for Floyd's tortoise and hare"
+date:   2025-08-17 9:22:46 +0800
+tags: [algorithm]
+---
+
+![alt text](/assets/images/prof_floyd.png)

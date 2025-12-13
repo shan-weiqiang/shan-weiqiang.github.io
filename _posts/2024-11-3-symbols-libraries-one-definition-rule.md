@@ -92,7 +92,7 @@ Shared libraries are *linked* (not necessarily fully linked, might contain unres
 
 - When a shared lib A depends on another static lib B:
   - A *absorbs* B at binary level, after compilation and linking, in the eyes of A there is no B anymore
-  - Thanks to the PRIVATE-becomes-PUBLIC behavior mentioned above, all B's dependencies will be passed into A
+  - Thanks to the PRIVATE-becomes-PUBLIC behavior mentioned below, all B's dependencies will be passed into A
   - If A is about to be exported as a library, relevant headers of B, more in general relevant headers of all dependent static libs of A, should also be exported together with A's headers, as long as those headers are used in A's public API.
     - Or lib B will still be used as individual lib and is required in downstream target that depends on A, but this time only the headers of B are actually used. This can lead to another problem, that is when lib B is linked to multiple shared libs: Problem reproduction can be found at [here](https://github.com/shan-weiqiang/cplusplus/tree/main/ODR).
 - When a shared lib A depends on another shared lib B (A needs B's header to compile, but can link or not link to B during compile time):
@@ -103,6 +103,87 @@ Shared libs contain unresolved symbols. Those undefined symbols can further be c
 - Unresolved symbols in linked dependencies: those symbols are *resolved* during compile time and the dependent shared libs information are recorded in shared lib
 - Unresolved symbols with no known provider at compile time: those symbols are *not resolved* at compile time and the resolution of them is deferred until this shared lib is used with an executable.
 
+### Comparison
+
+| Type                       | Static | Shared                                        | Executable |
+| -------------------------- | ------ | --------------------------------------------- | ---------- |
+| Compile Need Dep Headers?  | Yes    | Yes                                           | Yes        |
+| Compile Need Dep Binaries? | No     | No                                            | Yes        |
+| Link at Compile?           | No     | Yes                                           | Yes        |
+| Fully Linked at Compile?   | No     | No(Default, See `--no-allow-shlib-undefined`) | Yes        |
+| Contain Deps Info?         | No     | Yes(See `--as-needed`)                        | Yes        |
+
+
+**no-allow-shlib-undefined**
+
+
+       --no-undefined
+       -z defs
+           Report unresolved symbol references from regular object files.   This  is  done  even  if  the  linker  is
+           creating  a  non-symbolic  shared library.  The switch --[no-]allow-shlib-undefined controls the behaviour
+           for reporting unresolved references found in shared libraries being linked in.
+
+           The effects of this option can be reverted by using "-z undefs".
+
+       --allow-multiple-definition
+       -z muldefs
+           Normally when a symbol is defined multiple times, the linker will report  a  fatal  error.  These  options
+           allow multiple definitions and the first definition will be used.
+
+       --allow-shlib-undefined
+       --no-allow-shlib-undefined
+           Allows  or  disallows  undefined  symbols  in  shared libraries.  This switch is similar to --no-undefined
+           except that it determines the behaviour when the undefined symbols are in a shared library rather  than  a
+           regular object file.  It does not affect how undefined symbols in regular object files are handled.
+
+           The  default behaviour is to report errors for any undefined symbols referenced in shared libraries if the
+           linker is being used to create an executable, but to allow them if the linker is being used  to  create  a
+           shared library.
+
+           The reasons for allowing undefined symbol references in shared libraries specified at link time are that:
+
+           •   A shared library specified at link time may not be the same as the one that is available at load time,
+               so the symbol might actually be resolvable at load time.
+
+           •   There  are  some  operating systems, eg BeOS and HPPA, where undefined symbols in shared libraries are
+               normal.
+
+               The BeOS kernel for example patches shared libraries at load time to select whichever function is most
+               appropriate for the current architecture.  This  is  used,  for  example,  to  dynamically  select  an
+               appropriate memset function.
+
+
+which means:
+- **By default, shared libraries do not need to be fully linked**
+- **DT_NEEDED section only contains libs that are linked during compile time**
+- **Different linking libraries produce different shared lib**
+
+**as-needed**
+
+       --as-needed
+       --no-as-needed
+           This option affects ELF DT_NEEDED tags for dynamic libraries mentioned on the command line after the --as-needed option.   Normally
+           the  linker  will  add a DT_NEEDED tag for each dynamic library mentioned on the command line, regardless of whether the library is
+           actually needed or not.  --as-needed causes a DT_NEEDED tag to only be emitted for a  library  that  at  that  point  in  the  link
+           satisfies  a  non-weak undefined symbol reference from a regular object file or, if the library is not found in the DT_NEEDED lists
+           of other needed libraries, a non-weak undefined symbol reference from another needed dynamic library.  Object  files  or  libraries
+           appearing  on  the command line after the library in question do not affect whether the library is seen as needed.  This is similar
+           to the rules for extraction of object files from archives.  --no-as-needed restores the default behaviour.
+
+           Note: On Linux based systems the --as-needed option also has an affect on the behaviour of the --rpath  and  --rpath-link  options.
+           See the description of --rpath-link for more details.
+
+
+which means:
+- By default, the linker always adds a DT_NEEDED entry for libfoo.so and libbar.so in the final executable, even if your program doesn’t actually use any symbols from them.
+- By specifying `--as-needed`, if you list a library that you don’t actually use, it won’t be added.
+- During load time:
+    - Start with the executable’s DT_NEEDED list.
+    - For each library listed in DT_NEEDED (left-to-right order on command line):
+    - Load it (if not already loaded).
+    - Recursively load its DT_NEEDED entries before moving to the next library.
+    - This produces a depth-first traversal of dependencies.
+
 ### More about libraries
 
 If A is a static lib we are building, B and C are two libs that A depends on. Let's suppose B is static and C is dynamic:
@@ -110,7 +191,7 @@ If A is a static lib we are building, B and C are two libs that A depends on. Le
 - A only needs B and C's header file location to successfully compile
 - After compilation, inside A's binary there are no B or C's dependency information
 
-If in A's public API, there is no use of B or C's any declaration or definitions (only includes B or C's header in cpp file), the normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended on by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behavior for static libraries. See: [[CMake] Difference between PRIVATE and PUBLIC with target_link_libraries](https://cmake.org/pipermail/cmake/2016-May/063400.html)
+If in A's public API, there is no use of B or C's any declaration or definitions (only includes B or C's header in cpp file), the normal way to link to B and C is to use *PRIVATE* keyword, since A's public API does not refer to B or C's headers. When A as a library is depended on by executable D, D will have the problem of finding symbols in B and C during linking time, because there is no information in binary A to locate B and C! So cmake is smart enough to have a PRIVATE-becomes-PUBLIC behavior for static libraries. See: [Why is my library consumer getting a PRIVATE library dependency]([https://cmake.org/pipermail/cmake/2016-May/063400.html](https://discourse.cmake.org/t/why-is-my-library-consumer-getting-a-private-library-dependency/5776))
 
 If A is a shared lib, the situation is even more complex:
 
@@ -121,6 +202,7 @@ About in which scenario PRIVATE keyword can be used:
   - If in A's API there is any header dependency, PUBLIC should be used.
   - If in A's API there is no header dependency:
     - If A is static: if A's binary depends on B or C, PUBLIC should be used.
+      - **This means the ONLY situation to use PRIVATE when linking a static lib is that it only use POD data declaration headers from another lib in it's source file**
     - If A is shared:
       - For static lib B, if A has binary dependency on B, PUBLIC should be used, otherwise PRIVATE can be used: **A only used B's declaration headers in A's source file**
       - For shared lib C:
@@ -148,6 +230,26 @@ Except for .symtab section, shared libraries also have .dynsym section which sto
 - If it's used on undefined symbols, this symbol will not appear in .dynsym. If its definition is not found inside current lib, compiler will issue not-defined error
 
 Visibility specifier can be used on both data definitions and code definitions.
+
+#### Recursive Deps & Uused Deps
+
+> --as-needed --no-as-needed
+> This option affects ELF DT_NEEDED tags for dynamic libraries mentioned on the command line after the --as-needed option. Normally the linker will add a DT_NEEDED tag for each dynamic library mentioned on the command line, regardless of whether the library is actually needed or not. --as-needed causes a DT_NEEDED tag to only be emitted for a library that satisfies an undefined symbol reference from a regular object file or, if the library is not found in the DT_NEEDED lists of other libraries linked up to that point, an undefined symbol reference from another dynamic library. --no-as-needed restores the default behaviour.
+
+`--no-as-needed` (default)
+
+- Every shared library you specify (e.g. -lfoo) gets a DT_NEEDED entry.
+- Even if none of its symbols are used by your program.
+- So it will be loaded at runtime, wasting memory and startup time.
+
+`--as-needed`
+
+- The linker only records a library in DT_NEEDED if:
+   - The executable or previously linked libraries actually use a symbol from it, and
+   - That symbol is not already provided by another library linked earlier.
+- So unused libraries are skipped entirely — they won’t be recorded or loaded.
+- It reduces unnecessary runtime dependencies.
+- But order on the linker command line matters, because if you link a library before it’s “needed,” the linker may drop it.
 
 ### Best practices
 
