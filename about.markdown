@@ -18,7 +18,7 @@ Previously, I worked as a middleware software engineer in the automobile industr
 
 This website aims to share knowledge about programming languages, AUTOSAR, linux system programming, AI infrastructure, etc.. 
 
-Me and my son at home:
+Me and my son:
 
-![docker_cli.drawio.png](/assets/images/me_and_son.jpg)
+![](/assets/images/me_and_son1.jpg)
 
