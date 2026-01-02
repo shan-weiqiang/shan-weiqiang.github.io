@@ -7,6 +7,9 @@ tags: [graphics, os, system]
 
 Modern computer graphics involve a complex software stack that orchestrates multiple layers of abstraction, from the operating system's windowing system to the final pixel output on the monitor. Understanding this stack is crucial for developers working with graphics applications, UI frameworks, or system-level programming.
 
+* toc
+{:toc}
+
 ## The Software Stack Overview
 
 The graphics rendering pipeline can be conceptualized as a layered architecture:
