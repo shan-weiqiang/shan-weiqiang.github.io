@@ -156,8 +156,7 @@ message Person {
 
 ### 6.1 JSON Parsing
 
-- **Python:** natural fit for a dynamic object model; one parser works for any schema.
-- **C++:** libraries simulate a dynamic runtime with variant-type containers.
+The advantage of a dynamic typing language is clearest here. To handle JSON in **C++** you either: (1) write static code for a specific JSON shape (fixed schema, no flexibility), or (2) use a library that implements a minimal dynamic typing system — e.g. `nlohmann::json` — so one type can represent any JSON structure; only (2) is a dynamic-style abstraction on top of static C++. In **Python**, the runtime already has dynamic types and dict/list literals; parsing and operating on arbitrary JSON is native. One parser and one code path handle all possible JSON without an extra “variant container” or codegen — the language itself is the dynamic system. Under the hood, both rely on **type erasure**: the Python interpreter is itself implemented in a static language (e.g. C), and it uses the same idea — a generic object representation with a type tag — as libraries like `nlohmann::json` do in C++. So at the implementation level, both are type-erased value types over a static foundation; the difference is that in Python that machinery is built into the language and runtime, whereas in C++ you opt in via a library.
 
 ### 6.2 Protobuf Parsing
 
