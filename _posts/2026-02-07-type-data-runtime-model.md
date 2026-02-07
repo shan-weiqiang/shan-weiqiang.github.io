@@ -1,4 +1,12 @@
-# Deep Runtime Model: Static vs Dynamic Languages, JSON vs Protobuf, Schema, and Type Erasure
+---
+layout: post
+title:  "Static vs Dynamic Languages, JSON vs Protobuf, Schema, and Type Erasure"
+date:   2026-02-07 9:22:46 +0800
+tags: [programming]
+---
+
+* toc
+{:toc}
 
 ## 1. Overview
 
@@ -83,6 +91,12 @@ Operations are resolved dynamically: *inspect type → dispatch correct operatio
 
 ### 3.1 What is Type Erasure?
 
+**References (type erasure series):**
+
+- [Type erasure](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type erasure, part two](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type erasure, part three](https://shan-weiqiang.github.io/2025/07/08/type-erasure-part-three.html)
+
 **Type erasure** means: multiple types are hidden behind a single runtime representation.
 
 **Examples:**
@@ -162,9 +176,10 @@ The advantage of a dynamic typing language is clearest here. To handle JSON in *
 
 Protobuf assumes schema-first design. Two approaches:
 
-**Static (generated code):** `.proto` → generated class → compiled metadata. Benefits: faster, safer, IDE support.
+- **Static (generated code):** `.proto` → code generator → language-specific class with compiled-in metadata. Same idea in Python and C++. Benefits: faster access, type safety, IDE support.
+- **Dynamic (reflection-based):** Schema descriptors are loaded at runtime; messages are created and manipulated via reflection APIs. In Python this is straightforward because the runtime is already dynamic. In C++ it is possible via `DescriptorPool` and `DynamicMessageFactory`, but more involved.
 
-**Dynamic (reflection-based):** runtime loads schema descriptors. Python: easy because the runtime is already dynamic. C++: possible via `DescriptorPool` and `DynamicMessageFactory`, but more complex.
+**Memory representation.** The language divide matters here. In **Python**, both paths produce the same kind of runtime object — ordinary Python objects with attributes — so the underlying representation is the language’s dynamic type system either way. In **C++**, the two paths differ: static codegen yields a fixed, struct-like layout (known offsets, one type per message), while `DynamicMessageFactory` uses a separate, flexible representation (e.g. internal structures keyed by field) that can represent any message type. So in C++, static vs dynamic Protobuf implies genuinely different in-memory layouts; in Python it does not.
 
 **For schema-driven data, language matters little.** To operate on Protobuf data (read/write fields, pass to functions), you either write code against a known structure — which means codegen in both Python and C++ — or you use reflection. Both languages support both options. So for Protobuf specifically, there is no fundamental advantage to using Python over C++; the same choice (codegen vs reflection) applies in either language. The real benefit of a dynamic language shows up with *schema-less* data (e.g. JSON, dicts), where one parser and one code path can handle arbitrary structure without codegen.
 
