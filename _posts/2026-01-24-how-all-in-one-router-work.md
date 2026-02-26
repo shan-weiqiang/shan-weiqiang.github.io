@@ -177,6 +177,12 @@ Once the next-hop MAC address is known, the IP packet is encapsulated into an Et
 
 A Layer 2 switch forwards frames purely based on MAC addresses. It learns source MAC-to-port mappings dynamically and stores them in a MAC table. If the destination MAC is known, it forwards the frame only to the corresponding port; if unknown or broadcast, it floods the frame to all ports except the ingress port. Multiple switches connected together form one larger Layer 2 broadcast domain, extending this MAC-learning and forwarding behavior across the entire network.
 
+Key Points:
+- The **IP packet** never changes (Src and Dst IP stay fixed).  
+- The **MAC addresses** change at each hop, because Ethernet only works hop-by-hop.  
+- ARP is used locally to resolve the next-hop MAC from the next-hop IP.  
+- Switches forward based on MAC; routers forward based on IP.
+
 
 
 ### DNS – Domain Name System
