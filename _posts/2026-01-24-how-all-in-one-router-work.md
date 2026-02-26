@@ -171,6 +171,14 @@ Most home routers run a DHCP server by default, making network setup plug-and-pl
 - ARP is a Layer 2/3 protocol — it uses IP addresses but operates at the Ethernet level
 - **ARP spoofing** attacks exploit ARP's trust-based nature (devices accept ARP replies without verification)
 
+IP (Layer 3) determines the direction of a packet by consulting the routing table to decide the next-hop IP address. If the destination is in the same subnet, the next hop is the destination itself; if it is in another network, the next hop is the default gateway. ARP then resolves that next-hop IP address into a MAC address by broadcasting a request inside the local Layer 2 network and caching the reply. Routing decides where to go; ARP discovers how to reach that next hop at Layer 2.
+
+Once the next-hop MAC address is known, the IP packet is encapsulated into an Ethernet frame for delivery. The source and destination IP addresses remain constant end-to-end (unless modified by NAT), but the MAC addresses change at every hop. This reflects the core principle: IP provides end-to-end logical identity, while MAC addresses provide hop-by-hop physical delivery.
+
+A Layer 2 switch forwards frames purely based on MAC addresses. It learns source MAC-to-port mappings dynamically and stores them in a MAC table. If the destination MAC is known, it forwards the frame only to the corresponding port; if unknown or broadcast, it floods the frame to all ports except the ingress port. Multiple switches connected together form one larger Layer 2 broadcast domain, extending this MAC-learning and forwarding behavior across the entire network.
+
+
+
 ### DNS – Domain Name System
 
 DNS translates names → IP addresses.
