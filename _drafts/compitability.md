@@ -1,8 +1,14 @@
-# Data Format Compatibility: Protobuf vs JSON
-
+---
+layout: post
+title:  "Data Format Compatibility: Protobuf vs JSON"
+date:   2026-04-02 9:22:46 +0800
+tags: [programming]
 ---
 
-# 1️⃣ Protocol Buffers Compatibility Characteristics
+* toc
+{:toc}
+
+# Protocol Buffers Compatibility Characteristics
 
 ## Core Principle
 
@@ -19,7 +25,7 @@ Compatibility is therefore determined by:
 
 ---
 
-## ✅ Forward Compatibility
+## Forward Compatibility
 
 Old code can read data produced by a newer schema.
 
@@ -33,7 +39,7 @@ If a tag is unknown, the parser deterministically skips it.
 
 ---
 
-## ✅ Backward Compatibility
+## Backward Compatibility
 
 New code can read data produced by an older schema.
 
@@ -46,7 +52,7 @@ the parser initializes the field with its defined default value.
 
 ---
 
-## ✅ Safe Schema Changes
+## Safe Schema Changes
 
 These changes preserve compatibility:
 
@@ -62,7 +68,7 @@ If those remain stable, compatibility remains stable.
 
 ---
 
-## ❌ Unsafe Changes (Breaking)
+## Unsafe Changes (Breaking)
 
 These changes break compatibility:
 
@@ -88,7 +94,7 @@ Compatibility is engineered into the encoding itself.
 
 ---
 
-# 2️⃣ JSON Compatibility Characteristics
+# JSON Compatibility Characteristics
 
 ## Core Principle
 
