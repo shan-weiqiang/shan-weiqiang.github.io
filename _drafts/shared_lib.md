@@ -1,4 +1,12 @@
-# Linux shared libraries: link time vs load time, SONAME, RPATH, and naming
+---
+layout: post
+title:  "Linux shared libraries: link time vs load time, SONAME, RPATH, and naming"
+date:   2026-04-02 9:00:46 +0800
+tags: [system-programming]
+---
+
+* toc
+{:toc}
 
 ## 1. Link time vs load time
 
@@ -56,8 +64,6 @@ RUNPATH of the loading object
 ld.so.cache
 default dirs
 ```
-
-
 
 In modern Linux practice, `RPATH` is generally considered legacy/deprecated in favor of `RUNPATH`.
 Recommended approach: use `RUNPATH` for bundled defaults, and use `LD_LIBRARY_PATH` when you need to override which concrete library build is loaded at runtime.
