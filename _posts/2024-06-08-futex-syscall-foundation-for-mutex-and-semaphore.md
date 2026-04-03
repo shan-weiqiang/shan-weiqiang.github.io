@@ -2,7 +2,7 @@
 layout: post
 title:  "futex: foundation of linux synchronization"
 date:   2024-06-08 19:20:46 +0800
-tags: [linux-programming]
+tags: [systems]
 ---
 
 In linux, pthread mutex `pthread_mutex_t`(on which `std::mutex` is based),  and `pthread_cond_t`(on which `std::condition_variable` is based), and semaphores, all use futex kernel support as their internal implementation. Let't dig into what is futex and the behavior of it.

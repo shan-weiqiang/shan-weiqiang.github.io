@@ -2,7 +2,7 @@
 layout: post
 title:  "Static Storage and Nifty Counter"
 date:   2025-05-23 21:22:46 +0800
-tags: [middleware]
+tags: [cpp]
 ---
 
 This is reading notes for [*static initialization order fiasco*](https://en.cppreference.com/w/cpp/language/siof) problem and its solutions.

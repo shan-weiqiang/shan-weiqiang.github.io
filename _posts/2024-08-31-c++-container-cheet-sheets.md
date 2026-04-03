@@ -2,7 +2,7 @@
 layout: post
 title:  "C++ container cheet sheets"
 date:   2024-08-31 09:22:46 +0800
-tags: [c++]
+tags: [cpp]
 ---
 
 ![alt text](/assets/images/cplusplus_containers.png)

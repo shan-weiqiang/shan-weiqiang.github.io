@@ -2,7 +2,7 @@
 layout: post
 title:  "AUTOSAR service model: a big picture"
 date:   2024-06-08 9:22:46 +0800
-tags: [autosar]
+tags: [automotive]
 ---
 
 The design phase of AUTOSAR communication management can be generalized as following steps: First, a *methodology* is chosen. According to the methodology, *standards* and *protocols* are designed, specifying detailed *behavior*. AUTOSAR vendors and open source organizations *implement* these *standards* and *protocol*. 

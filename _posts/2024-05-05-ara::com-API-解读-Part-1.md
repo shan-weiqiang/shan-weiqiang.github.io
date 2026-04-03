@@ -2,7 +2,7 @@
 layout: post
 title:  "ara::com API[Part 1]"
 date:   2024-05-05 13:22:46 +0800
-tags: [autosar]
+tags: [automotive]
 ---
 
 标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)

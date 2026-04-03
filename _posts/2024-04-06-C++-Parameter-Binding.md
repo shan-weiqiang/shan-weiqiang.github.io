@@ -2,7 +2,7 @@
 layout: post
 title:  "Parameter binding"
 date:   2024-04-05 19:22:46 +0800
-tags: [c++]
+tags: [cpp]
 ---
 
 # 绑定矩阵（binding matrix）

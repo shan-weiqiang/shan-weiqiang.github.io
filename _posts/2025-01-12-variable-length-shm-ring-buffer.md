@@ -2,7 +2,7 @@
 layout: post
 title:  "Variable-length shared memory ring buffer"
 date:   2025-01-12 09:22:46 +0800
-tags: [c++]
+tags: [cpp]
 ---
 
 A variable-length shard memory ring buffer that supports sharing variable length payloads data between processes. This is based on https://github.com/bo-yang/shm_ring_buffer, which only support POD fixed length data. The idea is illustrated in following diagram:

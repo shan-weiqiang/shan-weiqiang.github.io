@@ -2,7 +2,7 @@
 layout: post
 title:  "How All-In-One Routers Work"
 date:   2026-01-24 9:22:46 +0800
-tags: [readings]
+tags: [reading]
 ---
 
 * toc

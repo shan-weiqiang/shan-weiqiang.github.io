@@ -2,7 +2,7 @@
 layout: post
 title:  "Life of an object"
 date:   2024-10-26 09:22:46 +0800
-tags: [c++]
+tags: [cpp]
 ---
 
 

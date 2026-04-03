@@ -2,7 +2,7 @@
 layout: post
 title:  "Compile-Time vs. Run-Time"
 date:   2025-06-12 19:22:46 +0800
-tags: [programming]
+tags: [systems]
 ---
 
 *This blog post was co-authored with AI assistance.*

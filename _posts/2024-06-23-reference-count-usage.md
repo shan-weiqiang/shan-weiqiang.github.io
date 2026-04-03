@@ -2,7 +2,7 @@
 layout: post
 title:  "Reference count in computer systems"
 date:   2024-06-23 15:20:46 +0800
-tags: [linux-programming]
+tags: [systems]
 ---
 
 reference count is a recurring design pattern in many fields of computer systems. It's interesting to put them together and have a look at them.

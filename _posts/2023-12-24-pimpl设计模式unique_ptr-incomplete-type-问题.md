@@ -2,7 +2,7 @@
 layout: post
 title:  "unique_ptr incomplete type"
 date:   2023-12-24 19:22:46 +0800
-tags: [c++]
+tags: [cpp]
 ---
 
 

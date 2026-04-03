@@ -2,7 +2,7 @@
 layout: post
 title:  "CMake: Best Practice(bp)"
 date:   2024-09-18 09:22:46 +0800
-tags: [c++]
+tags: [cpp]
 ---
 
 It has been a long time since I want to summarize the usage of CMake and give a best practice for using it. Recently I have time to read the book: [Professional CMake: A Practical Guide](https://crascit.com/), and it's time to do this. CMake is complex and easy at the same time: it's complex because what it tries to solve is complex; it's easy because once we know how to use it and familiar with the best practice, it's basically repitition afterwards. So the key here is to have a model for repetition, which I try to give here. 

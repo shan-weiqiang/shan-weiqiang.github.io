@@ -2,7 +2,7 @@
 layout: post
 title:  "Computer Graphics Software Stack: From Window to Monitor"
 date:   2026-01-02 9:22:46 +0800
-tags: [graphics, os, system]
+tags: [graphics, systems]
 ---
 
 Modern computer graphics involve a complex software stack that orchestrates multiple layers of abstraction, from the operating system's windowing system to the final pixel output on the monitor. Understanding this stack is crucial for developers working with graphics applications, UI frameworks, or system-level programming.
