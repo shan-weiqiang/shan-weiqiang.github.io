@@ -2,7 +2,7 @@
 layout: post
 title:  "Linux shared libraries: link time vs load time, SONAME, RPATH, and naming"
 date:   2026-04-02 9:00:46 +0800
-tags: [system-programming]
+tags: [systems]
 ---
 
 * toc

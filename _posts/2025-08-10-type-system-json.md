@@ -2,7 +2,7 @@
 layout: post
 title:  "Type systems: Part III Json"
 date:   2025-08-10 9:22:46 +0800
-tags: [type-systems]
+tags: [data-typing]
 ---
 
 Previously:

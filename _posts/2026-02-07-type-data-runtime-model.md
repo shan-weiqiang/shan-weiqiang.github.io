@@ -2,7 +2,7 @@
 layout: post
 title:  "Static vs Dynamic Languages, JSON vs Protobuf, Schema, and Type Erasure"
 date:   2026-02-07 9:22:46 +0800
-tags: [type-systems]
+tags: [data-typing]
 ---
 
 * toc

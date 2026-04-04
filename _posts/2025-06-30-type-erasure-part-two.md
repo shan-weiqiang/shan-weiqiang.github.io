@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure Part Two: How std::function Works"
 date:   2025-06-29 10:00:00 +0800
-tags: [cpp]
+tags: [data-typing]
 ---
 
 std::function Implementation:

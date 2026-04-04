@@ -2,7 +2,7 @@
 layout: post
 title:  "Type systems: Part I"
 date:   2024-07-14 10:20:46 +0800
-tags: [type-systems]
+tags: [data-typing]
 ---
 
 Everyday, We deal with all kinds of *data*: C++ types, Python types, JSON, XML, Protocol Buffers, IDL, ROS msg, etc. JSON and XML are *data format*, others are *type format*. They are two different concepts:
