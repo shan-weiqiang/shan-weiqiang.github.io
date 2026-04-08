@@ -20,7 +20,7 @@ If we treat software, hardware, and machines as tools, then LLMs plus agents mea
 
 # A small experiment: Agent-Smith
 
-Repository: https://github.com/shan-weiqiang/agent-smith?tab=readme-ov-file
+Repository: [Agent-Smith: An experiment](https://github.com/shan-weiqiang/agent-smith?tab=readme-ov-file)
 
 I built a small agent that takes natural-language instructions and can:
 
@@ -31,7 +31,7 @@ I built a small agent that takes natural-language instructions and can:
 - Accept instructions to compile C++ sources into a shared library
 
 All of this can be driven from the command line with natural-language interaction:
-
+(Right click to open in a new tab to have better view)
 ![alt text](/assets/output.gif)
 
 # Tools in the form of Agent
