@@ -33,5 +33,5 @@ tags: [systems]
 - 接收指令将c++源码编译成动态库
 
 以上工作全部可以通过命令行使用自然语言交互完成：
-![alt text](../assets/output.gif)
+![alt text](/assets/output.gif)
 
