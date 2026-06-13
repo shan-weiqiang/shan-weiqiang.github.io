@@ -14,6 +14,9 @@ Previously:
 [Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 
 
+Now:
+
+
 * toc
 {:toc}
 
