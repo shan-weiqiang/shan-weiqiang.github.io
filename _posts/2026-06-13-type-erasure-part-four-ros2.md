@@ -7,9 +7,9 @@ tags: [data-typing]
 
 Previously:
 
-- [Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
+[Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+[Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+[Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 
 
 * toc
