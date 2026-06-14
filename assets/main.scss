@@ -1,0 +1,49 @@
+---
+---
+
+@import "minima";
+
+// Keep the page column fixed; tables scroll inside it instead of stretching layout.
+html {
+  overflow-x: hidden;
+}
+
+.page-content .wrapper {
+  min-width: 0;
+}
+
+.post-content {
+  max-width: 100%;
+  min-width: 0;
+}
+
+// All markdown tables: scroll horizontally when wider than the post column.
+.post-content table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.post-content table thead,
+.post-content table tbody,
+.post-content table tfoot {
+  display: table;
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+}
+
+.post-content table tr {
+  display: table-row;
+}
+
+.post-content table th,
+.post-content table td {
+  display: table-cell;
+  white-space: normal;
+  vertical-align: top;
+}
