@@ -17,8 +17,8 @@ html {
   min-width: 0;
 }
 
-// All markdown tables: scroll horizontally when wider than the post column.
-.post-content table {
+// Build-time wrapper from _plugins/wrap_tables.rb (fallback rules below if unwrapped).
+.post-content .table-scroll {
   display: block;
   width: 100%;
   max-width: 100%;
@@ -28,22 +28,29 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
-.post-content table thead,
-.post-content table tbody,
-.post-content table tfoot {
+.post-content .table-scroll > table {
   display: table;
   width: max-content;
   min-width: 100%;
+  border-collapse: collapse;
   table-layout: auto;
 }
 
-.post-content table tr {
-  display: table-row;
+.post-content .table-scroll th,
+.post-content .table-scroll td {
+  vertical-align: top;
 }
 
-.post-content table th,
-.post-content table td {
-  display: table-cell;
-  white-space: normal;
+// Fallback: keep header/body columns aligned when no wrapper is present.
+.post-content table {
+  display: table;
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.post-content th,
+.post-content td {
   vertical-align: top;
 }
