@@ -1,0 +1,20 @@
+flowchart LR
+    subgraph ctypesPath [ctypes]
+        direction LR
+        ctUser["ctypes.CDLL.add"] --> ctMod["_ctypes + libffi"] --> ctLib["any .so"]
+    end
+
+    subgraph cffiPath [CFFI ABI]
+        direction LR
+        cfUser["ffi.dlopen + lib.add"] --> cfBack["_cffi_backend + libffi"] --> cfLib["any .so"]
+    end
+
+    subgraph cffiApiPath [CFFI API]
+        direction LR
+        cfApiUser["import lib from _add_cffi"] --> cfGen["generated .cpython.so"]
+    end
+
+    subgraph handPath [Hand-written Part I]
+        direction LR
+        hwUser["import mymodule.Config"] --> hwMod["mymodule.cpython.so"]
+    end

@@ -1,0 +1,9 @@
+flowchart TD
+    userPy["User Python: CDLL(...).add(2, 3)"]
+    ctypesMod["_ctypes.cpython.so C extension"]
+    libffi["libffi.so.8"]
+    targetSo["libadd.so plain C"]
+
+    userPy --> ctypesMod
+    ctypesMod --> libffi
+    libffi --> targetSo

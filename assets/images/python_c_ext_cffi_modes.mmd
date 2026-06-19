@@ -1,0 +1,17 @@
+flowchart LR
+    subgraph abi [CFFI ABI in-line]
+        abiPy["ffi.cdef + ffi.dlopen"]
+        cffiBackend["_cffi_backend + libffi"]
+        abiSo["libadd.so"]
+        abiPy --> cffiBackend --> abiSo
+    end
+
+    subgraph api [CFFI API out-of-line]
+        apiBuild["cdef + set_source + compile"]
+        genExt["_add_cffi.cpython.so generated"]
+        apiSo["add.c linked in"]
+        apiPy["from _add_cffi import lib"]
+        apiBuild --> genExt
+        genExt --> apiSo
+        apiPy --> genExt
+    end

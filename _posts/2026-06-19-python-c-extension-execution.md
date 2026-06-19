@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Python C Extensions: Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2: extension functions and binding C structures). Read the overview first if you are new to writing C extensions.
+This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2). [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers calling plain C libraries without hand-writing `PyInit_*` for each library.
 
 Runnable demos for the Python examples below live in the [python](https://github.com/shan-weiqiang/python) repository.
 
