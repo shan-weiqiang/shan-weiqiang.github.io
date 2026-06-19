@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Execution"
+title:  "Python C Extensions: Part II — Execution"
 date:   2026-06-19 13:31:46 +0800
 tags: [python]
 ---
@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Python C Extensions: Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2: extension functions and binding C structures). Read the overview first if you are new to writing C extensions.
+This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Python C Extensions: Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2: extension functions and binding C structures). Read the overview first if you are new to writing C extensions.
 
 Runnable demos for the Python examples below live in the [python](https://github.com/shan-weiqiang/python) repository (`c_ext_exec_*` folders).
 

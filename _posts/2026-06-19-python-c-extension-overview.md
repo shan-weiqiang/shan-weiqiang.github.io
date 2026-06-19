@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Overview"
+title:  "Python C Extensions: Part I — Overview"
 date:   2026-06-19 9:22:46 +0800
 tags: [python]
 ---
@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. A companion article, [Python C Extensions: Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html), covers the interpreter execution model (Sections 3–6), pure Python bytecode, C extension dispatch, and a side-by-side comparison.
+This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. A companion article, [Python C Extensions: Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html), covers the interpreter execution model (Sections 3–6), pure Python bytecode, C extension dispatch, and a side-by-side comparison.
 
 Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository (`c_ext_*` folders). Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
 
