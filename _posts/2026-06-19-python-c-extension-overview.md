@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This overview walks through how Python C extensions work from the ground up: writing extension functions, binding C data structures to Python, the interpreter's general execution model, how pure Python bytecode runs, and how C extension methods dispatch to native code. The five sections build on each other; read them in order for the complete picture. More focused articles on specific C extension topics will follow.
+This overview walks through how Python C extensions work from the ground up: writing extension functions, binding C data structures to Python, the interpreter's general execution model, how pure Python bytecode runs, how C extension methods dispatch to native code, and how the two paths compare end to end. The six sections build on each other; read them in order for the complete picture. More focused articles on specific C extension topics will follow.
 
 ## Section 1: Python C Extension Fundamentals
 
@@ -1359,7 +1359,7 @@ The wrapper calls `PyObject_Call` on the Python `__init__` function → `PyFunct
 
 ### 4.5 Python Method Execution Path
 
-For `obj.process()` on a pure Python class:
+For `obj.process()` on a pure Python class (Section 6 compares this path side by side with the C extension path):
 
 ```
 obj.process()
@@ -1593,6 +1593,8 @@ Built-in `list`, `dict`, `str`, etc. use the same model — native slots and `tp
 
 ### 5.7 Summary: C Extension Execution Path
 
+Section 6 places this chain next to the pure Python path from §4.5.
+
 ```
 PyMethodDef.ml_meth  (C pointer at definition)
         ↓
@@ -1609,6 +1611,120 @@ No bytecode is ever compiled for `Config_process`. The only interpreter involvem
 
 ---
 
+## Section 6: Execution Path Comparison — Pure Python vs C Extension
+
+Sections 4 and 5 traced each path in isolation. This section lines them up for the same operation — **`instance.process()`** — so you can see where they match and where they diverge.
+
+Both paths assume bytecode is already running (for example inside a script that calls `obj.process()` or `config.process()`). Section 3 established that all callables are `PyObject *` values dispatched through `ob_type->tp_call`; Section 6 shows what sits behind that dispatch for each kind of method.
+
+### 6.1 Shared Steps Up to the `CALL` Opcode
+
+For either a pure Python class or a C extension type, the call site looks the same from the eval loop's perspective:
+
+```
+instance.process()
+  → LOAD_ATTR (or equivalent) → PyObject_GetAttr(instance, "process")
+  → operand stack holds a bound callable
+  → CALL opcode → call_function()                    # §3.5
+```
+
+Attribute lookup always consults the instance's type (`instance->ob_type->tp_dict`). The **type of object** returned from lookup is where the two paths split.
+
+### 6.2 Pure Python Method Path (§4.5)
+
+For `obj.process()` on a class defined in Python:
+
+```
+obj.process()
+  → PyObject_GetAttr(obj, "process")       # tp_dict → PyFunctionObject
+  → bound method or function lookup
+  → CALL opcode → PyObject_Call / fast_function
+  → PyFunction_Type.tp_call → PyFunction_Call
+  → PyEval_EvalFrame                       # §3.4
+  → per-opcode dispatch until RETURN_VALUE
+```
+
+**What is stored at definition time:** a `PyFunctionObject` whose `func_code` points to a `PyCodeObject` (bytecode produced when the class body ran — §4.2–§4.4).
+
+**What binding produces:** a `PyMethodObject` (or similar bound callable) that pairs the function with `obj` as `self`.
+
+**What execution does:** enters a **new frame** and runs the bytecode instruction loop — `LOAD_FAST`, `STORE_ATTR`, `CALL`, and so on — until `RETURN_VALUE`. Every statement in the method pays interpreter overhead.
+
+### 6.3 C Extension Method Path (§5.7)
+
+For `config.process()` on a type defined in C:
+
+```
+PyMethodDef.ml_meth  (C pointer at definition)
+        ↓
+PyType_Ready → PyMethodDescrObject in tp_dict["process"]
+        ↓
+config.process → PyObject_GetAttr → tp_descr_get → PyCFunctionObject (m_self = config)
+        ↓
+config.process() → CALL → PyCFunction_Call → meth(m_self, args)
+        ↓
+Native machine code (Config_process)
+```
+
+**What is stored at definition time:** a `PyMethodDef` row with `ml_meth = Config_process` — a **C function pointer**, not bytecode (§5.1).
+
+**What binding produces:** a `PyCFunctionObject` with `m_self = config` and the same `PyMethodDef *` (§5.3).
+
+**What execution does:** `PyCFunction_Call` reads `ml_meth` and `m_self`, then **jumps directly into C** (§5.4). No `PyCodeObject`, no `PyEval_EvalFrame`, no opcode loop inside the method body.
+
+### 6.4 Stage-by-Stage Comparison
+
+| Stage | Pure Python (`obj.process()`) | C extension (`config.process()`) |
+|---|---|---|
+| **Method definition** | `def process(self): ...` compiled to `PyCodeObject` | `PyMethodDef` + C function `Config_process` |
+| **In `tp_dict`** | `PyFunctionObject` (unbound function) | `PyMethodDescrObject` (wraps `PyMethodDef`) |
+| **`instance.process` lookup** | Function descriptor → bound `PyMethodObject` | Method descriptor → `PyCFunctionObject` (`m_self = instance`) |
+| **Callable `ob_type`** | `&PyFunction_Type` | `&PyCFunction_Type` |
+| **`CALL` fast path** | `fast_function()` → new frame, args on stack | Direct `meth(self, ...)` from stack (§3.5) |
+| **`tp_call` handler** | `PyFunction_Call` → `PyEval_EvalFrame` | `PyCFunction_Call` → C function pointer |
+| **Method body runs as** | Bytecode opcodes in a nested frame | Native machine instructions |
+| **Interpreter loop after call returns** | Resumes in caller's frame | Resumes in caller's frame (same) |
+
+The last row matters: once `process()` returns, both paths land back in the **caller's** bytecode frame. Only the **callee** differs — nested eval loop vs direct native execution.
+
+### 6.5 Side-by-Side at the Divergence Point
+
+After `PyObject_GetAttr`, the eval loop has a callable on the stack. From there:
+
+```
+Pure Python                          C extension
+────────────────────────────────     ────────────────────────────────
+PyFunctionObject                     PyCFunctionObject
+  func_code → PyCodeObject             m_ml → PyMethodDef { ml_meth }
+  (bytecode)                           m_self → ConfigObject *
+
+CALL → PyFunction_Type.tp_call       CALL → PyCFunction_Type.tp_call
+     → PyFunction_Call                    → PyCFunction_Call
+     → PyEval_EvalFrame                   → Config_process(config, NULL)
+     → LOAD_FAST / STORE_ATTR / ...       → (direct field access, no opcodes)
+     → RETURN_VALUE
+```
+
+For a one-line method like `self.timeout = timeout`, the Python path executes multiple opcodes and dynamic attribute machinery (§4.5). The C extension path can assign `self->timeout` in a single native store inside `Config_init` or `Config_process` — no nested frame.
+
+### 6.6 Unified Diagram
+
+![Execution path comparison: pure Python class method vs C extension method](/assets/images/python_c_ext_execution_path_comparison.png)
+
+The diagram shows the fork after `PyObject_GetAttr`: Python methods re-enter the eval loop; C extension methods exit to native code. Both paths converge again when the method returns and the caller's `CALL` completes.
+
+### 6.7 Takeaway
+
+| Question | Pure Python | C extension |
+|---|---|---|
+| Is there bytecode for the method? | Yes (`PyCodeObject`) | No |
+| Does `process()` start a new eval frame? | Yes | No |
+| Where does the "real work" run? | Opcode loop (§3.4) | C function pointer (§5.4) |
+| Why use C extensions for hot paths? | — | Skip frame setup and per-opcode dispatch |
+
+The interpreter does not treat `obj.process()` and `config.process()` as different bytecode instructions — both are `LOAD_ATTR` followed by `CALL`. The performance gap comes from **what the callable is**: a `PyFunctionObject` that spawns another bytecode interpreter pass, or a `PyCFunctionObject` that hands control to machine code after a thin wrapper.
+
+---
 
 ## References
 

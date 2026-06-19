@@ -1,0 +1,29 @@
+flowchart TB
+    subgraph shared["Shared: bytecode at the call site"]
+        A["obj.process() or config.process()"]
+        B["Eval loop: LOAD_ATTR / attribute load"]
+        C["PyObject_GetAttr(instance, 'process')"]
+        D["CALL opcode → call_function()"]
+    end
+
+    subgraph py["Pure Python class (§4.5)"]
+        P1["tp_dict → PyFunctionObject<br/>(PyCodeObject bytecode)"]
+        P2["Function descriptor → bound PyMethodObject"]
+        P3["PyFunction_Type.tp_call"]
+        P4["PyFunction_Call → PyEval_EvalFrame"]
+        P5["Opcode loop until RETURN_VALUE"]
+    end
+
+    subgraph cext["C extension type (§5.7)"]
+        C1["tp_dict → PyMethodDescrObject<br/>(PyMethodDef.ml_meth)"]
+        C2["Method descriptor → PyCFunctionObject<br/>(m_self = instance)"]
+        C3["PyCFunction_Type.tp_call"]
+        C4["PyCFunction_Call → meth(m_self, args)"]
+        C5["Native machine code<br/>(e.g. Config_process)"]
+    end
+
+    A --> B --> C --> D
+    C --> P1 --> P2 --> D
+    C --> C1 --> C2 --> D
+    D --> P3 --> P4 --> P5
+    D --> C3 --> C4 --> C5
