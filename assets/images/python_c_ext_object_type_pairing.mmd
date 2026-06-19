@@ -1,0 +1,12 @@
+flowchart LR
+    subgraph instances [Instances at runtime]
+        cfg[ConfigObject]
+        net[NetworkConfigObject]
+    end
+    subgraph types [Type objects static globals]
+        CT[ConfigType]
+        NT[NetworkConfigType]
+    end
+    cfg -->|"ob_type"| CT
+    net -->|"ob_type"| NT
+    cfg -->|"network member"| net

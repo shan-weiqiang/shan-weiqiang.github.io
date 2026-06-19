@@ -1,0 +1,24 @@
+sequenceDiagram
+    participant Source as PythonSource
+    participant Compiler as Compiler
+    participant Eval as EvalLoop
+    participant BuildClass as __build_class__
+    participant TypeObj as PyTypeObject
+    participant Method as PyFunctionObject
+
+    Source->>Compiler: class Config: ...
+    Compiler->>Eval: class bytecode
+    Eval->>BuildClass: CALL_FUNCTION
+    BuildClass->>Eval: execute class body bytecode
+    Eval->>Method: create __init__, process
+    BuildClass->>TypeObj: type.__new__ + PyType_Ready
+
+    Source->>Eval: Config(30)
+    Eval->>TypeObj: tp_call / tp_new + tp_init
+    TypeObj->>Method: slot_tp_init → __init__ bytecode
+    Eval->>Eval: PyEval_EvalFrame
+
+    Source->>Eval: obj.process()
+    Eval->>Method: PyObject_GetAttr + CALL
+    Eval->>Eval: PyEval_EvalFrame
+    Eval-->>Source: return value

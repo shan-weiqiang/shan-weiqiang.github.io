@@ -1,0 +1,17 @@
+flowchart TD
+    callOp[CALL opcode: args + callable on stack]
+    cf[call_function in ceval.c]
+    cCheck{"PyCFunction_Check and nk == 0?"}
+    fCheck{"PyFunction_Check?"}
+    cFast[Invoke ml_meth directly from stack]
+    fFast[fast_function → PyEval_EvalFrame]
+    slow[do_call: build tuple/dict]
+    tpCall[PyObject_Call → ob_type.tp_call]
+
+    callOp --> cf
+    cf --> cCheck
+    cCheck -->|yes| cFast
+    cCheck -->|no| fCheck
+    fCheck -->|yes| fFast
+    fCheck -->|no| slow
+    slow --> tpCall
