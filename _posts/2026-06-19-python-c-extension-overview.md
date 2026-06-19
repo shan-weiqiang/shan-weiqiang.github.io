@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extension Mechanics"
+title:  "Python C Extensions: Overview"
 date:   2026-06-19 9:22:46 +0800
 tags: [python]
 ---
@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article walks through how Python C extensions work from the ground up: writing extension functions, binding C data structures to Python, the interpreter's general execution model, how pure Python bytecode runs, and how C extension methods dispatch to native code. The five sections build on each other; read them in order for the complete picture.
+This overview walks through how Python C extensions work from the ground up: writing extension functions, binding C data structures to Python, the interpreter's general execution model, how pure Python bytecode runs, and how C extension methods dispatch to native code. The five sections build on each other; read them in order for the complete picture. More focused articles on specific C extension topics will follow.
 
 ## Section 1: Python C Extension Fundamentals
 
@@ -278,9 +278,46 @@ result = mymodule.process_config(config)
 
 ### 2.2 Approach 2: Custom PyTypeObject (Standard)
 
-This approach creates a full Python type with attribute access, mirroring the C struct. Examples progress from basic to nested structs and arrays.
+This approach creates a full Python type with attribute access, mirroring the C struct. Every such type follows the same `*Object` / `*Type` pattern (§2.2.1). The examples below progress from a basic struct to nested members and arrays.
 
-#### 2.2.1 Basic Example: Simple Struct with Primitive Fields
+#### 2.2.1 The `*Object` / `*Type` Pairing
+
+Every Python class in a C extension is defined by two C symbols:
+
+| C symbol | What it is | Python equivalent |
+|---|---|---|
+| `ConfigObject` | Struct layout of one **instance** | one `Config(...)` object |
+| `ConfigType` | Static **`PyTypeObject`** (the class) | `mymodule.Config` |
+| `NetworkConfigObject` | Struct layout of one **instance** (nested example in §2.2.3) | one `NetworkConfig(...)` object |
+| `NetworkConfigType` | Static **`PyTypeObject`** (the class) | `mymodule.NetworkConfig` |
+
+**Instance (`*Object`):**
+
+- Starts with `PyObject_HEAD`, which expands to `ob_refcnt` and `ob_type`.
+- Holds the **per-instance data** (fields you define after the header).
+- Created at runtime by `type->tp_alloc()` inside `tp_new`.
+
+**Type (`*Type`):**
+
+- A **single global** `PyTypeObject` struct (not allocated per instance).
+- Describes **behavior**: `tp_new`, `tp_init`, `tp_dealloc`, `tp_getset`, `tp_methods`, `tp_basicsize`, etc.
+- Registered with `PyType_Ready()` and exposed on the module (e.g. `PyModule_AddObject(m, "Config", ...)`).
+
+**How they connect:**
+
+```c
+ConfigObject *cfg = ...;
+cfg->ob_type == &ConfigType;   /* every instance points to its class */
+
+NetworkConfigObject *net = ...;
+net->ob_type == &NetworkConfigType;
+```
+
+In Python, `isinstance(cfg, mymodule.Config)` checks that `cfg->ob_type` is `&ConfigType`. A `ConfigObject` can store a `NetworkConfigObject *` as a member; the nested object still carries its **own** `ob_type` pointing to `&NetworkConfigType`.
+
+![ConfigObject and NetworkConfigObject instances linked to their PyTypeObject types](/assets/images/python_c_ext_object_type_pairing.png)
+
+#### 2.2.2 Basic Example: Simple Struct with Primitive Fields
 
 **Python object struct:**
 
@@ -472,46 +509,9 @@ isinstance(config, mymodule.Config)  # True
 
 **Cons:** Requires boilerplate (~100 lines for a simple type).
 
-#### 2.2.2 Advanced Example: Nested Structs and Arrays
+#### 2.2.3 Advanced Example: Nested Structs and Arrays
 
-This example extends §2.2.1 with a **nested extension type**, a **fixed C array**, and a **`PyObject *` holding a Python `list`**.
-
-##### The `*Object` / `*Type` pairing
-
-Every Python class in a C extension is defined by two C symbols:
-
-| C symbol | What it is | Python equivalent |
-|---|---|---|
-| `NetworkConfigObject` | Struct layout of one **instance** | one `NetworkConfig(...)` object |
-| `NetworkConfigType` | Static **`PyTypeObject`** (the class) | `mymodule.NetworkConfig` |
-| `ConfigObject` | Struct layout of one **instance** | one `Config(...)` object |
-| `ConfigType` | Static **`PyTypeObject`** (the class) | `mymodule.Config` |
-
-**Instance (`*Object`):**
-
-- Starts with `PyObject_HEAD`, which expands to `ob_refcnt` and `ob_type`.
-- Holds the **per-instance data** (fields you define after the header).
-- Created at runtime by `type->tp_alloc()` inside `tp_new`.
-
-**Type (`*Type`):**
-
-- A **single global** `PyTypeObject` struct (not allocated per instance).
-- Describes **behavior**: `tp_new`, `tp_init`, `tp_dealloc`, `tp_getset`, `tp_methods`, `tp_basicsize`, etc.
-- Registered with `PyType_Ready()` and exposed on the module (e.g. `PyModule_AddObject(m, "Config", ...)`).
-
-**How they connect:**
-
-```c
-ConfigObject *cfg = ...;
-cfg->ob_type == &ConfigType;   /* every instance points to its class */
-
-NetworkConfigObject *net = ...;
-net->ob_type == &NetworkConfigType;
-```
-
-In Python, `isinstance(cfg, mymodule.Config)` checks that `cfg->ob_type` is `&ConfigType`. A `ConfigObject` can store a `NetworkConfigObject *` as a member; the nested object still carries its **own** `ob_type` pointing to `&NetworkConfigType`.
-
-![ConfigObject and NetworkConfigObject instances linked to their PyTypeObject types](/assets/images/python_c_ext_object_type_pairing.png)
+This example extends §2.2.2 with a **nested extension type**, a **fixed C array**, and a **`PyObject *` holding a Python `list`**.
 
 **Step 1: Define the nested type (`NetworkConfigObject` + `NetworkConfigType`)**
 
@@ -709,7 +709,7 @@ Config_set_items(ConfigObject *self, PyObject *value, void *closure)
 
 **Step 5: Complete type (`ConfigType`) and module init**
 
-Destructor, constructor, tables, and the **`ConfigType`** definition (reuse `Config_init` and primitive getters/setters from §2.2.1):
+Destructor, constructor, tables, and the **`ConfigType`** definition (reuse `Config_init` and primitive getters/setters from §2.2.2):
 
 ```c
 static void
@@ -845,7 +845,7 @@ The two binding approaches differ in how much of the C struct is visible to Pyth
 
 - The `*Object` struct **is** the binding: instance data lives in C fields (and owned `PyObject *` members), exposed through getters/setters and methods.
 - Methods still run as **C functions** — `Config_process(self, args)` reads `self->timeout` and can call any existing C library routine. You do **not** need to reimplement processing logic in Python.
-- Where your understanding needs a nuance: conversion is only required when the **layout differs**. If your library already uses `struct ComplexConfig` and your `ConfigObject` stores different types (e.g. `PyObject *` for strings instead of `char *`), you either:
+- Conversion is only required when the **layout differs**. If your library already uses `struct ComplexConfig` and your `ConfigObject` stores different types (e.g. `PyObject *` for strings instead of `char *`), you either:
   - design `ConfigObject` to match what the C API expects and call C directly, or
   - write a small **marshal/unmarshal** layer (Python mirror → stack/local C struct → call C function) at method boundaries.
 
