@@ -7,11 +7,9 @@ tags: [data-typing]
 
 Previously:
 
-[Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-
-[Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-
-[Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
+- [Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 
 
 Now:
@@ -92,7 +90,6 @@ Typesupport for a message package splits into **four layers**. ROS builds **C an
 | **FastDDS** | `rosidl_typesupport_fastrtps_c/`, `_cpp/` | `lib<pkg>__rosidl_typesupport_fastrtps_c.so`, `_cpp.so` | Wire serialization: `message_type_support_callbacks_t` with `cdr_serialize` / `cdr_deserialize` on `void*`. Generated code casts internally to `demo_pkg__msg__DemoStatus *`; the callback table erases the type at the interface. | `demo_status__type_support_c.cpp`, `__callbacks_DemoStatus` |
 | **Introspection** | `rosidl_typesupport_introspection_c/`, `_cpp/` | `lib<pkg>__rosidl_typesupport_introspection_c.so`, `_cpp.so` | Static field names, types, and `offsetof` for tools such as `ros2 topic echo`. Unlike [Protobuf reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html), metadata is compiled from `.msg` files, not parsed at runtime. | `demo_status__type_support.c`, `MessageMembers` |
 | **Dispatcher** | `rosidl_typesupport_c/`, `_cpp/` | `lib<pkg>__rosidl_typesupport_c.so`, `_cpp.so` | Front door: no serialization. Each message handle holds a `type_support_map_t` — implementation identifiers, macro-stringified `dlsym` names, cached `dlopen` handles — and a `func` that resolves FastDDS or introspection on first use. | `demo_status__type_support.cpp`, dispatch map |
-
 
 For `demo_pkg` (`DemoStatus` + `DemoCommand`), the install tree has **eight** shared libraries — two per layer (C/C++ tracks for dispatcher, FastDDS, and introspection; definition adds `rosidl_generator_c` and `rosidl_generator_py`, with C++ as headers). Separate `build/` sources exist per message but link into the same `.so` per layer.
 
