@@ -10,13 +10,25 @@ tags: [python]
 
 This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. A companion article, [Python C Extensions: Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html), covers the interpreter execution model (Sections 3–6), pure Python bytecode, C extension dispatch, and a side-by-side comparison.
 
-Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository (`c_ext_*` folders). Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
+Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository. Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
+
+| Section | Demo folder |
+|---|---|
+| §1.1, §1.4 | [c_ext_spam_system](https://github.com/shan-weiqiang/python/tree/main/c_ext_spam_system) |
+| §1.2 | [c_ext_exception_propagation](https://github.com/shan-weiqiang/python/tree/main/c_ext_exception_propagation) |
+| §1.3 | [c_ext_reference_counting](https://github.com/shan-weiqiang/python/tree/main/c_ext_reference_counting) |
+| §2.1 | [c_ext_capsule_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_capsule_config) |
+| §2.2.2 | [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) |
+| §2.2.3 | [c_ext_config_nested](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_nested) |
+| §2.3 | [c_ext_config_marshal](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_marshal) |
 
 ## Section 1: Python C Extension Fundamentals
 
 ### 1.1 Basic C Extension Function Structure
 
-A minimal extension function wraps a C library call and exposes it to Python. The canonical example from the official documentation wraps `system()` (`c_ext_spam_system/spam.c`):
+**Full source:** [c_ext_spam_system](https://github.com/shan-weiqiang/python/tree/main/c_ext_spam_system) — [`spam.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_spam_system/spam.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_spam_system/setup.py), [`test_spam.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_spam_system/test_spam.py)
+
+A minimal extension function wraps a C library call and exposes it to Python. The canonical example from the official documentation wraps `system()`:
 
 ```c
 #define PY_SSIZE_T_CLEAN
@@ -82,6 +94,8 @@ spam.system("false")  # non-zero exit status
 
 ### 1.2 Python Exception Handling in C Extensions
 
+**Full source:** [c_ext_exception_propagation](https://github.com/shan-weiqiang/python/tree/main/c_ext_exception_propagation) — [`spam_errors.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exception_propagation/spam_errors.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exception_propagation/setup.py), [`test_spam_errors.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exception_propagation/test_spam_errors.py)
+
 Python's exception model is based on a **per-thread global error state**, not per-module. When an exception is active, three fields in the current thread state hold the equivalent of `sys.exc_info()`:
 
 - `exc_type` — the exception class (e.g., `ValueError`)
@@ -103,9 +117,12 @@ All three are `NULL` when no exception is set.
 3. **Clearing exceptions:**
    - `PyErr_Clear()` — clear the current exception; use only when handling it locally, not when propagating
 
-**Error propagation pattern** (`c_ext_exception_propagation/spam_errors.c`):
+**Error propagation pattern:**
 
 ```c
+#define PY_SSIZE_T_CLEAN
+#include <Python.h>
+
 static PyObject *SpamError = NULL;
 
 /* Layer 3: deepest function — sets the specific error */
@@ -143,6 +160,40 @@ layer1_func(PyObject *self, PyObject *args)
         return NULL;
     return result;
 }
+
+static PyMethodDef SpamMethods[] = {
+    {"call", layer1_func, METH_VARARGS, "Call through three C layers."},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef spammodule = {
+    PyModuleDef_HEAD_INIT,
+    "spam_errors",
+    "Exception propagation demo.",
+    -1,
+    SpamMethods
+};
+
+PyMODINIT_FUNC
+PyInit_spam_errors(void)
+{
+    PyObject *m = PyModule_Create(&spammodule);
+    if (m == NULL)
+        return NULL;
+
+    SpamError = PyErr_NewException("spam_errors.SpamError", NULL, NULL);
+    if (SpamError == NULL) {
+        Py_DECREF(m);
+        return NULL;
+    }
+    Py_INCREF(SpamError);
+    if (PyModule_AddObject(m, "SpamError", SpamError) < 0) {
+        Py_DECREF(SpamError);
+        Py_DECREF(m);
+        return NULL;
+    }
+    return m;
+}
 ```
 
 ```python
@@ -157,6 +208,8 @@ spam_errors.call(1)   # raises spam_errors.SpamError
 When returning an error, clean up any owned references you created (`Py_DECREF` / `Py_XDECREF`) before returning `NULL`.
 
 ### 1.3 Reference Counting
+
+**Full source:** [c_ext_reference_counting](https://github.com/shan-weiqiang/python/tree/main/c_ext_reference_counting) — [`refcount_demo.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_reference_counting/refcount_demo.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_reference_counting/setup.py), [`test_refcount_demo.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_reference_counting/test_refcount_demo.py)
 
 CPython uses reference counting for memory management. Extension authors must manually balance increments and decrements — conceptually similar to C++ `shared_ptr`, but without automatic cleanup.
 
@@ -175,7 +228,7 @@ CPython uses reference counting for memory management. Extension authors must ma
 
 **Reference stealing:**
 
-Some APIs take ownership of your reference — you must **not** decref afterward (`c_ext_reference_counting/refcount_demo.c`):
+Some APIs take ownership of your reference — you must **not** decref afterward:
 
 ```c
 /* PyModule_AddObject steals reference to obj */
@@ -222,6 +275,8 @@ See [Reference Counting in C](https://docs.python.org/3/extending/extending.html
 
 ### 1.4 Module Initialization
 
+**Full source:** [c_ext_spam_system](https://github.com/shan-weiqiang/python/tree/main/c_ext_spam_system) (basic module); custom exceptions in [c_ext_exception_propagation](https://github.com/shan-weiqiang/python/tree/main/c_ext_exception_propagation)
+
 Modern Python 3 modules use `PyModuleDef` and a `PyInit_<name>` entry point. The complete `spam` module is shown in §1.1 (`PyMethodDef` table + `PyInit_spam`). After `import spam`, Python calls `PyInit_spam()`, which registers the method table and returns the module object. Each exported function follows the `PyObject *func(PyObject *self, PyObject *args)` convention described above.
 
 Custom exception types are registered the same way (`spam_errors` module):
@@ -240,9 +295,11 @@ When a C library exposes structs, arrays, or nested configuration objects, you n
 
 ### 2.1 Approach 1: Opaque Capsule (Simple)
 
+**Full source:** [c_ext_capsule_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_capsule_config) — [`mymodule.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_capsule_config/mymodule.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_capsule_config/setup.py), [`test_mymodule.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_capsule_config/test_mymodule.py)
+
 A capsule wraps a C pointer in an opaque Python object. Python can pass it between C functions but cannot inspect or modify fields directly.
 
-**C struct definition** (`c_ext_capsule_config/mymodule.c`):
+**C struct definition:**
 
 ```c
 #include <stdbool.h>
@@ -390,6 +447,8 @@ In Python, `isinstance(cfg, mymodule.Config)` checks that `cfg->ob_type` is `&Co
 
 #### 2.2.2 Basic Example: Simple Struct with Primitive Fields
 
+**Full source:** [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) — [`mymodule.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_basic/mymodule.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_basic/setup.py), [`test_mymodule.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_basic/test_mymodule.py)
+
 **Python object struct:**
 
 ```c
@@ -401,7 +460,7 @@ typedef struct {
 } ConfigObject;
 ```
 
-**Type methods and slots** (`c_ext_config_basic/mymodule.c`):
+**Type methods and slots:**
 
 ```c
 static void
@@ -590,9 +649,11 @@ isinstance(config, mymodule.Config)  # True
 
 #### 2.2.3 Advanced Example: Nested Structs and Arrays
 
+**Full source:** [c_ext_config_nested](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_nested) — [`mymodule.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_nested/mymodule.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_nested/setup.py), [`test_mymodule.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_nested/test_mymodule.py)
+
 This example extends §2.2.2 with a **nested extension type**, a **fixed C array**, and a **`PyObject *` holding a Python `list`**.
 
-**Step 1: Define the nested type (`NetworkConfigObject` + `NetworkConfigType`)** (`c_ext_config_nested/mymodule.c`):
+**Step 1: Define the nested type (`NetworkConfigObject` + `NetworkConfigType`)**
 
 ```c
 typedef struct {
@@ -924,7 +985,7 @@ static PyTypeObject ConfigType = {
 };
 ```
 
-Register **`NetworkConfigType` before `ConfigType`** (`c_ext_config_nested/mymodule.c`):
+Register **`NetworkConfigType` before `ConfigType`**:
 
 ```c
 static struct PyModuleDef mymodule_def = {
@@ -1013,7 +1074,9 @@ The two binding approaches differ in how much of the C struct is visible to Pyth
 
 **Sketch: marshal at the method boundary**
 
-Suppose the existing C library owns this layout and API (`c_ext_config_marshal/mymodule.c`):
+**Full source:** [c_ext_config_marshal](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_marshal) — [`mymodule.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_marshal/mymodule.c), [`setup.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_marshal/setup.py), [`test_mymodule.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_marshal/test_mymodule.py)
+
+Suppose the existing C library owns this layout and API:
 
 ```c
 /* Existing C library — unchanged */

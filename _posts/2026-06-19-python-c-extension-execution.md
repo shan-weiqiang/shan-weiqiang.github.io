@@ -10,7 +10,14 @@ tags: [python]
 
 This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Python C Extensions: Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2: extension functions and binding C structures). Read the overview first if you are new to writing C extensions.
 
-Runnable demos for the Python examples below live in the [python](https://github.com/shan-weiqiang/python) repository (`c_ext_exec_*` folders).
+Runnable demos for the Python examples below live in the [python](https://github.com/shan-weiqiang/python) repository.
+
+| Section | Demo folder |
+|---|---|
+| §4.1 | [c_ext_exec_python_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_exec_python_config) |
+| §4.2 | [c_ext_exec_class_bytecode](https://github.com/shan-weiqiang/python/tree/main/c_ext_exec_class_bytecode) |
+| §5.1, §5.3 | [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic), [c_ext_config_nested](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_nested) |
+| §6.5 | [c_ext_exec_compare](https://github.com/shan-weiqiang/python/tree/main/c_ext_exec_compare) |
 
 ## Section 3: General Python Interpreter Execution Model
 
@@ -302,7 +309,9 @@ Pure Python classes and functions store logic as **bytecode** inside `PyFunction
 
 ### 4.1 Compilation: Source to Bytecode
 
-When Python encounters a class or function definition, it compiles the body into a code object (`c_ext_exec_python_config/config.py`):
+**Full source:** [c_ext_exec_python_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_exec_python_config) — [`config.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exec_python_config/config.py), [`test_config.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exec_python_config/test_config.py)
+
+When Python encounters a class or function definition, it compiles the body into a code object:
 
 ```python
 class Config:
@@ -361,7 +370,9 @@ typedef struct {
 
 ### 4.2 Class Creation via Bytecode Execution
 
-The `class` statement itself compiles to bytecode (`c_ext_exec_class_bytecode/test_class_bytecode.py`):
+**Full source:** [c_ext_exec_class_bytecode](https://github.com/shan-weiqiang/python/tree/main/c_ext_exec_class_bytecode) — [`test_class_bytecode.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exec_class_bytecode/test_class_bytecode.py)
+
+The `class` statement itself compiles to bytecode:
 
 ```python
 import dis
@@ -472,11 +483,15 @@ Each opcode pays interpreter dispatch, stack manipulation, refcounting, and dyna
 
 ## Section 5: C Extension Execution
 
+**Full source:** [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) (`Config.process`, §5.3–§5.7), [c_ext_config_nested](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_nested) (`get_value` / `set_value` / `get_values`, §5.1)
+
 C extension types and module functions store logic as **C function pointers**, not bytecode. Section 3 showed that all calls go through `tp_call`; this section traces the C extension path from `PyMethodDef` to direct native execution.
 
 ### 5.1 Method Definition and Registration
 
-From `c_ext_config_nested/mymodule.c` (same `Config_methods` used by the nested `Config` type):
+**Full source:** [`mymodule.c` (nested Config)](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_nested/mymodule.c), [`mymodule.c` (basic Config)](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_basic/mymodule.c)
+
+From the nested `Config` type:
 
 ```c
 static PyMethodDef Config_methods[] = {
@@ -554,7 +569,9 @@ ConfigType->tp_dict = {
 
 The C pointer (`Config_process`) lives inside the descriptor's `PyMethodDef`. Nothing is bound to a particular `config` instance yet.
 
-**At runtime**, `config.process` runs **attribute lookup** on the instance (using the basic `Config` from `c_ext_config_basic`):
+**At runtime**, `config.process` runs **attribute lookup** on the instance:
+
+**Full source:** [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) — [`mymodule.c`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_basic/mymodule.c), [`test_mymodule.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_config_basic/test_mymodule.py)
 
 ```python
 import mymodule
@@ -701,6 +718,8 @@ No bytecode is ever compiled for `Config_process`. The only interpreter involvem
 
 ## Section 6: Execution Path Comparison — Pure Python vs C Extension
 
+**Full source:** [c_ext_exec_compare](https://github.com/shan-weiqiang/python/tree/main/c_ext_exec_compare) — [`py_config.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exec_compare/py_config.py), [`test_compare.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exec_compare/test_compare.py); C extension side uses [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic)
+
 Sections 4 and 5 traced each path in isolation. This section lines them up for the same operation — **`instance.process()`** — so you can see where they match and where they diverge.
 
 Both paths assume bytecode is already running (for example inside a script that calls `obj.process()` or `config.process()`). Section 3 established that all callables are `PyObject *` values dispatched through `ob_type->tp_call`; Section 6 shows what sits behind that dispatch for each kind of method.
@@ -777,7 +796,9 @@ The last row matters: once `process()` returns, both paths land back in the **ca
 
 ### 6.5 Side-by-Side at the Divergence Point
 
-Runnable check (`c_ext_exec_compare/test_compare.py`):
+Runnable check:
+
+**Full source:** [`test_compare.py`](https://github.com/shan-weiqiang/python/blob/main/c_ext_exec_compare/test_compare.py)
 
 ```python
 import mymodule  # c_ext_config_basic
