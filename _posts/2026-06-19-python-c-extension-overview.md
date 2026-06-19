@@ -10,15 +10,18 @@ tags: [python]
 
 This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. A companion article, [Python C Extensions: Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html), covers the interpreter execution model (Sections 3–6), pure Python bytecode, C extension dispatch, and a side-by-side comparison.
 
+Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository (`c_ext_*` folders). Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
+
 ## Section 1: Python C Extension Fundamentals
 
 ### 1.1 Basic C Extension Function Structure
 
-A minimal extension function wraps a C library call and exposes it to Python. The canonical example from the official documentation wraps `system()`:
+A minimal extension function wraps a C library call and exposes it to Python. The canonical example from the official documentation wraps `system()` (`c_ext_spam_system/spam.c`):
 
 ```c
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <stdlib.h>
 
 static PyObject *
 spam_system(PyObject *self, PyObject *args)
@@ -31,6 +34,32 @@ spam_system(PyObject *self, PyObject *args)
     sts = system(command);
     return PyLong_FromLong(sts);
 }
+
+static PyMethodDef SpamMethods[] = {
+    {"system", spam_system, METH_VARARGS, "Execute a shell command."},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef spammodule = {
+    PyModuleDef_HEAD_INIT,
+    "spam",
+    "Spam module.",
+    -1,
+    SpamMethods
+};
+
+PyMODINIT_FUNC
+PyInit_spam(void)
+{
+    return PyModule_Create(&spammodule);
+}
+```
+
+```python
+import spam
+
+spam.system("true")   # 0
+spam.system("false")  # non-zero exit status
 ```
 
 **Function signature conventions:**
@@ -74,39 +103,53 @@ All three are `NULL` when no exception is set.
 3. **Clearing exceptions:**
    - `PyErr_Clear()` — clear the current exception; use only when handling it locally, not when propagating
 
-**Error propagation pattern** (illustrative):
+**Error propagation pattern** (`c_ext_exception_propagation/spam_errors.c`):
 
 ```c
-// Layer 3: deepest function — sets the specific error
+static PyObject *SpamError = NULL;
+
+/* Layer 3: deepest function — sets the specific error */
 static PyObject *
-layer3_func(PyObject *args)
+layer3_func(PyObject *self, PyObject *args)
 {
-    if (some_check_fails) {
+    int fail;
+    if (!PyArg_ParseTuple(args, "i", &fail))
+        return NULL;
+    if (fail) {
         PyErr_SetString(SpamError, "Specific error: file not found");
         return NULL;
     }
-    return result;
+    return PyLong_FromLong(42);
 }
 
-// Layer 2: middle function — just propagates
+/* Layer 2: middle function — propagates and processes */
 static PyObject *
-layer2_func(PyObject *args)
+layer2_func(PyObject *self, PyObject *args)
 {
-    PyObject *obj = layer3_func(args);
+    PyObject *obj = layer3_func(self, args);
     if (obj == NULL)
-        return NULL;  /* Don't call PyErr_* — layer 3 already set it */
-    return process(obj);
+        return NULL;  /* layer 3 already set the exception */
+    long value = PyLong_AsLong(obj);
+    Py_DECREF(obj);
+    return PyLong_FromLong(value * 2);
 }
 
-// Layer 1: top function — just propagates
+/* Layer 1: top function — just propagates */
 static PyObject *
-layer1_func(PyObject *args)
+layer1_func(PyObject *self, PyObject *args)
 {
-    PyObject *result = layer2_func(args);
+    PyObject *result = layer2_func(self, args);
     if (result == NULL)
         return NULL;
     return result;
 }
+```
+
+```python
+import spam_errors
+
+spam_errors.call(0)   # 84
+spam_errors.call(1)   # raises spam_errors.SpamError
 ```
 
 **Critical rule:** Only the function that detects the error should call `PyErr_SetString()` (or related `PyErr_*` setters). All other functions in the call chain should return `NULL` or `-1` to propagate the error upward. The Python interpreter's main loop eventually handles the exception.
@@ -132,50 +175,62 @@ CPython uses reference counting for memory management. Extension authors must ma
 
 **Reference stealing:**
 
-Some APIs take ownership of your reference — you must **not** decref afterward:
+Some APIs take ownership of your reference — you must **not** decref afterward (`c_ext_reference_counting/refcount_demo.c`):
 
 ```c
-PyModule_AddObject(module, "name", obj);  /* steals reference to obj */
-PyList_SetItem(list, 0, obj);             /* steals reference to obj */
+/* PyModule_AddObject steals reference to obj */
+PyObject *marker = PyUnicode_FromString("owned_by_module");
+if (PyModule_AddObject(m, "marker", marker) < 0) {
+    Py_DECREF(marker);
+    Py_DECREF(m);
+    return NULL;
+}
+```
+
+`PyList_SetItem` also steals; `PyList_Append` does **not** — you must decref after append:
+
+```c
+if (PyList_Append(list, value) < 0)
+    return NULL;
+Py_DECREF(value);  /* PyList_Append does not steal */
 ```
 
 **Reference returning:**
 
-Some functions return a new reference (you own it); others return a borrowed reference:
-
 ```c
-PyObject *obj = PyList_New(0);            /* new reference — you must decref */
-PyObject *item = PyList_GetItem(list, 0); /* borrowed — do not decref */
+static PyObject *
+demo_new_reference(PyObject *self, PyObject *Py_UNUSED(ignored))
+{
+    PyObject *obj = PyList_New(0);            /* new reference — caller owns it */
+    if (obj == NULL)
+        return NULL;
+    return obj;
+}
+
+static PyObject *
+demo_borrowed_reference(PyObject *self, PyObject *args)
+{
+    PyObject *list;
+    if (!PyArg_ParseTuple(args, "O", &list))
+        return NULL;
+    PyObject *item = PyList_GetItem(list, 0); /* borrowed — do not decref */
+    return PyLong_FromLong(PyLong_AsLong(item));
+}
 ```
 
 See [Reference Counting in C](https://docs.python.org/3/extending/extending.html#reference-counts) for the full rules.
 
 ### 1.4 Module Initialization
 
-Modern Python 3 modules use `PyModuleDef` and a `PyInit_<name>` entry point:
+Modern Python 3 modules use `PyModuleDef` and a `PyInit_<name>` entry point. The complete `spam` module is shown in §1.1 (`PyMethodDef` table + `PyInit_spam`). After `import spam`, Python calls `PyInit_spam()`, which registers the method table and returns the module object. Each exported function follows the `PyObject *func(PyObject *self, PyObject *args)` convention described above.
+
+Custom exception types are registered the same way (`spam_errors` module):
 
 ```c
-static PyMethodDef SpamMethods[] = {
-    {"system", spam_system, METH_VARARGS, "Execute a shell command."},
-    {NULL, NULL, 0, NULL}  /* sentinel */
-};
-
-static struct PyModuleDef spammodule = {
-    PyModuleDef_HEAD_INIT,
-    "spam",           /* module name */
-    "Spam module.",   /* module docstring */
-    -1,               /* per-module state size (-1 = no state) */
-    SpamMethods
-};
-
-PyMODINIT_FUNC
-PyInit_spam(void)
-{
-    return PyModule_Create(&spammodule);
-}
+SpamError = PyErr_NewException("spam_errors.SpamError", NULL, NULL);
+Py_INCREF(SpamError);
+PyModule_AddObject(m, "SpamError", SpamError);  /* steals SpamError ref */
 ```
-
-After `import spam`, Python calls `PyInit_spam()`, which registers the method table and returns the module object. Each exported function follows the `PyObject *func(PyObject *self, PyObject *args)` convention described above.
 
 ---
 
@@ -187,9 +242,11 @@ When a C library exposes structs, arrays, or nested configuration objects, you n
 
 A capsule wraps a C pointer in an opaque Python object. Python can pass it between C functions but cannot inspect or modify fields directly.
 
-**C struct definition:**
+**C struct definition** (`c_ext_capsule_config/mymodule.c`):
 
 ```c
+#include <stdbool.h>
+
 struct ComplexConfig {
     int timeout;
     char *server_url;
@@ -197,7 +254,15 @@ struct ComplexConfig {
     void *internal_data;
 };
 
-int process_config(struct ComplexConfig *config);
+int process_config(struct ComplexConfig *config)
+{
+    int result = config->timeout;
+    if (config->enable_ssl)
+        result += 100;
+    if (config->server_url != NULL && config->server_url[0] != '\0')
+        result += (int)strlen(config->server_url);
+    return result;
+}
 ```
 
 **Capsule implementation:**
@@ -231,7 +296,13 @@ py_create_config(PyObject *self, PyObject *args)
     }
     config->timeout = timeout;
     config->server_url = strdup(url);
+    if (!config->server_url) {
+        free(config);
+        PyErr_NoMemory();
+        return NULL;
+    }
     config->enable_ssl = (bool)ssl;
+    config->internal_data = NULL;
 
     return PyCapsule_New(config, "ComplexConfig", destroy_config);
 }
@@ -267,7 +338,7 @@ py_process_config(PyObject *self, PyObject *args)
 import mymodule
 
 config = mymodule.create_config(30, "http://server.com", True)
-result = mymodule.process_config(config)
+result = mymodule.process_config(config)  # 147
 # Cannot access: config.timeout, config.server_url
 # The capsule is opaque — pass it only to C functions
 ```
@@ -330,14 +401,14 @@ typedef struct {
 } ConfigObject;
 ```
 
-**Type methods and slots** (abbreviated; see [Defining Extension Types](https://docs.python.org/3/extending/newtypes.html) for the full pattern):
+**Type methods and slots** (`c_ext_config_basic/mymodule.c`):
 
 ```c
 static void
 Config_dealloc(ConfigObject *self)
 {
     Py_XDECREF(self->server_url);
-        Py_TYPE(self)->tp_free((PyObject *)self);
+    Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 static PyObject *
@@ -469,6 +540,14 @@ static PyTypeObject ConfigType = {
 **Module initialization** (register the type):
 
 ```c
+static struct PyModuleDef mymodule_def = {
+    PyModuleDef_HEAD_INIT,
+    "mymodule",
+    "Basic Config type demo.",
+    -1,
+    NULL
+};
+
 PyMODINIT_FUNC
 PyInit_mymodule(void)
 {
@@ -513,7 +592,7 @@ isinstance(config, mymodule.Config)  # True
 
 This example extends §2.2.2 with a **nested extension type**, a **fixed C array**, and a **`PyObject *` holding a Python `list`**.
 
-**Step 1: Define the nested type (`NetworkConfigObject` + `NetworkConfigType`)**
+**Step 1: Define the nested type (`NetworkConfigObject` + `NetworkConfigType`)** (`c_ext_config_nested/mymodule.c`):
 
 ```c
 typedef struct {
@@ -557,23 +636,95 @@ Network_init(NetworkConfigObject *self, PyObject *args, PyObject *kwds)
                                      &host, &port, &use_ssl))
         return -1;
 
-    if (host)
+    if (host) {
+        free(self->host);
         self->host = strdup(host);
+        if (!self->host) {
+            PyErr_NoMemory();
+            return -1;
+        }
+    }
     self->port = port;
     self->use_ssl = (bool)use_ssl;
     return 0;
 }
 
-/* ... getters/setters for host, port, use_ssl ... */
+static PyObject *
+Network_get_host(NetworkConfigObject *self, void *closure)
+{
+    if (self->host == NULL)
+        return PyUnicode_FromString("");
+    return PyUnicode_FromString(self->host);
+}
+
+static int
+Network_set_host(NetworkConfigObject *self, PyObject *value, void *closure)
+{
+    if (!PyUnicode_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "host must be str");
+        return -1;
+    }
+    const char *host = PyUnicode_AsUTF8(value);
+    free(self->host);
+    self->host = strdup(host);
+    if (self->host == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    return 0;
+}
+
+static PyObject *
+Network_get_port(NetworkConfigObject *self, void *closure)
+{
+    return PyLong_FromLong(self->port);
+}
+
+static int
+Network_set_port(NetworkConfigObject *self, PyObject *value, void *closure)
+{
+    if (!PyLong_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "port must be int");
+        return -1;
+    }
+    self->port = (int)PyLong_AsLong(value);
+    return 0;
+}
+
+static PyObject *
+Network_get_use_ssl(NetworkConfigObject *self, void *closure)
+{
+    return PyBool_FromLong(self->use_ssl);
+}
+
+static int
+Network_set_use_ssl(NetworkConfigObject *self, PyObject *value, void *closure)
+{
+    if (!PyBool_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "use_ssl must be bool");
+        return -1;
+    }
+    self->use_ssl = (value == Py_True);
+    return 0;
+}
+
+static PyGetSetDef Network_getsetters[] = {
+    {"host", (getter)Network_get_host, (setter)Network_set_host, "host", NULL},
+    {"port", (getter)Network_get_port, (setter)Network_set_port, "port", NULL},
+    {"use_ssl", (getter)Network_get_use_ssl, (setter)Network_set_use_ssl,
+     "use_ssl", NULL},
+    {NULL}
+};
 
 static PyTypeObject NetworkConfigType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     .tp_name = "mymodule.NetworkConfig",
     .tp_basicsize = sizeof(NetworkConfigObject),
+    .tp_flags = Py_TPFLAGS_DEFAULT,
     .tp_new = Network_new,
     .tp_init = (initproc)Network_init,
     .tp_dealloc = (destructor)Network_dealloc,
-    /* .tp_getset = Network_getsetters, */
+    .tp_getset = Network_getsetters,
 };
 ```
 
@@ -605,8 +756,9 @@ static PyObject *
 Config_get_network(ConfigObject *self, void *closure)
 {
     if (self->network == NULL) {
+        /* tp_new initializes host/port/use_ssl — do not use PyObject_New */
         self->network = (NetworkConfigObject *)
-            PyObject_New(NetworkConfigObject, &NetworkConfigType);
+            NetworkConfigType.tp_new(&NetworkConfigType, NULL, NULL);
         if (self->network == NULL)
             return NULL;
     }
@@ -772,9 +924,17 @@ static PyTypeObject ConfigType = {
 };
 ```
 
-Register **`NetworkConfigType` before `ConfigType`**:
+Register **`NetworkConfigType` before `ConfigType`** (`c_ext_config_nested/mymodule.c`):
 
 ```c
+static struct PyModuleDef mymodule_def = {
+    PyModuleDef_HEAD_INIT,
+    "mymodule",
+    "Nested Config type demo.",
+    -1,
+    NULL
+};
+
 PyMODINIT_FUNC
 PyInit_mymodule(void)
 {
@@ -853,17 +1013,25 @@ The two binding approaches differ in how much of the C struct is visible to Pyth
 
 **Sketch: marshal at the method boundary**
 
-Suppose the existing C library owns this layout and API:
+Suppose the existing C library owns this layout and API (`c_ext_config_marshal/mymodule.c`):
 
 ```c
 /* Existing C library — unchanged */
 struct ComplexConfig {
     int timeout;
-    char *server_url;   /* owned by caller or library convention */
+    char *server_url;
     bool enable_ssl;
 };
 
-int process_config(const struct ComplexConfig *config);
+int process_config(const struct ComplexConfig *config)
+{
+    int result = config->timeout;
+    if (config->enable_ssl)
+        result += 1000;
+    if (config->server_url != NULL)
+        result += (int)strlen(config->server_url);
+    return result;
+}
 ```
 
 Your Python-facing type stores Python objects instead (different layout):
@@ -922,6 +1090,13 @@ Config_process(ConfigObject *self, PyObject *Py_UNUSED(ignored))
     config_c_free(&cfg);
     return PyLong_FromLong(result);
 }
+```
+
+```python
+import mymodule
+
+config = mymodule.Config(timeout=30, url="http://server.com", ssl=True)
+config.process()  # 1047
 ```
 
 The pattern: **`ConfigObject` holds Python-friendly data**; **methods marshal → call C → cleanup**. Attribute access never touches `struct ComplexConfig`; only methods that call the legacy API pay conversion cost.

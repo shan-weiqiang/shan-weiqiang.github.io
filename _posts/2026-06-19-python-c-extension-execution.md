@@ -10,6 +10,8 @@ tags: [python]
 
 This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Python C Extensions: Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2: extension functions and binding C structures). Read the overview first if you are new to writing C extensions.
 
+Runnable demos for the Python examples below live in the [python](https://github.com/shan-weiqiang/python) repository (`c_ext_exec_*` folders).
+
 ## Section 3: General Python Interpreter Execution Model
 
 Before comparing Python classes and C extensions, it helps to see the **shared machinery** both paths use. CPython runs programs in two phases: compile Python source to bytecode, then execute bytecode in an interpreter loop. Every callable — Python function, C function, bound method, or type object — is ultimately invoked through the same **`tp_call`** dispatch on `ob_type`.
@@ -300,7 +302,7 @@ Pure Python classes and functions store logic as **bytecode** inside `PyFunction
 
 ### 4.1 Compilation: Source to Bytecode
 
-When Python encounters a class or function definition, it compiles the body into a code object:
+When Python encounters a class or function definition, it compiles the body into a code object (`c_ext_exec_python_config/config.py`):
 
 ```python
 class Config:
@@ -318,15 +320,15 @@ import dis
 dis.dis(Config.__init__)
 ```
 
-Typical output (Python 3.12):
+Output on Python 3.12:
 
 ```
-  2           0 RESUME                   0
+  4           0 RESUME                   0
 
-  3           2 LOAD_FAST                1 (timeout)
+  5           2 LOAD_FAST                1 (timeout)
               4 LOAD_FAST                0 (self)
               6 STORE_ATTR               0 (timeout)
-              ...
+             16 RETURN_CONST             0 (None)
 ```
 
 **Code object structure** (conceptual; see [Code objects](https://docs.python.org/3/reference/datamodel.html#code-objects)):
@@ -359,30 +361,33 @@ typedef struct {
 
 ### 4.2 Class Creation via Bytecode Execution
 
-The `class` statement itself compiles to bytecode:
+The `class` statement itself compiles to bytecode (`c_ext_exec_class_bytecode/test_class_bytecode.py`):
 
 ```python
+import dis
 dis.dis("class Config:\n    def __init__(self, timeout):\n        self.timeout = timeout")
 ```
 
-Typical sequence:
+Output on Python 3.12:
 
 ```
-  0 LOAD_BUILD_CLASS
-  2 LOAD_CONST               0 (<code object Config>)
-  4 LOAD_CONST               1 ('Config')
-  6 MAKE_FUNCTION
-  8 LOAD_CONST               1 ('Config')
- 10 CALL_FUNCTION            2
- 12 STORE_NAME               0 (Config)
- 14 RETURN_CONST             1 (None)
+  0           0 RESUME                   0
+
+  1           2 PUSH_NULL
+              4 LOAD_BUILD_CLASS
+              6 LOAD_CONST               0 (<code object Config ...>)
+              8 MAKE_FUNCTION            0
+             10 LOAD_CONST               1 ('Config')
+             12 CALL                     2
+             20 STORE_NAME               0 (Config)
+             22 RETURN_CONST             2 (None)
 ```
 
 **Execution steps:**
 
 1. `LOAD_BUILD_CLASS` — push `__build_class__` onto the stack.
 2. `LOAD_CONST` / `MAKE_FUNCTION` — wrap the class body in a `PyFunctionObject`.
-3. `CALL_FUNCTION` — call `__build_class__(func, "Config", ...)` (Section 3 eval loop).
+3. `CALL` — call `__build_class__(func, "Config", ...)` (Section 3 eval loop).
 4. `STORE_NAME` — bind the resulting `PyTypeObject` to `Config`.
 
 ### 4.3 How `__build_class__` Creates a PyTypeObject
@@ -471,11 +476,14 @@ C extension types and module functions store logic as **C function pointers**, n
 
 ### 5.1 Method Definition and Registration
 
+From `c_ext_config_nested/mymodule.c` (same `Config_methods` used by the nested `Config` type):
+
 ```c
 static PyMethodDef Config_methods[] = {
-    {"process", (PyCFunction)Config_process, METH_NOARGS, "Process config"},
     {"get_value", (PyCFunction)Config_get_value, METH_VARARGS, "Get value by index"},
-    {NULL, NULL, 0, NULL}
+    {"set_value", (PyCFunction)Config_set_value, METH_VARARGS, "Set value by index"},
+    {"get_values", (PyCFunction)Config_get_values, METH_NOARGS, "Get all values"},
+    {NULL}
 };
 
 static PyTypeObject ConfigType = {
@@ -483,6 +491,8 @@ static PyTypeObject ConfigType = {
     .tp_methods = Config_methods,
 };
 ```
+
+The basic `Config` type in §2.2.2 of the overview article registers `process` with `METH_NOARGS` the same way.
 
 **`PyMethodDef` structure:**
 
@@ -544,12 +554,14 @@ ConfigType->tp_dict = {
 
 The C pointer (`Config_process`) lives inside the descriptor's `PyMethodDef`. Nothing is bound to a particular `config` instance yet.
 
-**At runtime**, `config.process` runs **attribute lookup** on the instance:
+**At runtime**, `config.process` runs **attribute lookup** on the instance (using the basic `Config` from `c_ext_config_basic`):
 
 ```python
-config = mymodule.Config()
-config.process   # step 1: lookup only — returns a bound callable
-config.process() # step 2: CALL on that callable (§3.5, §5.4)
+import mymodule
+
+config = mymodule.Config(timeout=30)
+bound = config.process   # step 1: lookup — returns a bound PyCFunctionObject
+result = config.process()  # step 2: CALL → Config_process(config, NULL) → 60
 ```
 
 **Step-by-step** (simplified from `Objects/object.c` and descriptor code):
@@ -764,6 +776,30 @@ Native machine code (Config_process)
 The last row matters: once `process()` returns, both paths land back in the **caller's** bytecode frame. Only the **callee** differs — nested eval loop vs direct native execution.
 
 ### 6.5 Side-by-Side at the Divergence Point
+
+Runnable check (`c_ext_exec_compare/test_compare.py`):
+
+```python
+import mymodule  # c_ext_config_basic
+
+class PyConfig:
+    def __init__(self, timeout):
+        self.timeout = timeout
+
+    def process(self):
+        return self.timeout * 2
+
+py_cfg = PyConfig(30)
+c_cfg = mymodule.Config(timeout=30)
+assert py_cfg.process() == c_cfg.process() == 60
+
+# Python: bound method has __code__ (bytecode)
+assert hasattr(PyConfig.process, "__code__") or hasattr(py_cfg.process, "__code__")
+
+# C extension: bound method is builtin_function_or_method — no bytecode
+assert str(type(c_cfg.process)) == "<class 'builtin_function_or_method'>"
+assert not hasattr(c_cfg.process, "__code__")
+```
 
 After `PyObject_GetAttr`, the eval loop has a callable on the stack. From there:
 
