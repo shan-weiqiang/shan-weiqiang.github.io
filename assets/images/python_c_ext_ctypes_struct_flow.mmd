@@ -1,0 +1,12 @@
+flowchart TD
+    pyInput["InputRecordPy.to_ctypes + keepalive"]
+    cInput["InputRecord struct in Python heap"]
+    ctypesMod["_ctypes marshals pointer"]
+    libffi["libffi"]
+    cFunc["transform_record in libstruct_demo.so"]
+    cOutput["OutputRecord copy returned"]
+    pyOut["OutputRecordPy reads fields"]
+    freeFn["free_output_record"]
+
+    pyInput --> cInput --> ctypesMod --> libffi --> cFunc --> cOutput --> pyOut
+    pyOut --> freeFn

@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. Companion articles: [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) (interpreter model, bytecode vs C dispatch) and [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) (FFI alternatives to hand-written extensions).
+This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. Companion articles: [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) (interpreter model, bytecode vs C dispatch), [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) (FFI alternatives to hand-written extensions), and [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) (ctypes mirroring, internal handles vs user API).
 
 Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository. Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
 
@@ -21,6 +21,7 @@ Runnable demos for every code example live in the [python](https://github.com/sh
 | §2.2.2 | [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) |
 | §2.2.3 | [c_ext_config_nested](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_nested) |
 | §2.3 | [c_ext_config_marshal](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_marshal) |
+| §2 contrast (ctypes structs) | [ctypes_complex_struct](https://github.com/shan-weiqiang/python/tree/main/ctypes_complex_struct) — [Part IV](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) |
 
 ## Section 1: Python C Extension Fundamentals
 
