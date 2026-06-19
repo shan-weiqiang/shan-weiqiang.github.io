@@ -1,0 +1,14 @@
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(".post-content table").forEach(function (table) {
+    var parent = table.parentElement;
+    if (parent && parent.classList.contains("table-scroll")) {
+      return;
+    }
+    var wrapper = document.createElement("div");
+    wrapper.className = "table-scroll";
+    table.parentNode.insertBefore(wrapper, table);
+    wrapper.appendChild(table);
+  });
+});
+</script>

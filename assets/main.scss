@@ -3,7 +3,8 @@
 
 @import "minima";
 
-// Keep the page column fixed; tables scroll inside it instead of stretching layout.
+// Keep the page column fixed; wide tables scroll inside a wrapper, not by
+// splitting thead/tbody into separate display:table blocks (that breaks alignment).
 html {
   overflow-x: hidden;
 }
@@ -17,7 +18,6 @@ html {
   min-width: 0;
 }
 
-// Build-time wrapper from _plugins/wrap_tables.rb (fallback rules below if unwrapped).
 .post-content .table-scroll {
   display: block;
   width: 100%;
@@ -26,31 +26,20 @@ html {
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  margin-bottom: 30px;
 }
 
+// Single real table inside the wrapper — header and body share column widths.
 .post-content .table-scroll > table {
   display: table;
   width: max-content;
   min-width: 100%;
+  margin-bottom: 0;
   border-collapse: collapse;
   table-layout: auto;
 }
 
 .post-content .table-scroll th,
 .post-content .table-scroll td {
-  vertical-align: top;
-}
-
-// Fallback: keep header/body columns aligned when no wrapper is present.
-.post-content table {
-  display: table;
-  width: 100%;
-  max-width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
-}
-
-.post-content th,
-.post-content td {
   vertical-align: top;
 }
