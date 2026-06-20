@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type systems: Part III Json"
+title:  "Type Systems: Part III — JSON as a Dynamic Type System"
 date:   2025-08-10 9:22:46 +0800
 tags: [data-typing]
 ---

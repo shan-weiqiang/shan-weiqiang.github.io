@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part IV — Complex ctypes Structs and Handles"
+title:  "Python C Extensions: Part IV — ctypes Structures, Keepalive, and Handles"
 date:   2026-06-19 19:30:00 +0800
 tags: [python]
 ---

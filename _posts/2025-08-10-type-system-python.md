@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type systems: Part IV Python"
+title:  "Type Systems: Part IV — Python Type Format and Runtime Model"
 date:   2025-08-10 9:22:46 +0800
 tags: [data-typing]
 ---

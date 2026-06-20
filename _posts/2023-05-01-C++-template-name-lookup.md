@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Template name lookup rules"
+title:  "C++ Template Name Lookup: ADL and Dependent Names"
 date:   2023-05-01 19:22:46 +0800
 tags: [cpp]
 ---

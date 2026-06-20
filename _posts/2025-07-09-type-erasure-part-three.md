@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type Erasure Part Three: The Downside"
+title:  "Type Erasure: Part III — Downsides and Trade-offs"
 date:   2025-07-09 01:00:00 +0800
 tags: [data-typing]
 ---

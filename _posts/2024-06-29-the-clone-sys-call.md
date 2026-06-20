@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Arguments of clone() system call"
+title:  "Linux clone() System Call: Process and Thread Creation Flags"
 date:   2024-06-30 10:20:46 +0800
 tags: [systems]
 ---

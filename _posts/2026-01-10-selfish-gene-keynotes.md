@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "谁在复制谁：基因、我，与 Meme"
+title:  "The Selfish Gene: Notes on Genes, Selves, and Memes"
 date:   2026-01-10 9:22:46 +0800
 tags: [reading]
 ---

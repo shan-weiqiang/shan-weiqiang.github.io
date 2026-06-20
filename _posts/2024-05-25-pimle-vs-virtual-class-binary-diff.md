@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "pimpl vs virtual class: binary difference"
+title:  "pimpl vs Virtual Class: Binary Layout and ABI Impact"
 date:   2024-05-25 10:22:46 +0800
 tags: [cpp]
 ---

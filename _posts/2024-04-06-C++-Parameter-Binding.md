@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Parameter binding"
+title:  "C++ Parameter Binding: The Binding Matrix"
 date:   2024-04-05 19:22:46 +0800
 tags: [cpp]
 ---

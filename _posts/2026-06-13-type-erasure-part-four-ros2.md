@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type Erasure Part Four: ROS 2 Message Type System"
+title:  "Type Erasure: Part IV — ROS 2 Message Type System"
 date:   2026-06-13 10:00:00 +0800
 tags: [data-typing]
 ---

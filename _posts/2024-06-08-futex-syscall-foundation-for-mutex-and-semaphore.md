@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "futex: foundation of linux synchronization"
+title:  "Linux futex: Foundation of Userspace Mutex and Semaphore"
 date:   2024-06-08 19:20:46 +0800
 tags: [systems]
 ---

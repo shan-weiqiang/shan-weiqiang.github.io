@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type Erasure Part Two: How std::function Works"
+title:  "Type Erasure: Part II — How std::function Works"
 date:   2025-06-29 10:00:00 +0800
 tags: [data-typing]
 ---

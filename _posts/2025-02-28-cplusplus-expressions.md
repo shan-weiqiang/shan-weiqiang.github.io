@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Expressions: type and value category"
+title:  "C++ Expressions: Type, Value Category, and Evaluation"
 date:   2025-02-28 09:22:46 +0800
 tags: [cpp]
 ---

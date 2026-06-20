@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Symbols, libraries and One Definition Rule"
+title:  "C++ Linkage: Symbols, Libraries, and the One Definition Rule"
 date:   2024-11-3 09:22:46 +0800
 tags: [systems]
 ---

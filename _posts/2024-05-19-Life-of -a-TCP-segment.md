@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Life of a TCP segment"
+title:  "Life of a TCP Segment: Sockets, Buffers, and the Kernel Stack"
 date:   2024-05-19 10:22:46 +0800
 tags: [systems]
 ---

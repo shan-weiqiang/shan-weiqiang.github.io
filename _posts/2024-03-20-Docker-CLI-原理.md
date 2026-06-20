@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Docker CLI"
+title:  "Docker CLI Architecture: Client, REST API, and containerd"
 date:   2024-03-20 19:22:46 +0800
 tags: [systems]
 ---

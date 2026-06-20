@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type systems: Part I"
+title:  "Type Systems: Part I — Data Format, Type Format, and Static Typing"
 date:   2024-07-14 10:20:46 +0800
 tags: [data-typing]
 ---

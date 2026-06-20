@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Data Format Compatibility: Protobuf vs JSON"
+title:  "Data Format Compatibility: Protobuf Schema vs JSON Documents"
 date:   2026-04-02 9:22:46 +0800
 tags: [programming]
 ---

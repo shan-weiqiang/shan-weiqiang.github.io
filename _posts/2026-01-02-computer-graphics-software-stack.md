@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Computer Graphics Software Stack: From Window to Monitor"
+title:  "Computer Graphics Stack: From Window System to Framebuffer"
 date:   2026-01-02 9:22:46 +0800
 tags: [graphics, systems]
 ---

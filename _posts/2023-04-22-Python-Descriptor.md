@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python descriptors"
+title:  "Python Descriptors: Descriptor Protocol"
 date:   2023-04-22 19:22:46 +0800
 tags: [python]
 ---

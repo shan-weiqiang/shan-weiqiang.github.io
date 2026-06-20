@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part III — ctypes and CFFI"
+title:  "Python C Extensions: Part III — ctypes and CFFI: Calling Plain C Libraries"
 date:   2026-06-19 18:22:46 +0800
 tags: [python]
 ---

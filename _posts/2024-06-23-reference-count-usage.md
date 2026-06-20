@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Reference count in computer systems"
+title:  "Reference Counting in Kernels, Runtimes, and Shared Ownership"
 date:   2024-06-23 15:20:46 +0800
 tags: [systems]
 ---

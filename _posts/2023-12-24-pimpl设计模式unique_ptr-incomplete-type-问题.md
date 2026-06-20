@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "unique_ptr incomplete type"
+title:  "pimpl with unique_ptr: Incomplete Type and Destructor Placement"
 date:   2023-12-24 19:22:46 +0800
 tags: [cpp]
 ---

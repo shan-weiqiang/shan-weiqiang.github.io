@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type systems: Part II Protobuf Reflection"
+title:  "Type Systems: Part II — Protobuf Reflection and Dynamic Messages"
 date:   2025-06-14 9:22:46 +0800
 tags: [data-typing]
 ---

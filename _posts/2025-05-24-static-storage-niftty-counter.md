@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Static Storage and Nifty Counter"
+title:  "Static Storage Duration and the Nifty Counter Idiom"
 date:   2025-05-23 21:22:46 +0800
 tags: [cpp]
 ---

@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "CRTP and Mixin"
+title:  "CRTP and Mixin Inheritance in C++"
 date:   2023-10-13 19:22:46 +0800
 tags: [cpp]
 ---
