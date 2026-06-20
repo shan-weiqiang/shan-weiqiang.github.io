@@ -11,7 +11,13 @@ from PIL import Image, ImageChops
 CHROMIUM = "/usr/bin/chromium-browser"
 PADDING = 12
 
-WIDE_MMD = {"python_c_ext_three_approaches.mmd"}
+WIDE_MMD = {
+    "python_c_ext_three_approaches.mmd",
+    "python_c_ext_ros2_bindings_publish_flow.mmd",
+}
+TALL_MMD = {
+    "python_c_ext_ros2_bindings_architecture.mmd",
+}
 MEDIUM_MMD = {"python_c_ext_cffi_modes.mmd"}
 
 
@@ -29,6 +35,8 @@ def trim_white(img: Image.Image, padding: int = PADDING) -> Image.Image:
 
 
 def window_size(mmd_name: str) -> tuple[int, int]:
+    if mmd_name in TALL_MMD:
+        return 2000, 1800
     if mmd_name in WIDE_MMD:
         return 2800, 900
     if mmd_name in MEDIUM_MMD:

@@ -1,0 +1,35 @@
+flowchart TB
+  subgraph pyWorld ["① Pure Python (.py)"]
+    User["User code\nmsg = DemoStatus(...)\npub.publish(msg)"]
+    DemoClass["demo_pkg.msg.DemoStatus\npure Python class"]
+    RclpyPy["rclpy pure Python\nnode.py / publisher.py / type_support.py"]
+    Meta["Metaclass slots\n_CREATE_ROS_MESSAGE · _CONVERT_FROM_PY · _TYPE_SUPPORT ..."]
+    User ~~~ DemoClass ~~~ RclpyPy
+    User --> Meta
+    DemoClass --> Meta
+    RclpyPy --> Meta
+  end
+
+  subgraph pyExt ["② Python C extensions (.so)"]
+    DemoMod["demo_pkg_s__rosidl_typesupport_c.so\nmessage binding · registers PyCapsules"]
+    RclpyMod["_rclpy_pybind11.so\nrclpy binding"]
+    DemoMod ~~~ RclpyMod
+  end
+
+  subgraph cLibs ["③ C/C++ libraries (ELF, no Python import)"]
+    GenPy["libdemo_pkg__rosidl_generator_py.so\nconvert_from_py / convert_to_py"]
+    Dispatch["libdemo_pkg__rosidl_typesupport_c.so\ndispatcher"]
+    FastRtps["libdemo_pkg__rosidl_typesupport_fastrtps_c.so\nserialize"]
+    Rcl["librcl.so / rmw\nrcl_publish"]
+    GenPy ~~~ Dispatch ~~~ FastRtps ~~~ Rcl
+  end
+
+  pyWorld --> pyExt
+  pyExt --> cLibs
+
+  Meta -->|"__import_type_support__"| DemoMod
+  RclpyPy -->|"Publisher.publish(msg)"| RclpyMod
+  RclpyMod -->|"unwrap _CONVERT_FROM_PY"| GenPy
+  RclpyMod -->|"unwrap _TYPE_SUPPORT"| Dispatch
+  Dispatch -->|"dlopen at runtime"| FastRtps
+  RclpyMod --> Rcl

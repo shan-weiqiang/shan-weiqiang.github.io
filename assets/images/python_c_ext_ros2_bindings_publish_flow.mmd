@@ -1,0 +1,26 @@
+sequenceDiagram
+  participant User as User Python
+  participant RclpyPy as rclpy pure Python
+  participant Meta as DemoStatus metaclass
+  participant DemoExt as demo_pkg_s__rosidl_typesupport_c.so
+  participant RclpyExt as _rclpy_pybind11.so
+  participant GenPy as libdemo_pkg__rosidl_generator_py.so
+  participant Rcl as rcl / rmw
+
+  User->>RclpyPy: create_publisher(DemoStatus, topic)
+  RclpyPy->>Meta: check_for_type_support
+  alt capsules not loaded
+    Meta->>DemoExt: import_type_support demo_pkg
+    DemoExt-->>Meta: five PyCapsules on module
+    Meta-->>Meta: store on __class__
+  end
+  RclpyPy->>RclpyExt: Publisher(node_handle, DemoStatus, topic, qos)
+  Note over RclpyExt,Rcl: rcl_publisher_init → store shared_ptr rcl_publisher_t
+  RclpyExt-->>RclpyPy: _rclpy.Publisher object
+  RclpyPy->>RclpyPy: Publisher(impl, msg_type, ...) + node._publishers.append
+
+  User->>RclpyPy: publish(msg instance)
+  RclpyPy->>RclpyExt: publish(msg)
+  Note over RclpyExt,Meta: rclpy binding reads msg.__class__ capsules
+  RclpyExt->>GenPy: convert_from_py via _CONVERT_FROM_PY capsule
+  RclpyExt->>Rcl: rcl_publish + _TYPE_SUPPORT capsule
