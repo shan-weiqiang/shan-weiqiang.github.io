@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python Signal Handling: signal Module, Handlers, and Asyncio"
+title:  "Python Signal Handling"
 date:   2025-12-13 9:22:46 +0800
 tags: [python]
 ---

@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "I/O Buffers: User Space, Kernel Space, and Zero-Copy"
+title:  "I/O Buffers: User vs Kernel"
 date:   2024-05-19 13:22:46 +0800
 tags: [systems]
 ---

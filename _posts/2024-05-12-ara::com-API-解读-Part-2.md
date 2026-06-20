@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "ara::com API: Part II — Proxy Class, Events, and Service Discovery"
+title:  "ara::com API: Part II — Proxy and Events"
 date:   2024-05-12 13:22:46 +0800
 tags: [automotive]
 ---

@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "std::condition_variable: Wait, Notify, and Spurious Wakeup"
+title:  "std::condition_variable Deep Dive"
 date:   2024-04-27 19:22:46 +0800
 tags: [cpp]
 ---

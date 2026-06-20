@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "ara::com API: Part III — Methods, Fields, and Skeleton Class"
+title:  "ara::com API: Part III — Skeleton Class"
 date:   2024-06-01 09:22:46 +0800
 tags: [automotive]
 ---

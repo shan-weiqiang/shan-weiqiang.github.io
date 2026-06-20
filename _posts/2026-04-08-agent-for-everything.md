@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Agents as Universal Interfaces: LLM Runtime and Tool Use"
+title:  "Agents as Universal Interfaces"
 date:   2026-04-08 8:22:46 +0800
 tags: [systems]
 ---

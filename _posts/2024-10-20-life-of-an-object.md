@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++ Object Lifetime: Resource Model, Construction, and Destruction"
+title:  "C++ Object Lifetime"
 date:   2024-10-26 09:22:46 +0800
 tags: [cpp]
 ---

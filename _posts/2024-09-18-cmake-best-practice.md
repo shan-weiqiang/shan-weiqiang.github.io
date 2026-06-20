@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "CMake Best Practices: Targets, Exports, and Install Rules"
+title:  "CMake Best Practices"
 date:   2024-09-18 09:22:46 +0800
 tags: [cpp]
 ---

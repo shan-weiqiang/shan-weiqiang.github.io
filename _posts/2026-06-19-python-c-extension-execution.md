@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part II — Bytecode, tp_call, and PyCFunction Dispatch"
+title:  "Python C Extensions: Part II — tp_call and PyCFunction"
 date:   2026-06-19 13:31:46 +0800
 tags: [python]
 ---

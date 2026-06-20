@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "All-In-One Routers: NAT, Switching, and Home Networking"
+title:  "All-In-One Routers"
 date:   2026-01-24 9:22:46 +0800
 tags: [reading]
 ---

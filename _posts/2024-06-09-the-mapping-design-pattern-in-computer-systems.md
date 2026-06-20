@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "The Mapping Design Pattern in Storage and Virtual Memory"
+title:  "The Mapping Design Pattern"
 date:   2024-06-09 9:20:46 +0800
 tags: [systems]
 ---

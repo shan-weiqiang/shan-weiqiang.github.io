@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "ara::com API: Part I — Proxy/Skeleton Architecture and Service Model"
+title:  "ara::com API: Part I — Proxy/Skeleton Model"
 date:   2024-05-05 13:22:46 +0800
 tags: [automotive]
 ---

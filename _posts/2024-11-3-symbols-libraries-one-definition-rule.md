@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "C++ Linkage: Symbols, Libraries, and the One Definition Rule"
+title:  "C++ Symbols and the ODR"
 date:   2024-11-3 09:22:46 +0800
 tags: [systems]
 ---

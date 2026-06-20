@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Linux Shared Libraries: Link Time, Load Time, SONAME, and RPATH"
+title:  "Linux Shared Libraries: SONAME and RPATH"
 date:   2026-04-02 9:00:46 +0800
 tags: [systems]
 ---

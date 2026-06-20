@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Compile Time vs Run Time: What the Compiler and Program Know"
+title:  "Compile Time vs Run Time"
 date:   2025-06-12 19:22:46 +0800
 tags: [systems]
 ---

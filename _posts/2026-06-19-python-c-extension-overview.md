@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part I — Python C API: Extension Modules and PyTypeObject"
+title:  "Python C Extensions: Part I — C API and PyTypeObject"
 date:   2026-06-19 9:22:46 +0800
 tags: [python]
 ---

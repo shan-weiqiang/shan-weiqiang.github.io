@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "The Selfish Gene: Notes on Genes, Selves, and Memes"
+title:  "The Selfish Gene: Keynotes"
 date:   2026-01-10 9:22:46 +0800
 tags: [reading]
 ---
