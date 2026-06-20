@@ -1,0 +1,28 @@
+flowchart TB
+    subgraph python [Python layer]
+        HandleResource["HandleResource base"]
+        ConfigPy["Config / Counter"]
+        ResultRes["ConfigSnapshotResource / ProcessSummaryResource"]
+        Native["_native.py CDLL"]
+    end
+    subgraph c_abi [C ABI layer - bridge.cpp extern C]
+        Create["config_create / config_create_snapshot"]
+        Operate["config_process / counter_increment"]
+        PoolOps["handle_release / handle_type / handle_last_error"]
+    end
+    subgraph cpp [C++ layer]
+        Pool["HandlePool"]
+        HO["HandleObject interface"]
+        ConfigCpp["Config : HandleObject"]
+        ResultCpp["ProcessSummaryResource : HandleObject"]
+    end
+    ConfigPy --> Native
+    ResultRes --> Native
+    HandleResource --> Native
+    Native -->|ctypes| c_abi
+    Create --> Pool
+    Operate --> Pool
+    PoolOps --> Pool
+    Pool --> HO
+    ConfigCpp --> HO
+    ResultCpp --> HO

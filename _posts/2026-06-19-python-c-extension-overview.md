@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. Companion articles: [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) (interpreter model, bytecode vs C dispatch), [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) (FFI alternatives to hand-written extensions), and [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) (ctypes mirroring, internal handles vs user API).
+This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. Companion articles: [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) (interpreter model, bytecode vs C dispatch), [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) (FFI alternatives to hand-written extensions), [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) (ctypes mirroring, internal handles vs user API), and [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) (C++ handle pool behind ctypes).
 
 Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository. Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
 

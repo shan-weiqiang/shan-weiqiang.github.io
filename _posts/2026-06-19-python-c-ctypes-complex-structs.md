@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article is Part IV of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written C extensions and binding C data to Python types. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode and C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) showed calling a plain C library with scalar `add(int, int)`.
+This article is Part IV of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written C extensions and binding C data to Python types. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode and C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) showed calling a plain C library with scalar `add(int, int)`. [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) builds a C++ `HandlePool` with integer handles and typed dispatch behind ctypes.
 
 Part IV covers **how to handle complex C structures with ctypes**: nested structs, fixed-size arrays, embedded `char[]` vs `char*`, pointer fields, marshalling through `_ctypes` + libffi, and **keepalive** for anything whose address crosses the boundary. It closes with **handles** — internal separation layers between your **user API** and C-managed resources ([Wikipedia](https://en.wikipedia.org/wiki/Handle_(computing)): file descriptors, `PyCapsule`, `ctypes.Structure`, buffer addresses, …). The demo’s `InputRecordPy` / `OutputRecordPy` are **user API** classes (§8.9), not handles themselves. Struct names in the demo are arbitrary fixtures for the binding patterns.
 
@@ -486,8 +486,9 @@ Users call `out.filtered_weights()`; they do not call `free_output_record` — t
 | Part I §2.1 | `process_config(capsule)` | `PyCapsule` | C `ComplexConfig *` |
 | Part III §7.2 | `lib.add(2, 3)` | `_FuncPtr` / `CDLL` binding | `add` in `libadd.so` |
 | Part IV demo | `InputRecordPy`, `transform()` | `InputRecord`, keepalive | C structs in `libstruct_demo.so` |
+| Part V handle pool | `Config`, `Counter`, `*Resource` | `int64_t` handle | C++ objects in `HandlePool` |
 
-Same structural role for handles: token on the API side, mediator, resource on the other side. The **user API** is whichever functions and classes you publish; handles stay internal unless you deliberately expose low-level access.
+Same structural role for handles: token on the API side, mediator, resource on the other side. The **user API** is whichever functions and classes you publish; handles stay internal unless you deliberately expose low-level access. Part V makes the pool and `TypeId` check explicit for C++ behind ctypes (see [Part V §9.8–9.9](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html)).
 
 #### Practical guidance
 
@@ -505,6 +506,7 @@ Same structural role for handles: token on the API side, mediator, resource on t
 - [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) — §2 binding C structs via the C API
 - [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html)
 - [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) — §7.2 scalar ctypes, libffi
+- [Part V — ctypes Handle Pool Design Pattern](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) — §9 C++ handle pool, complex-type return via handles
 - [ctypes — Structures and unions](https://docs.python.org/3/library/ctypes.html#structures-and-unions)
 - [ctypes — Type conversions](https://docs.python.org/3/library/ctypes.html#type-conversions), [Pointers](https://docs.python.org/3/library/ctypes.html#pointers)
 - [ctypes — `create_string_buffer`](https://docs.python.org/3/library/ctypes.html#ctypes.create_string_buffer), [`byref`](https://docs.python.org/3/library/ctypes.html#ctypes.byref)

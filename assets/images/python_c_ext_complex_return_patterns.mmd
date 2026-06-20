@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph src [Source Config handle]
+        ConfigH[Config handle in pool]
+    end
+
+    subgraph out_param [Out-parameter]
+        API1["config_get_snapshot(handle, out*)"]
+        Stack1["ConfigSnapshot on Python stack"]
+        View1["snapshot() returns dataclass view"]
+        ConfigH --> API1 --> Stack1 --> View1
+    end
+
+    subgraph by_value [Return by value]
+        API2["ProcessSummary config_process_summary(handle)"]
+        Copy2["ctypes copies struct across FFI"]
+        View2["process_summary() returns dataclass view"]
+        ConfigH --> API2 --> Copy2 --> View2
+    end
+
+    subgraph handle_ret [Handle return]
+        API3["config_create_process_summary(handle)"]
+        NewObj["ProcessSummaryResource in pool"]
+        NewH["new int64_t handle"]
+        Wrapper["ProcessSummaryResource subclass"]
+        ConfigH --> API3 --> NewObj --> NewH --> Wrapper
+    end

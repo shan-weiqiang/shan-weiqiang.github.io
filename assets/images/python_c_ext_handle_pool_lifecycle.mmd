@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant App as Python app
+    participant Wrapper as Config
+    participant CDLL as _native CDLL
+    participant Bridge as bridge.cpp
+    participant Pool as HandlePool
+    participant Obj as Config C++ object
+
+    App->>Wrapper: Config.create(30, url, True)
+    Wrapper->>CDLL: config_create(...)
+    CDLL->>Bridge: extern C call
+    Bridge->>Pool: store(unique_ptr Config)
+    Pool-->>Bridge: handle id e.g. 1
+    Bridge-->>Wrapper: int64_t handle
+    Wrapper-->>App: Config(handle=1)
+
+    App->>Wrapper: config.process()
+    Wrapper->>CDLL: config_process(1)
+    CDLL->>Bridge: extern C call
+    Bridge->>Pool: get_as Config handle 1
+    Pool->>Obj: static_cast Config*
+    Obj-->>Bridge: process result
+    Bridge-->>App: int 147
+
+    App->>Wrapper: close or __del__
+    Wrapper->>CDLL: handle_release(1)
+    CDLL->>Bridge: extern C call
+    Bridge->>Pool: release(1)
+    Pool->>Obj: unique_ptr destructor

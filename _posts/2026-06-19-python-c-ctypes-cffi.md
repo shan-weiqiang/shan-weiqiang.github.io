@@ -214,7 +214,7 @@ The generated `_add_cffi.abi3.so` is a **C extension** — but CFFI wrote the gl
 
 The [ctypes introduction](https://docs.python.org/3/library/ctypes.html) states the C extension interface is specific to CPython; ctypes and CFFI are often **more portable across Python implementations** for *calling C functions* because your integration code stays in Python (plus CFFI’s generated shim in API mode). They do not replace C extensions when the product **is** a Python module with classes and methods designed in C.
 
-For **ctypes struct mirroring, keepalive, and handles vs user API** (fd, capsule, internal `Structure` — not the public wrapper classes) beyond §7.2’s scalar `add()` — see [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html).
+For **ctypes struct mirroring, keepalive, and handles vs user API** (fd, capsule, internal `Structure` — not the public wrapper classes) beyond §7.2’s scalar `add()` — see [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html). For a **C++ handle pool** with integer handles, `TypeId` dispatch, and complex-type return patterns through ctypes — see [Part V — ctypes Handle Pool Design Pattern](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html).
 
 ---
 
@@ -223,6 +223,7 @@ For **ctypes struct mirroring, keepalive, and handles vs user API** (fd, capsule
 - [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html)
 - [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html)
 - [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html)
+- [Part V — ctypes Handle Pool Design Pattern](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html)
 - [ctypes — Python 3 documentation](https://docs.python.org/3/library/ctypes.html)
 - [CFFI documentation](https://cffi.readthedocs.io/en/stable/) — [overview](https://cffi.readthedocs.io/en/stable/overview.html), [ABI example](https://cffi.readthedocs.io/en/stable/overview.html#simple-example-abi-level-in-line), [API / main mode](https://cffi.readthedocs.io/en/stable/overview.html#main-mode-of-usage), [cdef](https://cffi.readthedocs.io/en/stable/cdef.html)
 - [Extending Python with C or C++](https://docs.python.org/3/extending/extending.html) — when you still need a hand-written extension
