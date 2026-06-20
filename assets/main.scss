@@ -29,57 +29,19 @@ html {
   margin-bottom: 30px;
 }
 
-// Wrapped: one real table; horizontal scroll on the div, not the table.
+// Wrapped tables grow to content width; the div above scrolls horizontally.
 .post-content .table-scroll > table {
   display: table;
   width: max-content;
   min-width: 100%;
+  max-width: none;
   margin-bottom: 0;
-  overflow: visible;
   border-collapse: collapse;
   table-layout: auto;
 }
 
 .post-content .table-scroll th,
 .post-content .table-scroll td {
-  vertical-align: top;
-  white-space: nowrap;
-}
-
-// Fallback when no wrapper is present: scroll on the table element itself.
-// Keep thead/tbody as table-* roles — never display:table on thead/tbody
-// (that was the old bug that misaligned header columns).
-.post-content table {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  -webkit-overflow-scrolling: touch;
-  margin-bottom: 30px;
-  border-collapse: collapse;
-}
-
-.post-content table > thead {
-  display: table-header-group;
-}
-
-.post-content table > tbody {
-  display: table-row-group;
-}
-
-.post-content table > tfoot {
-  display: table-footer-group;
-}
-
-.post-content table tr {
-  display: table-row;
-}
-
-.post-content table th,
-.post-content table td {
-  display: table-cell;
   vertical-align: top;
   white-space: nowrap;
 }

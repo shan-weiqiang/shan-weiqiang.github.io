@@ -1,5 +1,5 @@
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+(function () {
   document.querySelectorAll(".post-content table").forEach(function (table) {
     var parent = table.parentElement;
     if (parent && parent.classList.contains("table-scroll")) {
@@ -10,5 +10,5 @@ document.addEventListener("DOMContentLoaded", function () {
     table.parentNode.insertBefore(wrapper, table);
     wrapper.appendChild(table);
   });
-});
+})();
 </script>
