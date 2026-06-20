@@ -3,8 +3,7 @@
 
 @import "minima";
 
-// Keep the page column fixed; wide tables scroll inside a wrapper, not by
-// splitting thead/tbody into separate display:table blocks (that breaks alignment).
+// Keep the page column fixed; wide tables scroll inside the post column.
 html {
   overflow-x: hidden;
 }
@@ -18,6 +17,7 @@ html {
   min-width: 0;
 }
 
+// Scroll container (from _plugins/wrap_tables.rb or _includes/custom-head.html).
 .post-content .table-scroll {
   display: block;
   width: 100%;
@@ -29,17 +29,55 @@ html {
   margin-bottom: 30px;
 }
 
-// Single real table inside the wrapper — header and body share column widths.
+// Wrapped: one real table; horizontal scroll on the div, not the table.
 .post-content .table-scroll > table {
   display: table;
   width: max-content;
   min-width: 100%;
   margin-bottom: 0;
+  overflow: visible;
   border-collapse: collapse;
   table-layout: auto;
 }
 
 .post-content .table-scroll th,
 .post-content .table-scroll td {
+  vertical-align: top;
+}
+
+// Fallback when no wrapper is present: scroll on the table element itself.
+// Keep thead/tbody as table-* roles — never display:table on thead/tbody
+// (that was the old bug that misaligned header columns).
+.post-content table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 30px;
+  border-collapse: collapse;
+}
+
+.post-content table > thead {
+  display: table-header-group;
+}
+
+.post-content table > tbody {
+  display: table-row-group;
+}
+
+.post-content table > tfoot {
+  display: table-footer-group;
+}
+
+.post-content table tr {
+  display: table-row;
+}
+
+.post-content table th,
+.post-content table td {
+  display: table-cell;
   vertical-align: top;
 }
