@@ -43,6 +43,7 @@ html {
 .post-content .table-scroll th,
 .post-content .table-scroll td {
   vertical-align: top;
+  white-space: nowrap;
 }
 
 // Fallback when no wrapper is present: scroll on the table element itself.
@@ -80,4 +81,5 @@ html {
 .post-content table td {
   display: table-cell;
   vertical-align: top;
+  white-space: nowrap;
 }
