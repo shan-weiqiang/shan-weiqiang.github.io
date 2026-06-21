@@ -106,7 +106,9 @@ At the C level, the recurring work is **bidirectional marshalling** — always i
 | **Python → C/C++** | `PyArg_ParseTuple`; pybind11 casters | `_ctypes` reads `argtypes` / `_fields_`; libffi packs |
 | **C/C++ → Python** | `PyLong_FromLong`; `py::cast` | `_ctypes` builds `Structure` / return values from `restype` |
 
-![Marshalling converges on the Python C API whether you author an extension or use a binding bridge](/assets/images/python_c_ext_marshalling_core.png)
+The diagram below is a **layered stack** (top → bottom): Layer 1 Python values; Layer 2 extension modules where marshalling logic runs; **Python C API as the bottom floor** inside those modules; C/C++ native data below the marshalling boundary.
+
+![Layered marshalling stack: Pure Python, extension modules, Python C API floor, then C/C++ data](/assets/images/python_c_ext_marshalling_core.png)
 
 **PyTypeObject** (Part I) is part of the same floor: when an extension exposes a class, it registers a type object so Python's attribute protocol, `isinstance`, and `tp_call` machinery apply. pybind11 generates that registration for you (Part VII). ctypes struct mirroring (Part IV) **does not** create a `PyTypeObject` for your C struct — it lays out bytes in a `Structure` buffer and passes pointers through `_ctypes`.
 
@@ -199,8 +201,6 @@ Extensions push marshalling **into Layer 2** (your `.so`), so Layer 1 imports th
 1. **Implement a module API in C/C++** → extension authoring (Part I or VII).
 2. **Call an existing `.so` from Python with stdlib-only glue** → binding via ctypes (Parts III–V).
 3. **Production stack with codegen and multiple `.so` layers** → study hybrids (Part VI; CFFI API in Part III).
-
-![Parts I–VII mapped to extension, binding, and hybrid roles converging on the C API](/assets/images/python_c_ext_series_concept_map.png)
 
 | Part | Primary role | Layer 2 module | Layer 1 wrapper typical? |
 |---|---|---|---|

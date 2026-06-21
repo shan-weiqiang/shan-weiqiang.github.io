@@ -1,33 +1,31 @@
 flowchart TB
-    subgraph pyWorld [Python world]
-        pyVal["Python values: int, str, list, user objects"]
+    subgraph L1 [Layer 1 — Pure Python]
+        direction LR
         pyObj["PyObject graph"]
-        pyVal --> pyObj
+        bindGlue["Binding glue optional"]
     end
 
-    subgraph cApiFloor [Python C API — shared floor]
-        marshal["Bidirectional marshalling"]
-        pyType["PyTypeObject PyArg_ParseTuple PyLong_FromLong refcounts"]
-        marshal --> pyType
+    subgraph L2 [Layer 2 — C extension modules marshalling lives here]
+        direction LR
+        userExt["User-built mymodule.so Part I VII"]
+        readyExt["Ready-made _ctypes _cffi Part III"]
     end
 
-    subgraph cWorld [C or C++ world]
-        cData["C structs scalars pointers"]
+    subgraph L3 [Python C API — bottom floor]
+        direction TB
+        cApi["PyObject PyTypeObject refcounts"]
+        parseBuild["PyArg_ParseTuple PyLong_FromLong pybind11 casters"]
+        libffi["libffi inside _ctypes"]
     end
 
-    subgraph extRoute [Extension route — Parts I and VII]
-        extAuthor["Your extension .so speaks C API directly or via pybind11"]
+    subgraph L4 [C or C++ native data]
+        cData["Structs scalars pointers libfoo.so or inside extension"]
     end
 
-    subgraph bindRoute [Binding route — Parts III to V]
-        bridgeAuthor["Bridge extension _ctypes packs and unpacks via libffi"]
-        pySide["Your Python glue describes layouts and argtypes"]
-        pySide --> bridgeAuthor
-    end
-
-    pyObj <-->|"Python to C"| marshal
-    marshal <-->|"C to Python"| cData
-    extAuthor --> pyType
-    bridgeAuthor --> pyType
-    extAuthor --> cData
-    bridgeAuthor --> cData
+    pyObj -->|"import mymodule"| userExt
+    bindGlue -->|"CDLL argtypes"| readyExt
+    userExt --> parseBuild
+    readyExt --> libffi
+    parseBuild --> cApi
+    libffi --> cApi
+    cApi <-->|"bidirectional marshalling"| cData

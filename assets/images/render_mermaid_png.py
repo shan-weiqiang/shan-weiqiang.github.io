@@ -25,7 +25,6 @@ TALL_MMD = {
 }
 MEDIUM_MMD = {
     "python_c_ext_cffi_modes.mmd",
-    "python_c_ext_series_concept_map.mmd",
 }
 
 
