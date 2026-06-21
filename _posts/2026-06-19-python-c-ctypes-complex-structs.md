@@ -179,6 +179,29 @@ class InputRecord(ctypes.Structure):
     ]
 ```
 
+**Runtime layout:** when Python executes this class body, the pre-built `_ctypes` extension (Part III §7) walks `_fields_` in order, applies native alignment and padding rules, and records each field offset. Every `InputRecord()` instance is a single contiguous buffer of `ctypes.sizeof(InputRecord)` bytes — the same layout a C compiler would produce for the matching struct on the same platform and ABI, *if* the Python definition faithfully mirrors the header (order, ctypes types, `MAX_*` constants, nested `Point` / `Metric` layouts).
+
+ctypes does **not** read the C header. You describe the layout manually; `_ctypes` only guarantees that the buffer it allocates follows the rules implied by that description. Wrong `_fields_` still creates a valid Python object — C will then read the wrong offsets and corrupt memory or crash (Rule 2 above).
+
+| Field category | Example in `InputRecord` | What lives in the struct buffer |
+|---|---|---|
+| Embedded scalar / array | `header_id`, `version`, `weights` | Bytes stored **inside** the struct |
+| Embedded nested struct / array | `origin`, `corners`, `metrics`, `categories` | Sub-structs laid out **by value** at computed offsets |
+| Pointer slot | `description`, `tags[]`, `metric_ptrs[]` | Only the **pointer value** (e.g. 8 bytes on 64-bit); target memory is separate |
+
+For pointer fields, slot **position** matches C, but ctypes does not allocate or wire up what they point to — that is handled later (§8.5–§8.6: encode strings, keepalive for `metric_ptrs`).
+
+Common reasons Python and C layouts diverge: field order mismatch; `c_int` vs `c_long`; C `#pragma pack` without matching `_pack_` on the `Structure` subclass; wrong nested struct definition. There is no compile-time check — verify explicitly:
+
+```python
+print(ctypes.sizeof(InputRecord))
+print(ctypes.offset(InputRecord, "version"))
+print(ctypes.offset(InputRecord, "origin"))
+print(ctypes.offset(InputRecord, "description"))
+```
+
+Compare against C (`sizeof`, `offsetof`) from the same header. Matching numbers mean `ctypes.byref(record)` passes a pointer C can treat as `InputRecord *`; the demo's round-trip test in §8.7 is the functional proof on top of that.
+
 Load the shared library built by `make`:
 
 ```python
