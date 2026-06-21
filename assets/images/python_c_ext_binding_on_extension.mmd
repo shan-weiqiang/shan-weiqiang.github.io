@@ -1,0 +1,100 @@
+---
+config:
+  look: handDrawn
+  flowchart:
+    curve: basis
+    padding: 28
+    nodeSpacing: 48
+    rankSpacing: 54
+---
+flowchart TB
+    %% Series map (comments only — not rendered):
+    %% col1 direct ext · col2 rclpy · col3–5 ctypes/CFFI
+
+    subgraph L1 [Application — user Python code]
+        direction LR
+        appDirect["import mymodule"]
+        appRcl["rclpy.spin · create_publisher"]
+        appPkg["from pkg import Foo"]
+        appCT["CDLL · argtypes · Structure"]
+        appCF["cdef · dlopen"]
+    end
+
+    subgraph L2 [Python mirror / user API — optional]
+        direction LR
+        mSp1[" "]
+        mirrorRcl["Node · Publisher · Subscription · Executor"]
+        mSp2[" "]
+        mirror["Wrapper classes · mirrors · keepalive"]
+        mSp3[" "]
+    end
+
+    subgraph L3 [Binding glue — mandatory; compiled native code]
+        direction LR
+        gPadL[" "]
+        glueHand["Hand-written C API · PyModuleDef"]
+        gPadM[" "]
+        gluePB["pybind11 C++"]
+        gPadR[" "]
+    end
+
+    subgraph L4 [C extension modules — mandatory; ctypes/CFFI glue lives here]
+        direction LR
+        extUser["Your extension .so"]
+        extRcl["_rclpy_pybind11"]
+        extCT["_ctypes"]
+        extCF["_cffi_backend · generated shim"]
+        ePadR[" "]
+    end
+
+    subgraph L5 [Shared native dependency]
+        direction LR
+        fSp1[" "]
+        fSp2[" "]
+        libffi["libffi.so"]
+        fSp3[" "]
+        fSp4[" "]
+    end
+
+    subgraph L6 [Native C / C++ — target libraries]
+        direction LR
+        natIn["Code compiled into extension"]
+        natRcl["rcl · rmw"]
+        natC["libfoo.so — plain C"]
+        natCppBridge["extern C bridge in bridge.cpp · C++ behind · no Python.h"]
+        nPadR[" "]
+    end
+
+    appDirect --> glueHand
+    appDirect --> gluePB
+    appRcl --> mirrorRcl
+    mirrorRcl --> gluePB
+    appPkg --> mirror
+    appCT --> extCT
+    appCF --> extCF
+
+    glueHand --> extUser
+    gluePB --> extUser
+    gluePB --> extRcl
+    mirror --> extCT
+
+    extUser --> natIn
+    extRcl --> natRcl
+    extCT --> libffi
+    extCF --> libffi
+    extCT --> natC
+    extCT --> natCppBridge
+    extCF --> natC
+
+    style mSp1 fill:none,stroke:none
+    style mSp2 fill:none,stroke:none
+    style mSp3 fill:none,stroke:none
+    style gPadL fill:none,stroke:none
+    style gPadM fill:none,stroke:none
+    style gPadR fill:none,stroke:none
+    style ePadR fill:none,stroke:none
+    style fSp1 fill:none,stroke:none
+    style fSp2 fill:none,stroke:none
+    style fSp3 fill:none,stroke:none
+    style fSp4 fill:none,stroke:none
+    style nPadR fill:none,stroke:none

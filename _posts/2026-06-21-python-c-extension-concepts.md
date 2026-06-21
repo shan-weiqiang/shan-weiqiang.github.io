@@ -230,6 +230,83 @@ Use these terms consistently when reading or writing about native integration:
 
 ---
 
+### 12.9 Binding Rests on C Extensions — Forms Differ in How Much Sits Above
+
+Sections 12.0–12.8 separate **extension module** (Layer 2 artifact) from **binding** (Layer 1 process). That split is useful for navigation. One invariant cuts across both labels:
+
+> **Every binding path reaches native code through a C extension module.** Binding is not an alternative to extensions — it is **extension plus additional code**, in one of several forms.
+
+A C extension module is the **mandatory floor**: something with `PyInit_*` that speaks `PyObject*` and performs marshalling (§12.2). **Binding glue is mandatory too**, but it is **compiled native code** inside an extension — hand-written C API, pybind11 C++, libffi logic in **`_ctypes`**, or the backend in **`_cffi_backend`**.
+
+User-facing **`CDLL`**, **`argtypes`**, **`Structure`**, and CFFI **`cdef`** belong in the **application layer**: ordinary Python code the user writes. They are not glue — they declare layouts and signatures **to** an extension whose glue is already compiled. When ctypes must reach **C++**, an **`extern "C"` bridge** (`bridge.cpp`, no `Python.h`) exposes stable C symbols in the native library (Part V).
+
+What varies is whether the application adds an optional **mirror** row (`Node`, `HandleResource`, …) and whether native glue is authored by you (pybind11 / hand C) or shipped inside **`_ctypes`** / **`_cffi_backend`**.
+
+The diagram below is a **layered stack** read top to bottom. **Application** includes direct imports, ctypes/CFFI calls in user scripts, and high-level clients like **rclpy**. Only the **mirror** row may be skipped. **Compiled glue** and the **C extension floor** are always present — for ctypes/CFFI, glue is **inside** `_ctypes` / `_cffi_backend`, not in user Python.
+
+![Binding stack: application includes user ctypes/CFFI; compiled glue in extension floor; optional mirror](/assets/images/python_c_ext_binding_on_extension.png)
+
+**How to read it:**
+
+1. **Application** — all user Python: `import mymodule`; **`CDLL` / `argtypes` / `Structure`** (when you call ctypes directly in your script); **`cdef` / dlopen**; `from pkg import Foo`; `rclpy.spin`. None of this is binding glue — it calls into extensions that already contain glue.
+2. **Python mirror / user API** — optional wrappers for ergonomics and lifetime. **rclpy** puts `Node`, `Publisher`, `Executor` here; Part IV/V put `InputRecordPy`, `HandleResource` here. On the **`from pkg import Foo`** path, the user script stops here — **`CDLL` / `argtypes` / `Structure` live inside the package**, not in the user's file. Bare ctypes scripts skip this row and use the middle application node instead.
+3. **Binding glue** — **mandatory compiled code**, visible as its own row only when **you** author it (hand C API, pybind11 C++ → your `.so`). For ctypes/CFFI, marshalling logic is **folded into** `_ctypes` / `_cffi_backend` on the next row — both **link against `libffi.so`** at runtime to pack arguments and invoke foreign functions.
+4. **C extension modules** — mandatory runtime floor.
+5. **`libffi.so`** — shared native dependency of **`_ctypes`** and **`_cffi_backend`** (Part III §7.2). Not a Python layer; the compiled FFI engine both extensions use to call `libfoo.so`.
+6. **Native C / C++ — target libraries** — plain C `libfoo.so`; **`extern "C"` bridge** wrapping C++ (Part V); or **rcl** / **rmw**.
+
+#### The `from pkg import Foo` path — wrapper hides ctypes from the user
+
+The diagram edge **`from pkg import Foo` → wrapper → `_ctypes`** means: your **application script** imports a friendly name; the **package** owns the ctypes setup and calls `_ctypes` on your behalf.
+
+**What the user writes** (application — no `CDLL`, no `_fields_`):
+
+```python
+from mypkg import InputRecordPy, transform
+
+with transform(InputRecordPy("sensor-A", version=2, origin=(10, 20)), scale=1.5,
+               min_weight=20, top_n=2) as out:
+    print(out.title)
+```
+
+**What the package contains** (mirror / wrapper — ctypes lives here, not in user code):
+
+```python
+# mypkg/bindings.py
+import ctypes
+
+_lib = ctypes.CDLL("libstruct_demo.so")
+_lib.transform_record.argtypes = [ctypes.POINTER(InputRecord), ...]
+_lib.transform_record.restype = OutputRecord
+
+class InputRecordPy:
+    """User-facing mirror — hides Structure layout and keepalive."""
+    def to_ctypes(self):
+        ...  # build InputRecord, return (struct, keepalive_list)
+
+def transform(record: InputRecordPy, scale, min_weight, top_n):
+    c_input, keepalive = record.to_ctypes()
+    c_output = _lib.transform_record(ctypes.byref(c_input), ...)  # → _ctypes → libfoo.so
+    return OutputRecordPy.from_ctypes(c_output)
+```
+
+Read the call chain:
+
+```text
+user script          wrapper (mypkg)              extension        libffi           target
+───────────          ───────────────              ─────────        ──────           ──────
+transform(...)  →    _lib.transform_record(...)  →  _ctypes     →  libffi.so  →  libstruct_demo.so
+                     CDLL · argtypes · Structure
+```
+
+Both **`_ctypes`** and **`_cffi_backend`** load **`libffi.so`** to perform the actual foreign-function call; your **`argtypes`** / **`cdef`** only tell them what to pack.
+
+The user's file is the top row only. **`InputRecordPy`** and **`transform`** are the mirror. **`CDLL` / `argtypes` / `Structure`** sit in `bindings.py` — still Python application code, but **authored by the library maintainer**, not repeated in every user script. That is why the diagram shows two application entry points: **`CDLL · argtypes`** when you ctypes directly, and **`from pkg import Foo`** when a package wraps the same machinery for you.
+
+**Synthesis:** **Application** = user Python (including ctypes/CFFI declarations). **Glue** = compiled marshalling (in your extension or in `_ctypes` / `_cffi_backend`). Do not place `argtypes` in the glue layer — user code sets them; **`_ctypes`** executes them.
+
+---
+
 ## References
 
 - [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html)
