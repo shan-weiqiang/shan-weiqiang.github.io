@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article is Part V of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written extensions and `PyCapsule` opaque handles. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode vs C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers loading plain C libraries through `_ctypes` and libffi. [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) covers struct mirroring, keepalive, and the generalized handle idea behind `ctypes.Structure`. [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) applies the capsule pattern to ROS 2 `rosidl` Python bindings and `rclpy`.
+This article is Part V of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written extensions and `PyCapsule` opaque handles. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode vs C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers loading plain C libraries through `_ctypes` and libffi. [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) covers struct mirroring, keepalive, and the generalized handle idea behind `ctypes.Structure`. [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) applies the capsule pattern to ROS 2 `rosidl` Python bindings and `rclpy`. [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) covers compile-time C++ bindings as an alternative to the handle-pool pattern when you can compile a dedicated extension module.
 
 Part V introduces a **layered handle-pool pattern** for binding **C++** through ctypes: an opaque **`int64_t` handle** indexes objects in a central **`HandlePool`**, a thin **`extern "C"` bridge** exposes stable symbols to `_ctypes`, and Python **wrapper classes** mirror each C++ type. The demo also shows **four ways to move complex data** across the C ABI — struct input, out-parameter output, return-by-value, and **handle-return** for complex results.
 
@@ -399,16 +399,16 @@ For complex **results**, add a `BufferViewResource : HandleObject` and `buffer_c
 
 ### 9.11 Comparison Across the Series
 
-| | Part I `PyCapsule` | Part IV `ctypes.Structure` | Part V handle pool |
-|---|---|---|---|
-| **Token** | capsule object | `Structure` instance | `int64_t` handle |
-| **Owner** | capsule destructor | Python GC + keepalive | `HandlePool` + `handle_release` |
-| **Language** | C struct in C extension | plain C `.so` | C++ classes + virtual interface |
-| **Python glue** | `Python.h` / `PyInit_*` | ctypes only | ctypes only |
-| **Multi-type dispatch** | capsule name string | N/A (layout only) | `TypeId` + `get_as` |
-| **Complex input** | `PyArg_ParseTuple` | `Structure` + `byref` | `Structure` + `byref` (same as IV) |
-| **Complex output** | return Python objects from C API | out-param / return-by-value copy | out-param, by-value, **or handle-return** |
-| **User API** | module functions | `InputRecordPy`, `transform()` | `Config`, `Counter`, `*Resource` |
+| | Part I `PyCapsule` | Part IV `ctypes.Structure` | Part V handle pool | Part VII pybind11 |
+|---|---|---|---|---|
+| **Token** | capsule object | `Structure` instance | `int64_t` handle | generated `PyTypeObject` |
+| **Owner** | capsule destructor | Python GC + keepalive | `HandlePool` + `handle_release` | holder in extension |
+| **Language** | C struct in C extension | plain C `.so` | C++ classes + virtual interface | C++ in extension |
+| **Python glue** | `Python.h` / `PyInit_*` | ctypes only | ctypes only | none (import extension) |
+| **Multi-type dispatch** | capsule name string | N/A (layout only) | `TypeId` + `get_as` | `py::class_` per type |
+| **Complex input** | `PyArg_ParseTuple` | `Structure` + `byref` | `Structure` + `byref` (same as IV) | C++ parameters / casters |
+| **Complex output** | return Python objects from C API | out-param / return-by-value copy | out-param, by-value, **or handle-return** | return `py::object` / bound types |
+| **User API** | module functions | `InputRecordPy`, `transform()` | `Config`, `Counter`, `*Resource` | native module API |
 
 **When to use Part V:**
 
@@ -417,7 +417,9 @@ For complex **results**, add a `BufferViewResource : HandleObject` and `buffer_c
 - Multiple C++ types share one `.so` and need **typed** handle dispatch.
 - Complex results should live as **pool-managed objects** with explicit `close()` / context managers.
 
-**When to prefer Part I instead:** tight integration with Python's object model (`PyTypeObject`, attributes, exceptions as first-class types).
+**When to prefer Part I instead:** tight integration with Python's object model (`PyTypeObject`, attributes, exceptions as first-class types) — or **Part VII pybind11** for the same integration with C++ and less boilerplate.
+
+**When to prefer Part VII instead of Part V:** you can compile a dedicated extension module and want native C++ classes without a C ABI shim or handle pool.
 
 **When to prefer Part IV alone:** plain C library, transient struct marshalling, no long-lived C++ objects.
 
@@ -429,6 +431,7 @@ For complex **results**, add a `BufferViewResource : HandleObject` and `buffer_c
 - [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html)
 - [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) — §7.2 scalar ctypes, libffi
 - [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) — §8 struct mirroring, §8.11 handle concept
+- [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html)
 - [ctypes — Python 3 documentation](https://docs.python.org/3/library/ctypes.html)
 - [ctypes — Structures and unions](https://docs.python.org/3/library/ctypes.html#structures-and-unions)
 - [ctypes — Function prototypes](https://docs.python.org/3/library/ctypes.html#function-prototypes)

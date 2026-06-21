@@ -14,9 +14,11 @@ PADDING = 12
 WIDE_MMD = {
     "python_c_ext_three_approaches.mmd",
     "python_c_ext_ros2_bindings_publish_flow.mmd",
+    "python_c_ext_pybind11_call_flow.mmd",
 }
 TALL_MMD = {
     "python_c_ext_ros2_bindings_architecture.mmd",
+    "python_c_ext_pybind11_internals.mmd",
 }
 MEDIUM_MMD = {"python_c_ext_cffi_modes.mmd"}
 

@@ -1,0 +1,17 @@
+flowchart LR
+    subgraph pySide [Python caller]
+        pyUser["import mymodule; config.process()"]
+    end
+
+    subgraph extMod [Your compiled extension]
+        pyInit["PyInit_mymodule"]
+        pyType["PyTypeObject Config"]
+        pyCFunc["PyCFunctionObject wrapper"]
+        cppFn["Config::process in C++"]
+        pyInit --> pyType
+        pyUser --> pyCFunc
+        pyCFunc --> cppFn
+    end
+
+    pyUser --> pyInit
+    pyUser --> pyCFunc

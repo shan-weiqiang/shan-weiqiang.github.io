@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. Companion articles: [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) (interpreter model, bytecode vs C dispatch), [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) (FFI alternatives to hand-written extensions), [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) (ctypes mirroring, internal handles vs user API), [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) (C++ handle pool behind ctypes), and [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) (ROS 2 `rosidl` capsule bindings and `rclpy`).
+This article covers the fundamentals of Python C extensions: writing extension functions and binding C structures to Python types. Companion articles: [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) (interpreter model, bytecode vs C dispatch), [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) (FFI alternatives to hand-written extensions), [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) (ctypes mirroring, internal handles vs user API), [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) (C++ handle pool behind ctypes), [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) (ROS 2 `rosidl` capsule bindings and `rclpy`), and [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) (compile-time C++ bindings, internals, contrast with ctypes).
 
 Runnable demos for every code example live in the [python](https://github.com/shan-weiqiang/python) repository. Build any C extension demo with `python3 setup.py build_ext --inplace` then run the matching `test_*.py`.
 
@@ -23,6 +23,7 @@ Runnable demos for every code example live in the [python](https://github.com/sh
 | §2.3 | [c_ext_config_marshal](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_marshal) |
 | §2 contrast (ctypes structs) | [ctypes_complex_struct](https://github.com/shan-weiqiang/python/tree/main/ctypes_complex_struct) — [Part IV](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) |
 | §2.1 contrast (ROS 2 codegen) | [ros2_binding_demo](https://github.com/shan-weiqiang/python/tree/main/ros2_binding_demo) — [Part VI](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) |
+| §2.2.2 contrast (pybind11) | [c_ext_pybind11_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_pybind11_config) — [Part VII](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) |
 
 ## Section 1: Python C Extension Fundamentals
 
@@ -647,7 +648,7 @@ isinstance(config, mymodule.Config)  # True
 
 **Pros:** Full Python integration, attribute access, type checking.
 
-**Cons:** Requires boilerplate (~100 lines for a simple type).
+**Cons:** Requires boilerplate (~100 lines for a simple type). [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) generates the same `PyTypeObject` machinery from C++ with far less code ([`c_ext_pybind11_config`](https://github.com/shan-weiqiang/python/tree/main/c_ext_pybind11_config)).
 
 #### 2.2.3 Advanced Example: Nested Structs and Arrays
 
@@ -1185,3 +1186,4 @@ The pattern: **`ConfigObject` holds Python-friendly data**; **methods marshal �
 - [Parsing arguments and building values](https://docs.python.org/3/c-api/arg.html): Format strings for `PyArg_ParseTuple`, `PyArg_ParseTupleAndKeywords`, and `Py_BuildValue`.
 - [Python Data Model — Code objects](https://docs.python.org/3/reference/datamodel.html#code-objects): Structure and role of `PyCodeObject` in the execution model.
 - [dis — Disassembler](https://docs.python.org/3/library/dis.html): Tool for inspecting bytecode generated from Python source.
+- [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) — pybind11 reimplementation of §2.2.2 `Config` ([c_ext_pybind11_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_pybind11_config))

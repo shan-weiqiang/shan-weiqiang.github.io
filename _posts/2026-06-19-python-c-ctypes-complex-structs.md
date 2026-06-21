@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article is Part IV of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written C extensions and binding C data to Python types. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode and C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) showed calling a plain C library with scalar `add(int, int)`. [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) builds a C++ `HandlePool` with integer handles and typed dispatch behind ctypes.
+This article is Part IV of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written C extensions and binding C data to Python types. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode and C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) showed calling a plain C library with scalar `add(int, int)`. [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) builds a C++ `HandlePool` with integer handles and typed dispatch behind ctypes. [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) covers compile-time C++ bindings as an alternative to struct mirroring.
 
 Part IV covers **how to handle complex C structures with ctypes**: nested structs, fixed-size arrays, embedded `char[]` vs `char*`, pointer fields, marshalling through `_ctypes` + libffi, and **keepalive** for anything whose address crosses the boundary. It closes with **handles** — internal separation layers between your **user API** and C-managed resources ([Wikipedia](https://en.wikipedia.org/wiki/Handle_(computing)): file descriptors, `PyCapsule`, `ctypes.Structure`, buffer addresses, …). The demo’s `InputRecordPy` / `OutputRecordPy` are **user API** classes (§8.9), not handles themselves. Struct names in the demo are arbitrary fixtures for the binding patterns.
 
@@ -413,19 +413,19 @@ Without this user API every caller would assemble `_fields_`, manage keepalive, 
 
 ---
 
-### 8.10 ctypes Structs vs Hand-Written Extensions vs CFFI
+### 8.10 ctypes Structs vs Hand-Written Extensions vs CFFI vs pybind11
 
-| | ctypes `Structure` | CFFI `ffi.new` (Part III §7.5) | Hand-written extension (Part I) |
-|---|---|---|---|
-| **Layout definition** | Python `_fields_` | `cdef` pasted from header | C struct + `PyTypeObject` |
-| **User-facing API** | user API classes (§8.9) over internal handles | `ffi` struct objects | native attributes / methods |
-| **Pointer / buffer safety** | manual keepalive | manual keepalive | C API / object ownership |
-| **Build step** | `make` for target `.so` only | ABI or API CFFI build | `setup.py` C extension |
-| **Callable path** | `_ctypes` + libffi | `_cffi_backend` + libffi or generated `.so` | direct C in `mymodule.so` |
+| | ctypes `Structure` | CFFI `ffi.new` (Part III §7.5) | Hand-written extension (Part I) | pybind11 (Part VII) |
+|---|---|---|---|---|
+| **Layout definition** | Python `_fields_` | `cdef` pasted from header | C struct + `PyTypeObject` | opaque C++ + generated wrapper |
+| **User-facing API** | user API classes (§8.9) over internal handles | `ffi` struct objects | native attributes / methods | native attributes / methods |
+| **Pointer / buffer safety** | manual keepalive | manual keepalive | C API / object ownership | holder types / return policies |
+| **Build step** | `make` for target `.so` only | ABI or API CFFI build | `setup.py` C extension | `setup.py`/CMake + pybind11 |
+| **Callable path** | `_ctypes` + libffi | `_cffi_backend` + libffi or generated `.so` | direct C in `mymodule.so` | direct C++ in `mymodule.so` |
 
 **Use ctypes struct mirroring** when you have a stable C header and an existing shared library and want stdlib-only glue — the techniques in §8.3–8.8 apply regardless of what the structs represent.
 
-**Prefer a hand-written extension (Part I)** when you need types integrated with Python’s attribute protocol, exceptions, and object identity as first-class module API.
+**Prefer a hand-written extension (Part I) or pybind11 (Part VII)** when you need types integrated with Python’s attribute protocol, exceptions, and object identity as first-class module API.
 
 **Consider CFFI** when you want header-driven layout (`cdef`) or compile-time checks in API mode; see [CFFI struct/array example](https://cffi.readthedocs.io/en/stable/overview.html#struct-array-example-minimal-in-line) and Part III §7.5.
 
@@ -530,6 +530,7 @@ Same structural role for handles: token on the API side, mediator, resource on t
 - [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html)
 - [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) — §7.2 scalar ctypes, libffi
 - [Part V — ctypes Handle Pool Design Pattern](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) — §9 C++ handle pool, complex-type return via handles
+- [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) — compile-time C++ bindings alternative to struct mirroring
 - [ctypes — Structures and unions](https://docs.python.org/3/library/ctypes.html#structures-and-unions)
 - [ctypes — Type conversions](https://docs.python.org/3/library/ctypes.html#type-conversions), [Pointers](https://docs.python.org/3/library/ctypes.html#pointers)
 - [ctypes — `create_string_buffer`](https://docs.python.org/3/library/ctypes.html#ctypes.create_string_buffer), [`byref`](https://docs.python.org/3/library/ctypes.html#ctypes.byref)

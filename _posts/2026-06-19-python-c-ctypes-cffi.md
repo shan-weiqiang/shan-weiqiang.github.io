@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article is Part III of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written extension functions and `PyTypeObject` binding. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode, `tp_call`, and how C extension methods run without a nested eval loop.
+This article is Part III of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written extension functions and `PyTypeObject` binding. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode, `tp_call`, and how C extension methods run without a nested eval loop. [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) covers compile-time C++ bindings as an alternative to both hand-written extensions and runtime FFI.
 
 Part III covers **FFI** (foreign function interface): calling existing C libraries from Python with **ctypes** (stdlib) or **CFFI** (third-party), instead of writing a new `PyInit_*` module for every library.
 
@@ -29,6 +29,7 @@ python3 c_ext_cffi_api/test_cffi_api.py
 | §7.3 ABI | [c_ext_cffi_abi](https://github.com/shan-weiqiang/python/tree/main/c_ext_cffi_abi) |
 | §7.3 API | [c_ext_cffi_api](https://github.com/shan-weiqiang/python/tree/main/c_ext_cffi_api) |
 | §7.4 contrast | [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) (Part I hand-written `Config`) |
+| §7.4 contrast (pybind11) | [c_ext_pybind11_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_pybind11_config) (Part VII) |
 
 ---
 
@@ -187,19 +188,19 @@ The generated `_add_cffi.abi3.so` is a **C extension** — but CFFI wrote the gl
 
 ---
 
-### 7.4 ctypes vs CFFI vs Hand-Written Extension
+### 7.4 ctypes vs CFFI vs Hand-Written Extension vs pybind11
 
-![Three approaches: ctypes, CFFI, hand-written C extension](/assets/images/python_c_ext_three_approaches.png)
+![Four approaches: ctypes, CFFI, hand-written C extension, pybind11](/assets/images/python_c_ext_three_approaches.png)
 
-| | ctypes | CFFI ABI | CFFI API | Hand-written (Part I) |
-|---|---|---|---|---|
-| **pip / stdlib** | stdlib | needs `cffi` | needs `cffi` + build | `setup.py` + compiler |
-| **You write** | Python + `argtypes` | Python + `cdef` | `cdef` + build script | C + Python C API |
-| **Glue module** | `_ctypes` + libffi | `_cffi_backend` + libffi | generated `.so` | your `mymodule.so` |
-| **Callable type** | `_FuncPtr` | via backend | `lib.add` in generated module | `builtin_function_or_method` |
-| **Type safety** | runtime only | runtime only (ABI) | compile-time (API) | C compiler |
-| **Custom `PyTypeObject`** | poor fit | poor fit | limited | full (`Config`, §2.2) |
-| **Target library** | any `.so` | any `.so` | link sources / libs | whatever you link or embed |
+| | ctypes | CFFI ABI | CFFI API | Hand-written (Part I) | pybind11 (Part VII) |
+|---|---|---|---|---|---|
+| **pip / stdlib** | stdlib | needs `cffi` | needs `cffi` + build | `setup.py` + compiler | `setup.py`/CMake + pybind11 |
+| **You write** | Python + `argtypes` | Python + `cdef` | `cdef` + build script | C + Python C API | C++ binding code |
+| **Glue module** | `_ctypes` + libffi | `_cffi_backend` + libffi | generated `.so` | your `mymodule.so` | your `mymodule.so` |
+| **Callable type** | `_FuncPtr` | via backend | `lib.add` in generated module | `builtin_function_or_method` | `builtin_function_or_method` |
+| **Type safety** | runtime only | runtime only (ABI) | compile-time (API) | C compiler | C++ compiler + templates |
+| **Custom `PyTypeObject`** | poor fit | poor fit | limited | full (`Config`, §2.2) | full (generated) |
+| **Target library** | any `.so` | any `.so` | link sources / libs | whatever you link or embed | C++ compiled into extension |
 
 **Execution contrast (Part II):** `config.process()` on [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic) yields `PyCFunctionObject` → direct `Config_process` in C. `lib.add(2, 3)` via ctypes goes through `_FuncPtr` → `_ctypes` → libffi → `add` in `libadd.so` — no `PyMethodDef` on your side, no `Config` type.
 
@@ -211,6 +212,7 @@ The generated `_add_cffi.abi3.so` is a **C extension** — but CFFI wrote the gl
 - **CFFI ABI** — nicer `cdef`, [`ffi.new`](https://cffi.readthedocs.io/en/stable/overview.html#struct-array-example-minimal-in-line), buffers; same runtime model as ctypes. See [CFFI overview](https://cffi.readthedocs.io/en/stable/overview.html).
 - **CFFI API** — repeated calls, structs, compile-time layout checks; still less boilerplate than hand-written extensions for flat C APIs.
 - **Hand-written C extension** — custom Python types, capsules, tight error handling, maximum control (Parts I–II).
+- **pybind11** — same integration as a hand-written extension, but binding code in C++ with generated `PyTypeObject` and casters; see [Part VII](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html).
 
 The [ctypes introduction](https://docs.python.org/3/library/ctypes.html) states the C extension interface is specific to CPython; ctypes and CFFI are often **more portable across Python implementations** for *calling C functions* because your integration code stays in Python (plus CFFI’s generated shim in API mode). They do not replace C extensions when the product **is** a Python module with classes and methods designed in C.
 
@@ -224,6 +226,7 @@ For **ctypes struct mirroring, keepalive, and handles vs user API** (fd, capsule
 - [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html)
 - [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html)
 - [Part V — ctypes Handle Pool Design Pattern](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html)
+- [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html)
 - [ctypes — Python 3 documentation](https://docs.python.org/3/library/ctypes.html)
 - [CFFI documentation](https://cffi.readthedocs.io/en/stable/) — [overview](https://cffi.readthedocs.io/en/stable/overview.html), [ABI example](https://cffi.readthedocs.io/en/stable/overview.html#simple-example-abi-level-in-line), [API / main mode](https://cffi.readthedocs.io/en/stable/overview.html#main-mode-of-usage), [cdef](https://cffi.readthedocs.io/en/stable/cdef.html)
 - [Extending Python with C or C++](https://docs.python.org/3/extending/extending.html) — when you still need a hand-written extension

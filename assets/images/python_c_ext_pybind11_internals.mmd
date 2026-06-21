@@ -1,0 +1,32 @@
+flowchart TB
+    subgraph compileTime [Compile time]
+        bindSrc["bindings.cpp PYBIND11_MODULE"]
+        tmpl["template type casters cpp_function"]
+        bindSrc --> tmpl
+    end
+
+    subgraph importTime [Import time]
+        pyInit["PyInit_mymodule"]
+        makeType["make_new_python_type"]
+        typeReady["PyType_Ready"]
+        regMod["setattr module Config"]
+        pyInit --> makeType --> typeReady --> regMod
+    end
+
+    subgraph instanceLayout [Instance layout]
+        pyObj["PyObject header ob_type"]
+        inst["pybind11 instance struct"]
+        holder["C++ Config object plus holder"]
+        pyObj --> inst --> holder
+    end
+
+    subgraph callTime [Call time]
+        pyCall["config.process"]
+        wrap["method wrapper"]
+        cppCall["Config::process"]
+        pyCall --> wrap --> cppCall
+    end
+
+    compileTime --> importTime
+    importTime --> instanceLayout
+    instanceLayout --> callTime

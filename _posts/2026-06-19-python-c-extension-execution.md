@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2). [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers calling plain C libraries without hand-writing `PyInit_*` for each library. [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) covers ctypes struct handles (fd, capsule, `Structure`) and user API above them.
+This article covers how CPython executes code: the shared interpreter model, pure Python bytecode, C extension method dispatch, and a side-by-side comparison of the two paths. It continues from [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) (Sections 1–2). [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers calling plain C libraries without hand-writing `PyInit_*` for each library. [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) covers ctypes struct handles (fd, capsule, `Structure`) and user API above them. [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) covers compile-time C++ bindings that follow the same direct `PyCFunctionObject` dispatch path as Part I.
 
 Runnable demos for the Python examples below live in the [python](https://github.com/shan-weiqiang/python) repository.
 
@@ -870,3 +870,4 @@ The interpreter does not treat `obj.process()` and `config.process()` as differe
 - [Parsing arguments and building values](https://docs.python.org/3/c-api/arg.html): Format strings for `PyArg_ParseTuple`, `PyArg_ParseTupleAndKeywords`, and `Py_BuildValue`.
 - [Python Data Model — Code objects](https://docs.python.org/3/reference/datamodel.html#code-objects): Structure and role of `PyCodeObject` in the execution model.
 - [dis — Disassembler](https://docs.python.org/3/library/dis.html): Tool for inspecting bytecode generated from Python source.
+- [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) — §11.8 same `PyCFunctionObject` dispatch path for pybind11-bound methods

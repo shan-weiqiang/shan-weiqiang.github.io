@@ -18,3 +18,8 @@ flowchart LR
         direction LR
         hwUser["import mymodule.Config"] --> hwMod["mymodule.cpython.so"]
     end
+
+    subgraph pybindPath [pybind11 Part VII]
+        direction LR
+        pbUser["C++ bindings.cpp"] --> pbBuild["compiled mymodule.cpython.so"] --> pbCpp["C++ classes in extension"]
+    end
