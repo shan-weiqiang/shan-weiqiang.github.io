@@ -1,0 +1,16 @@
+flowchart TB
+    subgraph extPath [Extension authoring — Parts I and VII]
+        extApp["Application: import mymodule"]
+        extMod["Layer 2: mymodule.cpython.so you build"]
+        extCpp["Layer 3: C or C++ inside extension"]
+        extApp --> extMod
+        extMod --> extCpp
+    end
+
+    subgraph bindPath [Binding — Parts III to V]
+        bindApp["Layer 1: application + Python glue"]
+        bridgeExt["Layer 2: _ctypes or _cffi_backend pre-built extension"]
+        libFoo["Layer 3: libfoo.so no Python.h"]
+        bindApp --> bridgeExt
+        bridgeExt --> libFoo
+    end

@@ -1,0 +1,28 @@
+flowchart TB
+    subgraph layer1 [Layer 1 — Pure Python]
+        appCode["Application code"]
+        bindGlue["Binding glue: argtypes, Structure, wrappers, bindings.py"]
+        directUse["Direct use: import mymodule"]
+    end
+
+    subgraph layer2 [Layer 2 — C extension modules same tier]
+        userExt["User-built: mymodule.cpython.so via C API or pybind11"]
+        ctypesExt["Ready-made: _ctypes stdlib"]
+        cffiExt["Ready-made: _cffi_backend pip"]
+        cffiGen["Generated: CFFI API shim .so optional"]
+    end
+
+    subgraph layer3 [Layer 3 — C or C++]
+        inExt["Implementation compiled into your extension"]
+        extLib["Existing libfoo.so no Python.h"]
+    end
+
+    appCode --> bindGlue
+    bindGlue --> ctypesExt
+    bindGlue --> cffiExt
+    directUse --> userExt
+    userExt --> inExt
+    ctypesExt --> extLib
+    cffiExt --> extLib
+    cffiGen --> extLib
+    bindGlue --> cffiGen

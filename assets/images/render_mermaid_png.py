@@ -19,8 +19,14 @@ WIDE_MMD = {
 TALL_MMD = {
     "python_c_ext_ros2_bindings_architecture.mmd",
     "python_c_ext_pybind11_internals.mmd",
+    "python_c_ext_extension_vs_binding_layers.mmd",
+    "python_c_ext_marshalling_core.mmd",
+    "python_c_ext_stack_layers.mmd",
 }
-MEDIUM_MMD = {"python_c_ext_cffi_modes.mmd"}
+MEDIUM_MMD = {
+    "python_c_ext_cffi_modes.mmd",
+    "python_c_ext_series_concept_map.mmd",
+}
 
 
 def trim_white(img: Image.Image, padding: int = PADDING) -> Image.Image:

@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph pyWorld [Python world]
+        pyVal["Python values: int, str, list, user objects"]
+        pyObj["PyObject graph"]
+        pyVal --> pyObj
+    end
+
+    subgraph cApiFloor [Python C API — shared floor]
+        marshal["Bidirectional marshalling"]
+        pyType["PyTypeObject PyArg_ParseTuple PyLong_FromLong refcounts"]
+        marshal --> pyType
+    end
+
+    subgraph cWorld [C or C++ world]
+        cData["C structs scalars pointers"]
+    end
+
+    subgraph extRoute [Extension route — Parts I and VII]
+        extAuthor["Your extension .so speaks C API directly or via pybind11"]
+    end
+
+    subgraph bindRoute [Binding route — Parts III to V]
+        bridgeAuthor["Bridge extension _ctypes packs and unpacks via libffi"]
+        pySide["Your Python glue describes layouts and argtypes"]
+        pySide --> bridgeAuthor
+    end
+
+    pyObj <-->|"Python to C"| marshal
+    marshal <-->|"C to Python"| cData
+    extAuthor --> pyType
+    bridgeAuthor --> pyType
+    extAuthor --> cData
+    bridgeAuthor --> cData

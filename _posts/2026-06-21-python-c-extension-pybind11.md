@@ -8,7 +8,7 @@ tags: [python]
 * toc
 {:toc}
 
-This article is Part VII of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written extension functions and `PyTypeObject` binding. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode, `tp_call`, and C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers runtime FFI through `_ctypes` and libffi. [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) covers struct mirroring and keepalive. [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) covers C++ behind a C ABI and integer handles. [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) applies capsule bindings at production scale; it already mentions `_rclpy_pybind11` as a real pybind11 module.
+This article is Part VII of the Python C extension series. [Part I — Overview](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-overview.html) covers hand-written extension functions and `PyTypeObject` binding. [Part II — Execution](https://shan-weiqiang.github.io/2026/06/19/python-c-extension-execution.html) covers bytecode, `tp_call`, and C method dispatch. [Part III — ctypes and CFFI](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-cffi.html) covers runtime FFI through `_ctypes` and libffi. [Part IV — Complex ctypes Structs and Handles](https://shan-weiqiang.github.io/2026/06/19/python-c-ctypes-complex-structs.html) covers struct mirroring and keepalive. [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) covers C++ behind a C ABI and integer handles. [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) applies capsule bindings at production scale; it already mentions `_rclpy_pybind11` as a real pybind11 module. [Part VIII — Extensions vs Bindings](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-concepts.html) is the conceptual capstone for the series.
 
 Part VII covers **pybind11**: how it works internally, how binding code accepts and returns Python objects at the C++ level, how it compares to hand-written C API code (Part I), and how it differs from **ctypes** on the compile-time vs runtime axis.
 
@@ -309,7 +309,7 @@ Both Part I and Part VII produce **`mymodule.cpython-<SOABI>.so`** modules that 
 
 ### 11.9 pybind11 vs ctypes — Compile Time vs Runtime
 
-This is the central architectural split between Part VII and Parts III–V.
+This is the central architectural split between Part VII and Parts III–V. [Part VIII — Extensions vs Bindings](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-concepts.html) §12.7 reframes it: pybind11 is **extension authoring** (compile-time); ctypes is **binding** through a bridge (runtime).
 
 ![Four approaches: ctypes, CFFI, hand-written extension, pybind11](/assets/images/python_c_ext_three_approaches.png)
 
@@ -393,3 +393,4 @@ Part VI's `_rclpy_pybind11` and `rosidl` plain-`.so` typesupport modules illustr
 - pybind11 source: [`include/pybind11/detail/class.h`](https://github.com/pybind/pybind11/blob/master/include/pybind11/detail/class.h) (`make_new_python_type`), [`cast.h`](https://github.com/pybind/pybind11/blob/master/include/pybind11/cast.h)
 - Demo: [c_ext_pybind11_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_pybind11_config)
 - Contrast: [c_ext_config_basic](https://github.com/shan-weiqiang/python/tree/main/c_ext_config_basic)
+- [Part VIII — Extensions vs Bindings](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-concepts.html)
