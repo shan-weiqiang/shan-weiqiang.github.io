@@ -835,7 +835,9 @@ You can mix both in one visitor: `other.accept(*this)` when the partner is polym
 7. **Fine-grained visitors** — empty visitor base, one derived class per operation, `dynamic_cast` in `accept`; flexible but couples visited classes to visitor subtypes.
 8. **Propagation** — chain `other.accept(v)` when the next object is `Shape&`; inside `visitXxx`, call `visitYyy(other)` directly when `other` is already a concrete type.
 
-**When to use it:** Visitor/double dispatch shines when a stable hierarchy of visited classes accumulates many operations (render, serialize, optimize, …). For small, closed type sets, C++17's `std::variant` + `std::visit` is often simpler and avoids the fat-visitor / fat-`accept` maintenance cost.
+**When to use it:** Visitor/double dispatch shines when a stable hierarchy of visited classes accumulates many operations (render, serialize, optimize, …). Every new `Derived` and every new `visitXxx` is still a **compile-time** type or method — you recompile, you do not extend the running binary with unknown types. For small, **closed** type sets spelled as `variant<Ts...>`, C++17's `std::visit` is often simpler — see [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html).
+
+**Static typing reminder:** virtual Visitor and `std::visit` differ in how the compile-time type list is expressed (inheritance vs `variant`), not in whether types are known at compile time. [Type Erasure Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-dynamic-cast-rtti.html) covers the related case where a call site **names** a derived type again and uses RTTI to verify it.
 
 # References
 
@@ -843,3 +845,4 @@ You can mix both in one visitor: `other.accept(*this)` when the partner is polym
 2. [Double Dispatch in C++ — Vishesh Chovatiya (Medium)](https://medium.com/@visheshchovatiya/double-dispatch-in-c-7649dbdda5c9)
 3. [Double Dispatch — behnamasadi/cpp_tutorials](https://github.com/behnamasadi/cpp_tutorials/blob/master/docs/double_dispatch.md)
 4. [Double Dispatch / Visitor Design Pattern in Modern C++ — vishalchovatiya.com](https://vishalchovatiya.com/posts/double-dispatch-visitor-design-pattern-in-modern-cpp/)
+5. [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html) — closed alternative list, `index()` + static visitor overloads (companion to this post)

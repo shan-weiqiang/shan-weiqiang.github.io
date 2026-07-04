@@ -1,0 +1,5 @@
+flowchart TD
+  VisitCall["std::visit visitor v"] --> ReadIndex["variant.index at runtime"]
+  ReadIndex --> DispatchTable["switch or _S_vtable"]
+  DispatchTable --> GetI["__get of active index"]
+  GetI --> InvokeV["invoke visitor with concrete T&"]

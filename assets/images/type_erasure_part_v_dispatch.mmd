@@ -1,0 +1,9 @@
+flowchart LR
+  subgraph partI [PartI_Dispatch]
+    BasePtr["Base*"] --> Vtable["vtable slot"]
+    Vtable --> VirtualFoo["virtual foo same signature"]
+  end
+  subgraph partV [PartV_RTII]
+    BasePtr2["Base*"] --> TypeInfo["type_info check"]
+    TypeInfo --> BranchCircle["Circle-specific code"]
+  end

@@ -1,0 +1,5 @@
+flowchart TD
+  Dtor["~variant"] --> Reset["_M_reset"]
+  Reset --> DoVisit["__do_visit"]
+  DoVisit --> Dispatch["index dispatch"]
+  Dispatch --> Destroy["_Destroy of active T"]
