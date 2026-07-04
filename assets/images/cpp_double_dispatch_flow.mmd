@@ -1,0 +1,23 @@
+sequenceDiagram
+    box Visited hierarchy
+        participant Shape as Shape (base)<br/>accept(Visitor&) = 0
+        participant Circle as Circle (derived)
+        participant Rectangle as Rectangle (derived)
+    end
+    box Visitor hierarchy
+        participant Visitor as Visitor (base)<br/>visitCircle / visitRectangle
+        participant AreaVisitor as AreaVisitor (derived)
+        participant CollisionVisitor as CollisionVisitor (derived)
+    end
+    participant Client
+
+    Note over Shape,Circle: Circle : public Shape
+    Note over Shape,Rectangle: Rectangle : public Shape
+    Note over Visitor,AreaVisitor: AreaVisitor : public Visitor
+    Note over Visitor,CollisionVisitor: CollisionVisitor : public Visitor
+
+    Client->>Circle: accept(areaVisitor)
+    Note over Circle,Shape: 1st dispatch — vtable selects Circle::accept
+    Circle->>AreaVisitor: visitCircle(*this)
+    Note over AreaVisitor,Visitor: 2nd dispatch — override selects AreaVisitor::visitCircle
+    AreaVisitor->>AreaVisitor: concrete logic (Circle × AreaVisitor)
