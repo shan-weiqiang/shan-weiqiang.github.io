@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Double Dispatch and the Visitor Pattern in C++"
-date:   2026-07-04 10:00:00 +0800
+date:   2026-07-04 10:01:00 +0800
 tags: [cpp]
 ---
 
