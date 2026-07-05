@@ -11,7 +11,7 @@ Both posts are about **double dispatch** — picking behavior when element type 
 
 **Foundation:** C++ is **statically typed**. A `variant<int, std::string>` does not hold “some unknown type” at runtime — it holds **one of** `int` or `string`, both declared in the type before the program runs. `std::visit` must provide a handler for **every** alternative; if any is missing, the program **does not compile**. Runtime reads `index()` and picks among branches the compiler already generated.
 
-**Same type-erasure mechanism as virtual** — uniform interface (`variant<Ts...>`), runtime tag (`index()`), redirect table (`__do_visit` / `_S_vtable`), binding at construction. The **key encoding difference** is **open vs closed**: virtual lets you add `Derived` elsewhere; `variant` fixes every alternative in `variant<Ts...>`. Full theory: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html).
+**Same type-erasure mechanism as virtual** — uniform interface (`variant<Ts...>`), runtime tag (`index()`), redirect table (`__do_visit` / `_S_vtable`), binding at construction. The **key encoding difference** is **open vs closed**: virtual lets you add `Derived` elsewhere; `variant` fixes every alternative in `variant<Ts...>`. Full theory: [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html).
 
 * toc
 {:toc}
@@ -34,7 +34,7 @@ std::variant<int, std::string> v = 42;
 
 Adding a new alternative means changing the type to e.g. `variant<int, string, double>` and **recompiling** — the closed set is a compile-time contract, not a runtime discovery.
 
-The same rule applies to [virtual Visitor double dispatch](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html): `Circle`, `Rectangle`, `visitCircle`, and `visitRectangle` are all known when you build; runtime only selects among them. See [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) for the open-hierarchy case with `dynamic_cast`.
+The same rule applies to [virtual Visitor double dispatch](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html): `Circle`, `Rectangle`, `visitCircle`, and `visitRectangle` are all known when you build; runtime only selects among them. See [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) for the open-hierarchy case with `dynamic_cast`.
 
 ## Double dispatch on a closed type set — and how it differs from virtual dispatch
 
@@ -128,7 +128,7 @@ Copy, move, and assignment reuse **`__raw_idx_visit`** — the same index-driven
 
 ## Index + table dispatch (type erasure)
 
-`std::variant` / `std::visit` use the **same type-erasure core** as virtual dispatch — uniform interface, runtime tag, redirect table, binding at construction. See [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) for the full treatment. What differs is **encoding** and **open vs closed**:
+`std::variant` / `std::visit` use the **same type-erasure core** as virtual dispatch — uniform interface, runtime tag, redirect table, binding at construction. See [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) for the full treatment. What differs is **encoding** and **open vs closed**:
 
 | | Virtual ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)) | `variant` / `visit` ([Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)) |
 | --- | --- | --- |
@@ -203,7 +203,7 @@ Both pursue **double dispatch in intent** (element tag + operation). Virtual dis
 - **Key difference: open vs closed** — virtual: user can implement new `Derived` elsewhere; `variant`: author must list all possible types in `variant<Ts...>`.
 - Each **`std::visit(callable, v)`** ≈ a new visitor derived class with its own handler table; runtime reads `index()` and jumps to the matching branch within that instantiation.
 - **Double dispatch axis 2** differs in encoding: virtual uses a second runtime vtable on `Visitor&`; `variant` uses separate monomorphized call sites per operation.
-- Details: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) (type erasure); [Double Dispatch and the Visitor Pattern](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html) (virtual double dispatch); RTTI in [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html).
+- Details: [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) (type erasure); [Double Dispatch and the Visitor Pattern](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html) (virtual double dispatch); RTTI in [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html).
 
 ## References
 
@@ -211,6 +211,6 @@ Both pursue **double dispatch in intent** (element tag + operation). Virtual dis
 - [std::visit — cppreference](https://en.cppreference.com/w/cpp/utility/variant/visit2)
 - [libstdc++ `include/std/variant` — GCC mirror](https://github.com/gcc-mirror/gcc/blob/master/libstdc++-v3/include/std/variant)
 - [Double Dispatch and the Visitor Pattern in C++](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html)
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) (fn-ptr dispatch vocabulary)
-- [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) (type erasure theory)
-- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) (open hierarchy, RTTI recovery)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) (fn-ptr dispatch vocabulary)
+- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) (type erasure theory)
+- [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) (open hierarchy, RTTI recovery)

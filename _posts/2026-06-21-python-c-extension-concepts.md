@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part VIII — Extensions vs Bindings"
+title:  "Python/C VIII — Extensions vs Bindings"
 date:   2026-06-21 10:17:40 +0800
 tags: [python]
 ---

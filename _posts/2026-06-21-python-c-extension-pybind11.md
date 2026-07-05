@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part VII — pybind11 Internals and ctypes Contrast"
+title:  "Python/C VII — pybind11"
 date:   2026-06-21 09:00:00 +0800
 tags: [python]
 ---

@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part VI — ROS 2 Message Bindings"
+title:  "Python/C VI — ROS 2 Bindings"
 date:   2026-06-20 14:00:00 +0800
 tags: [python]
 ---
@@ -12,7 +12,7 @@ This article is Part VI of the Python C extension series. [Part I — Overview](
 
 All paths, filenames, and CMake behavior below come from building [`ros2_binding_demo`](https://github.com/shan-weiqiang/python/tree/main/ros2_binding_demo) on **ROS 2 Jazzy** (Ubuntu 24.04 Noble, Python 3.12, `aarch64`).
 
-For the C-side typesupport dispatcher, see [Type Erasure Part IV — ROS 2 Message Type System](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html). Part VI walks the **Python-specific** layers in full detail.
+For the C-side typesupport dispatcher, see [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html). Part VI walks the **Python-specific** layers in full detail.
 
 Runnable demo: [ros2_binding_demo](https://github.com/shan-weiqiang/python/tree/main/ros2_binding_demo) in the [python](https://github.com/shan-weiqiang/python) repository.
 
@@ -38,7 +38,7 @@ python3 verify_bindings.py
 
 ROS 2 Jazzy uses a layered architecture for Python bindings, separating pure Python classes, C conversion functions, and typesupport implementations. This section covers the binding architecture, the dispatcher pattern, and how `rclpy` interacts with message typesupport — using artifacts from a real `colcon build` of `demo_pkg`.
 
-All examples use `demo_pkg/msg/DemoStatus` from the demo workspace — the same package as [Type Erasure Part IV](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html).
+All examples use `demo_pkg/msg/DemoStatus` from the demo workspace — the same package as [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html).
 
 ---
 
@@ -461,7 +461,7 @@ static const rosidl_message_type_support_t _DemoStatus_message_type_support_hand
 };
 ```
 
-[Type Erasure Part IV](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html) walks the full `dlopen` / `dlsym` chain.
+[Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html) walks the full `dlopen` / `dlsym` chain.
 
 #### Library loading chain
 

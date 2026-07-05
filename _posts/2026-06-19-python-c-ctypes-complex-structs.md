@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part IV — ctypes Structs and Handles"
+title:  "Python/C IV — Structs & Handles"
 date:   2026-06-19 19:30:00 +0800
 tags: [python]
 ---

@@ -1,19 +1,19 @@
 ---
 layout: post
-title:  "Type Erasure: Part VIII — Final Thoughts"
+title:  "Type Erasure VIII — Final Thoughts"
 date:   2026-07-05 14:00:00 +0800
 tags: [data-typing]
 ---
 
 Previously:
 
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure Part Three: Downsides and Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
-- [Type Erasure Part Four: ROS 2 Message Type System](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
-- [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
-- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
-- [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
+- [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
+- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
+- [Type Erasure VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
 
 Parts I–VII walked through mechanisms — virtual dispatch, `std::function`, ROS 2 handles, `std::variant`, RTTI, and `std::any`. This closing part states what they share: **one type-erasure core**, **unchanged static typing**, **generalization as the real payoff**, and **type recovery** as the deliberate reverse when you must name a concrete type again.
 
@@ -60,7 +60,7 @@ After construction, the **interface** no longer names the active type. **Dispatc
 
 ### ROS 2 — same signature, per-message generated entry
 
-[Part IV — ROS 2](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html) is the same pattern at ecosystem scale. Middleware and `rcl`/`rclcpp` hold **`const rosidl_message_type_support_t *`** — one handle type — not `demo_pkg::msg::DemoStatus` at every call site. Each message type gets its **own** `extern "C"` entry function at **codegen** time; every entry shares the **same signature**:
+[Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html) is the same pattern at ecosystem scale. Middleware and `rcl`/`rclcpp` hold **`const rosidl_message_type_support_t *`** — one handle type — not `demo_pkg::msg::DemoStatus` at every call site. Each message type gets its **own** `extern "C"` entry function at **codegen** time; every entry shares the **same signature**:
 
 ```cpp
 // Generated once per message type — same return type and signature for all messages
@@ -207,7 +207,7 @@ Most code should call `draw()` on `Shape&` or hold `std::any` in a generic pipel
 
 ## References
 
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
-- [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
+- [Type Erasure VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
 - [C++ Type Erasure Demystified — Fedor G Pikus (C++Now 2024)](https://www.youtube.com/watch?v=p-qaf6OS_f4)

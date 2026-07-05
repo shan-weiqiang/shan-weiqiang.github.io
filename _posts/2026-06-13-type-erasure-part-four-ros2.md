@@ -1,15 +1,15 @@
 ---
 layout: post
-title:  "Type Erasure: Part IV — ROS 2 Message Type System"
+title:  "Type Erasure IV — ROS 2 Messages"
 date:   2026-06-13 10:00:00 +0800
 tags: [data-typing]
 ---
 
 Previously:
 
-- [Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 
 
 Now:
@@ -582,4 +582,4 @@ Each returns that layer's static handle when the corresponding library is linked
 
 ROS 2 adds **library-scale structure** on top of Part I's core — four layers (definition, dispatcher, FastDDS, introspection), dual C/C++ tracks, package `.so` files versus per-message symbols — but the underlying type-erasure engine is unchanged: **template-generated and macro-generated functions with the same signature**, bound at compile time, dispatched at runtime through function pointers.
 
-For a related static-generation design, see [Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html). JSON's runtime model is in [Type systems and JSON](https://shan-weiqiang.github.io/2025/08/10/type-system-json.html).
+For a related static-generation design, see [Type Systems II — Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html). JSON's runtime model is in [Type Systems III — JSON Types](https://shan-weiqiang.github.io/2025/08/10/type-system-json.html).

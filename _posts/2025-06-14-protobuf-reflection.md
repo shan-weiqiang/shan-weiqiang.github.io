@@ -1,12 +1,12 @@
 ---
 layout: post
-title:  "Type Systems: Part II — Protobuf Reflection"
+title:  "Type Systems II — Protobuf Reflection"
 date:   2025-06-14 9:22:46 +0800
 tags: [data-typing]
 ---
 
 Previously:
-- [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
+- [Type Systems I — Data & Type Format](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
 
 
 ## GPB Workflow 

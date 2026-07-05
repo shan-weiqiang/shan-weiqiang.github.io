@@ -1,14 +1,14 @@
 ---
 layout: post
-title:  "Type Systems: Part IV — Python Runtime Types"
+title:  "Type Systems IV — Python Runtime Types"
 date:   2025-08-10 9:22:46 +0800
 tags: [data-typing]
 ---
 
 Previously:
-- [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
-- [Type systems: Part II Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html)
-- [Type systems: Part III Json](https://shan-weiqiang.github.io/2025/08/10/type-system-json.html)
+- [Type Systems I — Data & Type Format](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
+- [Type Systems II — Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html)
+- [Type Systems III — JSON Types](https://shan-weiqiang.github.io/2025/08/10/type-system-json.html)
 
 
 Now:

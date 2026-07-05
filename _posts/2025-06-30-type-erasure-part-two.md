@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Type Erasure: Part II — How std::function Works"
+title:  "Type Erasure II — std::function"
 date:   2025-06-29 10:00:00 +0800
 tags: [data-typing]
 ---
@@ -34,4 +34,4 @@ This data and code binding during compile time is at the core of how type erasur
 
 ![std::function Implementation](/assets/images/std_function.png)
 
-For type erasure of **stored values** (not callables) with the same `_M_manager` pattern, see [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html).
+For type erasure of **stored values** (not callables) with the same `_M_manager` pattern, see [Type Erasure VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html).

@@ -1,16 +1,16 @@
 ---
 layout: post
-title:  "Type Erasure: Part V — std::variant"
+title:  "Type Erasure V — std::variant"
 date:   2026-07-05 10:00:00 +0800
 tags: [data-typing]
 ---
 
 Previously:
 
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)
-- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure Part Three: Downsides and Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
-- [Type Erasure Part Four: ROS 2 Message Type System](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)
+- [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
+- [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
 
 [Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) introduced type erasure through virtual inheritance and summarized [`std::variant`](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html#stdvariant) in the same terms. This part develops that summary in full: **`std::variant<Ts...>` is type erasure** — the same core mechanism as virtual inheritance on an inheritance hierarchy: one **interface** at the use site, **runtime tag**, **redirect table**, **binding fixed at construction**. What differs is **encoding**, not the erasure model. The **key difference** from virtual: **closed** alternative set (`variant` lists every `Ti` in the type) vs **open** set (new `Derived` can be added elsewhere).
 
@@ -127,7 +127,7 @@ Neither pattern introduces types at runtime that were absent from the build. Bot
 
 ## What this is not
 
-- **Not RTTI** — no `type_info` or `dynamic_cast`; see [Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) for identity recovery on open hierarchies.
+- **Not RTTI** — no `type_info` or `dynamic_cast`; see [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) for identity recovery on open hierarchies.
 - **Not erasing the visit callable** — unless you wrap it in `std::function` yourself; `visit` monomorphizes your lambda type.
 - **Not runtime typing** — every `Ti` is listed in `variant<Ts...>` before the program runs.
 
@@ -137,13 +137,13 @@ Neither pattern introduces types at runtime that were absent from the build. Bot
 - **Same mechanism as virtual** — tag (index ≈ vtable slot), table (visit/lifetime thunks ≈ vtable entries), uniform interface at the use site.
 - **Key difference: open vs closed** — virtual lets users add `Derived` elsewhere; `variant` requires every possible type in the template list.
 - **Each `std::visit(callable, v)`** ≈ a new visitor class with its own handler table, selected by `index()`.
-- **Double dispatch** on a closed set: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html). **Open stored-value erasure:** [Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html). **RTTI recovery on open hierarchies:** [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html).
+- **Double dispatch** on a closed set: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html). **Open stored-value erasure:** [Type Erasure VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html). **RTTI recovery on open hierarchies:** [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html).
 
 ## References
 
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
-- [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
+- [Type Erasure VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
 - [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html)
 - [Double Dispatch and the Visitor Pattern in C++](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html)
 - [std::variant — cppreference](https://en.cppreference.com/w/cpp/utility/variant)

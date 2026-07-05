@@ -1,13 +1,13 @@
 ---
 layout: post
-title:  "Type Systems: Part III — JSON Types"
+title:  "Type Systems III — JSON Types"
 date:   2025-08-10 9:22:46 +0800
 tags: [data-typing]
 ---
 
 Previously:
-- [Type systems: Part I](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
-- [Type systems: Part II Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html)
+- [Type Systems I — Data & Type Format](https://shan-weiqiang.github.io/2024/07/14/understanding-types.html)
+- [Type Systems II — Protobuf Reflection](https://shan-weiqiang.github.io/2025/06/14/protobuf-reflection.html)
 
 Now:
 - json itself is a kind of *data format*, NOT *type format*. To operate on json, we need a *type format*, which is the program to operate json data. This program might be a dynamic typing system, like `nolmann::json` or static typing system, for example a program that can only parse data that are of specific json format.
@@ -107,9 +107,9 @@ message AgeObject {
 ```
 This is how the `nlohmann::json` dynamically represents all json data. At it's core, it actually is a *type erasure* system. All json data, whether it's numbers, strings, binary, object , list are type erased and be represent using one single type. Type erasure happens during construction, *when the binding of constructor and destructor is finished*, through `value_t`, which is enum to represent type of json data. Different `value_t` will be created and destructed differently. This is the core idea of *type erasure*: **hide specific type information in implementation, while in the interface expose unified type representation and complete the binding during construction.**.
 
-- [Type Erasure: Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure Part Three: The Downside](https://shan-weiqiang.github.io/2025/07/08/type-erasure-part-three.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/08/type-erasure-part-three.html)
   
 ```c++
     /*!

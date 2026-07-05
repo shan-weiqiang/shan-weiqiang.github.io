@@ -1,18 +1,18 @@
 ---
 layout: post
-title:  "Type Erasure: Part VII — std::any"
+title:  "Type Erasure VII — std::any"
 date:   2026-07-05 13:00:00 +0800
 tags: [data-typing]
 ---
 
 Previously:
 
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure Part Three: Downsides and Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
-- [Type Erasure Part Four: ROS 2 Message Type System](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
-- [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
-- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
+- [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
+- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
 
 [Part II](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html) showed type erasure of **callables** via `std::function` — `_M_manager` and `_M_invoker` hide the concrete lambda or function object behind one signature. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) showed erasure of a **closed** stored-value set via `std::variant<Ts...>`. This part covers **[`std::any`](https://en.cppreference.com/w/cpp/utility/any)** — **open-set** erasure of **stored values**: one public type name at the call site, any copy-constructible `T` at each construction, recovered later via `any_cast`.
 
@@ -213,7 +213,7 @@ libstdc++ `__any_caster<T>`:
 
 Then `_Manager<U>::_S_access(_M_storage)` returns `T*`. Mismatch throws [`bad_any_cast`](https://en.cppreference.com/w/cpp/utility/any/bad_any_cast).
 
-[`any::type()`](https://en.cppreference.com/w/cpp/utility/any/type) uses `_Op_get_type_info` when RTTI is enabled — links to [Part VI — RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). The **primary** cast path does not need `type_info`; the manager address **is** the tag.
+[`any::type()`](https://en.cppreference.com/w/cpp/utility/any/type) uses `_Op_get_type_info` when RTTI is enabled — links to [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). The **primary** cast path does not need `type_info`; the manager address **is** the tag.
 
 Contrast [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html): `variant` uses **`index()`** into a **closed** table; `any` uses **manager address** into an **open** per-`T` handler generated at each construction site.
 
@@ -244,7 +244,7 @@ else if (a.type() == b.type())
   ; // same stored type (check has_value separately for empty)
 ```
 
-`a.type() == b.type()` compares **`type_info` identity** ([Part VI — RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)) — same mechanism `any_cast` uses as fallback. Empty `any` reports `typeid(void)`; two empty anys have matching types.
+`a.type() == b.type()` compares **`type_info` identity** ([Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)) — same mechanism `any_cast` uses as fallback. Empty `any` reports `typeid(void)`; two empty anys have matching types.
 
 Without RTTI at the call site, the implementation still compares **manager pointers** inside `any_cast`; for two anys you could compare `has_value()` and rely on casting (below), but **`type()` is the portable public API** when enabled.
 
@@ -292,7 +292,7 @@ Lifetime stays fully erased behind the unified manager signature. **Value equali
 - **`type()` needs RTTI** — when disabled, rely on manager-pointer equality for `any_cast`.
 - **No visitation protocol** — unlike `variant`/`visit` or virtual Visitor; you recover with `any_cast` or compare `type()`. No `operator==` on two `any`s — see [Comparing two `std::any` objects](#comparing-two-stdany-objects).
 
-See [Part III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html) for general type-erasure costs.
+See [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html) for general type-erasure costs.
 
 ## Summary
 
@@ -303,15 +303,15 @@ See [Part III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-er
 - **Open set** — any copy-constructible `T` per construction; contrast closed `variant<Ts...>` in [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html).
 - **No built-in value comparison** — no `operator==`; compare types via `type()`, then values via `any_cast<T>` after naming `T`.
 - **Same manager pattern as Part II** — but erases **value**, not callable; recovery via **`any_cast`** (manager address ≈ tag).
-- **Series synthesis:** [Part VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html).
+- **Series synthesis:** [Type Erasure VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html).
 
 ## References
 
-- [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
-- [Type Erasure: Part II — How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
-- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
-- [Type Erasure: Part VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html)
+- [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
+- [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
+- [Type Erasure VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html)
 - [std::any — cppreference](https://en.cppreference.com/w/cpp/utility/any)
 - [std::any_cast — cppreference](https://en.cppreference.com/w/cpp/utility/any/any_cast)
 - [libstdc++ `include/std/any` — GCC mirror](https://github.com/gcc-mirror/gcc/blob/master/libstdc++-v3/include/std/any)

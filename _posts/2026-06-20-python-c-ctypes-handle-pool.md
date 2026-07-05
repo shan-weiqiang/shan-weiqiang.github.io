@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Python C Extensions: Part V — ctypes Handle Pool"
+title:  "Python/C V — Handle Pool"
 date:   2026-06-20 10:00:00 +0800
 tags: [python]
 ---

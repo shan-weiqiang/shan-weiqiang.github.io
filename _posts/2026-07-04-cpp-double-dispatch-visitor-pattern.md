@@ -934,7 +934,7 @@ Virtual Visitor and `std::variant`/`std::visit` share the **same type-erasure me
 - **Open (virtual):** new shapes and visitors can be added in other translation units; call sites hold `Shape&` / `Visitor&`.
 - **Closed (`variant`):** every alternative is fixed in `variant<Ts...>`; dispatch uses `index()` + table instead of vtable slots.
 
-Full treatment of `variant` as type erasure: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html). RTTI recovery on open hierarchies: [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). Closed-set double dispatch: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
+Full treatment of `variant` as type erasure: [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html). RTTI recovery on open hierarchies: [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). Closed-set double dispatch: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
 
 # Golden rules
 
