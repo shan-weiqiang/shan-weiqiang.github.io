@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Double Dispatch with std::variant and std::visit"
-date:   2026-07-06 10:00:00 +0800
+date:   2026-07-05 10:00:00 +0800
 tags: [cpp]
 ---
 
