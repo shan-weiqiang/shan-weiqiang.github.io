@@ -251,3 +251,4 @@ After *construction* the binding is fixed and can not be changed.
 - **Manager pointer as tag** — `_M_manager` points at `_Manager<T>::_S_manage`, a type-specific static function; all lifetime ops (`destroy`, `clone`, `move`) dispatch through **one unified function-pointer signature** with opcodes — parallel to [`std::function`'s `_M_manager`](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html).
 - **Open set** — any copy-constructible `T` at each construction site; contrast **closed** [`std::variant<Ts...>`](#stdvariant). Public ctor/dtor/copy/move signatures never name `T`; per-type logic lives in `_Manager<T>` instantiated at the bind site.
 - Full treatment: [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html).
+- Series synthesis: [Type Erasure: Part VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html).

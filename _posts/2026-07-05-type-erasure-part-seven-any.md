@@ -303,6 +303,7 @@ See [Part III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-er
 - **Open set** — any copy-constructible `T` per construction; contrast closed `variant<Ts...>` in [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html).
 - **No built-in value comparison** — no `operator==`; compare types via `type()`, then values via `any_cast<T>` after naming `T`.
 - **Same manager pattern as Part II** — but erases **value**, not callable; recovery via **`any_cast`** (manager address ≈ tag).
+- **Series synthesis:** [Part VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html).
 
 ## References
 
@@ -310,6 +311,7 @@ See [Part III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-er
 - [Type Erasure: Part II — How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
 - [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
 - [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
+- [Type Erasure: Part VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html)
 - [std::any — cppreference](https://en.cppreference.com/w/cpp/utility/any)
 - [std::any_cast — cppreference](https://en.cppreference.com/w/cpp/utility/any/any_cast)
 - [libstdc++ `include/std/any` — GCC mirror](https://github.com/gcc-mirror/gcc/blob/master/libstdc++-v3/include/std/any)

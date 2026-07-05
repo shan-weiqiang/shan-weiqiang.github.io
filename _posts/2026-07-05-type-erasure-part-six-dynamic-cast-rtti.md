@@ -182,3 +182,5 @@ C++ is **statically typed**: runtime dispatch — virtual, type-erased, or RTTI 
 Parts I–V **hide type at the call site** and dispatch **behavior** through uniform interfaces (vtable on open hierarchies; index + table on `variant`). Part VI adds: on polymorphic objects, **type identity survives as metadata**, and RTTI lets you **name** a derived type in source and **verify** it at runtime before using derived-only APIs.
 
 **Rule of thumb:** use virtual dispatch and type erasure when call sites should not name concrete types; use `dynamic_cast` sparingly when a specific call site **must** name and verify `T` — understanding that `T` was always a compile-time commitment.
+
+Full series synthesis: [Type Erasure: Part VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html).
