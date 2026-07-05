@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Double Dispatch with std::variant and std::visit"
-date:   2026-07-05 10:00:00 +0800
+date:   2026-07-05 11:00:00 +0800
 tags: [cpp]
 ---
 
@@ -11,7 +11,7 @@ Both posts are about **double dispatch** — picking behavior when element type 
 
 **Foundation:** C++ is **statically typed**. A `variant<int, std::string>` does not hold “some unknown type” at runtime — it holds **one of** `int` or `string`, both declared in the type before the program runs. `std::visit` must provide a handler for **every** alternative; if any is missing, the program **does not compile**. Runtime reads `index()` and picks among branches the compiler already generated.
 
-**Not type erasure:** `variant` and `visit` implement **double dispatch by index** — union storage plus an active-index tag, then a compile-generated branch table. Every alternative’s ctor, dtor, and visit thunk is instantiated as a **concrete** `Ti`; nothing is erased behind a single runtime-polymorphic interface like [`std::function`](https://en.cppreference.com/w/cpp/utility/functional/function) or the wrappers in [Type Erasure Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html). That distinction is the key to understanding every `variant` / `visit` usage.
+**Same type-erasure mechanism as virtual** — uniform interface (`variant<Ts...>`), runtime tag (`index()`), redirect table (`__do_visit` / `_S_vtable`), binding at construction. The **key encoding difference** is **open vs closed**: virtual lets you add `Derived` elsewhere; `variant` fixes every alternative in `variant<Ts...>`. Full theory: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html).
 
 * toc
 {:toc}
@@ -34,11 +34,11 @@ std::variant<int, std::string> v = 42;
 
 Adding a new alternative means changing the type to e.g. `variant<int, string, double>` and **recompiling** — the closed set is a compile-time contract, not a runtime discovery.
 
-The same rule applies to [virtual Visitor double dispatch](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html): `Circle`, `Rectangle`, `visitCircle`, and `visitRectangle` are all known when you build; runtime only selects among them. See [Type Erasure Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-dynamic-cast-rtti.html) for the open-hierarchy case with `dynamic_cast`.
+The same rule applies to [virtual Visitor double dispatch](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html): `Circle`, `Rectangle`, `visitCircle`, and `visitRectangle` are all known when you build; runtime only selects among them. See [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) for the open-hierarchy case with `dynamic_cast`.
 
 ## Double dispatch on a closed type set — and how it differs from virtual dispatch
 
-When you call `std::visit(visitor, v)` on `std::variant<int, std::string> v`, **runtime dispatch happens** — but it is **index dispatch**, not type erasure. There is no uniform signature (like `Base&` or `operator()`) hiding different concrete implementations behind one interface.
+When you call `std::visit(visitor, v)` on `std::variant<int, std::string> v`, **runtime dispatch happens** — **index + table dispatch**, the same type-erasure core as vtable redirection ([Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)). You hold `variant<int, string>` at the use site, not `int&` or `string&`, until dispatch reads `index()` and jumps through the table.
 
 Within **one** `std::visit` call, the library:
 
@@ -76,12 +76,11 @@ Each call is a **unique template instantiation** — determined by the exact cal
 | --- | --- | --- |
 | **1 — stored / element type** | Runtime: virtual `accept` → `visitCircle(c)` | Runtime: `index()` → invoke with `int&` or `string&` |
 | **2 — operation / visitor type** | Runtime: virtual `visitXxx` on a shared `Visitor&` | **Compile time per call site:** each `std::visit(different_callable, v)` is its own monomorphized implementation |
-| Uniform interface? | Yes — `Visitor` base, `Shape&` | **No** — no erased signature; callable type is explicit in each instantiation |
-| Type erasure? | **Yes** — `Shape&` / `Visitor&` hide concrete types; vtable dispatch ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)) | **No** — concrete `Ti` and concrete callable type in each `visit` instantiation |
+| Uniform interface? | Yes — `Visitor` base, `Shape&` | Yes — `variant<Ts...>` at the use site |
+| Type erasure? | **Yes** — `Shape&` / `Visitor&` hide concrete types; vtable dispatch ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)) | **Yes** — `variant<Ts...>` hides active alternative; `index()` + table dispatch ([Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)) |
+| **Open vs closed** | **Open** — new `Derived` can be added elsewhere | **Closed** — every `Ti` fixed in `variant<Ts...>` |
 
-**Analogy that makes them comparable:** treat each `std::visit(my_callable, v)` as one concrete visitor implementation (like `PrintVisitor : Visitor`). The *intent* of double dispatch — pick behavior by element type **and** by operation — is the same. But the mechanism behind is totally different.
-
-**Virtual Visitor erases type at the call site; `variant`/`visit` does not.** [Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html) treats virtual inheritance as a form of type erasure: call sites hold `Shape&` / `Visitor&`, and the vtable recovers the concrete override at runtime. `variant`/`visit` keep every `Ti` and every callable type in the monomorphized code — runtime only uses `index()` to choose **which compile-time-known branch** of **this** instantiation to run.
+**Analogy that makes them comparable:** treat each `std::visit(my_callable, v)` as one concrete visitor implementation (like `PrintVisitor : Visitor`). The *intent* of double dispatch — pick behavior by element type **and** by operation — is the same. Both use the **same type-erasure mechanism** (uniform interface, runtime tag, redirect table); the **key difference** is **open vs closed** alternative set.
 
 ## What std::variant stores
 
@@ -125,21 +124,22 @@ Only **`~T` for the active `T`** runs — and `T` is always one of the alternati
 
 ![variant destruction flow: ~variant, _M_reset, __do_visit, index dispatch, _Destroy of active T](/assets/images/cpp_variant_destruction_flow.png)
 
-Copy, move, and assignment reuse **`__raw_idx_visit`** — the same index-driven dispatch for every special member function. Construction placement-news the **real** `T_N` into slot `N`; destruction calls the **real** `~T` for the active member only. Lifetime is index dispatch on concrete types, not a type-erased factory.
+Copy, move, and assignment reuse **`__raw_idx_visit`** — the same index-driven dispatch for every special member function. Construction placement-news the **real** `T_N` into slot `N`; destruction calls the **real** `~T` for the active member only. Lifetime uses the same tag+table erasure core as `std::visit`.
 
-## Index dispatch, not type erasure
+## Index + table dispatch (type erasure)
 
-`std::variant` / `std::visit` are often grouped with “type erasure” because they store different types behind one object and use function-pointer tables at runtime. The mechanism is different:
+`std::variant` / `std::visit` use the **same type-erasure core** as virtual dispatch — uniform interface, runtime tag, redirect table, binding at construction. See [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) for the full treatment. What differs is **encoding** and **open vs closed**:
 
-| | Type erasure / virtual ([Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)) | `variant` / `visit` |
+| | Virtual ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)) | `variant` / `visit` ([Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)) |
 | --- | --- | --- |
-| Allowed types | Open hierarchy; concrete type hidden at `Base&` call site | **Closed list** in `variant<Ts...>` |
-| What runtime selects | Which **vtable** / erased object | Which **index** into `{T1…Tn}` is active |
-| Ctor / dtor | Virtual or fn-ptr on **one erased interface** | Real **`Ti` ctor/dtor** at compile-known slot `i` |
-| Callable in `visit` | N/A | **Not** erased — `Visitor` is a template parameter |
-| Compiler output | One interface type; concrete types behind vtable | **Monomorphized** per `Ti` and per callable |
+| Type erasure? | **Yes** | **Yes** |
+| **Open vs closed** | **Open** — new `Derived` elsewhere | **Closed** — every `Ti` in `variant<Ts...>` |
+| Runtime tag | vtable pointer + slot | `index()` |
+| Redirect table | vtable | `_S_vtable` / `__do_visit` thunks |
+| Callable in `visit` | N/A | **Not** erased — monomorphized per call site (contrast `std::function`) |
+| Compiler output | One interface type; concrete types behind vtable | Monomorphized per `Ti` and per callable; tag+table for axis 1 |
 
-[Type Erasure Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html) hides concrete type at the call site (`void*`, `Base&`, vtable) — virtual Visitor is in this camp. `variant<int, string>` **lists** its alternatives in the type name; `std::visit` monomorphizes each callable. That is **tagged union + index dispatch**, not erased behavior.
+Both hide the active concrete type at the use site until dispatch. Virtual uses vtable encoding on an **open** hierarchy; `variant` uses index + function table on a **closed** list.
 
 ### What the compiler generates (all concrete)
 
@@ -153,9 +153,11 @@ For `std::variant<int, float, std::string>`, the implementation is fully special
 Nothing in that pipeline forgets which `Ti` or which visitor type you passed. The function-pointer table libstdc++ builds (`_S_vtable` of `__visit_invoke` thunks) dispatches **index → call visitor with `int&` vs `string&`**. It does **not** erase your lambda into a generic callable the way `std::function` does.
 
 ```text
-Type erasure:  interface → (vtable) → forgotten concrete type
-variant/visit: variant<Ts...> + index → (index table) → known concrete Ti or Visitor
+Virtual:       Shape& → (vtable tag) → vtable → concrete override
+variant/visit: variant<Ts...> → (index tag) → table → concrete Ti handler
 ```
+
+Both erase the active type at the use site; `index()` ≈ vtable tag, function table ≈ vtable entries.
 
 ### Each `std::visit` call is a unique instantiation
 
@@ -183,7 +185,7 @@ Your handlers in `std::visit` are **not** virtual methods on a `Visitor` base cl
 | Visitor API | Virtual `visitCircle`, `visitRectangle` on one `Visitor` base | **No base class** — each operation = new callable at new call site |
 | Dispatch axis 1 (element) | Runtime virtual `accept` on element | Runtime `index()` → `Ti&` |
 | Dispatch axis 2 (operation) | Runtime virtual `visitXxx` on visitor object | **Compile time:** separate `std::visit(callable, v)` per operation |
-| Uniform signature? | `Visitor&` + `Shape&` | **No** — monomorphized per `(Visitor, variant<Ts...>)` |
+| Uniform signature? | `Visitor&` + `Shape&` | `variant<Ts...>` at use site; callable monomorphized per call site |
 | Library "vtable" | User-defined on element + visitor | `_S_vtable` of `__visit_invoke` thunks (axis 1 only) |
 
 ```text
@@ -192,18 +194,16 @@ visit:    std::visit(callable, v)     →  1 runtime index dispatch + callable f
           std::visit(other_callable, v)  →  separate monomorphization ≈ new Visitor subclass
 ```
 
-Both pursue **double dispatch in intent** (element tag + operation). Virtual dispatch runs **both** selections at runtime through **type-erased** shared bases (`Shape&`, `Visitor&`) and vtables. `std::visit` runs **one** runtime selection (`index()`); the operation dimension is **which call site / which callable you compiled**. Virtual Visitor **is** type erasure ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)); `variant`/`visit` is index dispatch on a closed, monomorphized type list.
+Both pursue **double dispatch in intent** (element tag + operation). Virtual dispatch runs **both** selections at runtime through shared bases (`Shape&`, `Visitor&`) and vtables. `std::visit` runs **one** runtime selection (`index()`); the operation dimension is **which call site / which callable you compiled**. Both use the **same type-erasure mechanism**; the **key difference** is **open vs closed** ([Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)).
 
 
 ## Summary
 
-**Key findings:**
-
-- **`std::variant` / `std::visit` use dispatch; they do not use type erasure.** No uniform `Base&` interface — every `Ti` and every callable type stays concrete in the generated code.
-- **Virtual Visitor double dispatch does use type erasure** — `Shape&` and `Visitor&` at call sites, vtable recovery at runtime ([Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)).
-- **Each `std::visit` call is unique** — monomorphized from the exact callable and exact `variant<Ts...>` passed in. Runtime reads `index()` and jumps to the matching branch **within that instantiation**.
-- **“Double dispatch” is not the same as virtual double dispatch.** Axis 1 (which alternative is stored) is runtime index dispatch, comparable to virtual `accept`. Axis 2 (which operation runs) is **not** a second runtime vtable on a visitor object — it is **separate call sites** with **different callables**, like writing a new derived `Visitor` class per operation but bound statically at each call.
-- **Comparable intent, different mechanism:** if you treat each `std::visit(my_callable, v)` as one visitor implementation, the patterns align on *what* they achieve; they diverge on *how* the operation axis is selected (runtime virtual vs compile-time call-site monomorphization) and on axis 1 (vtable slot vs `index()`).
+- **Same type-erasure mechanism:** uniform interface, runtime tag, redirect table, binding at construction — for both virtual and `variant`/`visit`.
+- **Key difference: open vs closed** — virtual: user can implement new `Derived` elsewhere; `variant`: author must list all possible types in `variant<Ts...>`.
+- Each **`std::visit(callable, v)`** ≈ a new visitor derived class with its own handler table; runtime reads `index()` and jumps to the matching branch within that instantiation.
+- **Double dispatch axis 2** differs in encoding: virtual uses a second runtime vtable on `Visitor&`; `variant` uses separate monomorphized call sites per operation.
+- Details: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) (type erasure); [Double Dispatch and the Visitor Pattern](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html) (virtual double dispatch); RTTI in [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html).
 
 ## References
 
@@ -212,4 +212,5 @@ Both pursue **double dispatch in intent** (element tag + operation). Virtual dis
 - [libstdc++ `include/std/variant` — GCC mirror](https://github.com/gcc-mirror/gcc/blob/master/libstdc++-v3/include/std/variant)
 - [Double Dispatch and the Visitor Pattern in C++](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html)
 - [Type Erasure: Part I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) (fn-ptr dispatch vocabulary)
-- [Type Erasure: Part V — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-dynamic-cast-rtti.html) (open hierarchy contrast)
+- [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) (type erasure theory)
+- [Type Erasure: Part VI — dynamic_cast and RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html) (open hierarchy, RTTI recovery)

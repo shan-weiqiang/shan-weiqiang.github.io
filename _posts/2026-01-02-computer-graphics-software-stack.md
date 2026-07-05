@@ -146,95 +146,20 @@ Finally, the OS takes the rendered content and:
 
 ## Complete Workflow
 
-The following mermaid diagram illustrates the complete workflow from user interaction to display:
+The following sequence diagram illustrates the complete workflow from user interaction to display:
 
+![User interaction to display: mouse click through OS, UI framework, application, graphics library, GPU, and monitor](/assets/images/computer_graphics_user_interaction_display_flow.png)
 
-The same workflow shown as a sequence diagram:
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant OS as Operating System<br/>(Windowing System)
-    participant UI as UI Framework
-    participant App as Application
-    participant GL as Graphics Library
-    participant GPU as GPU Hardware
-    participant Monitor as Display Hardware
-
-    User->>OS: Mouse Click
-    OS->>OS: Detect Mouse Click
-    OS->>OS: Determine Target Window
-    OS->>OS: Convert Global to Window Coordinates
-    OS->>UI: Send OS Event (window_x, window_y)
-    UI->>UI: Receive OS Event
-    UI->>UI: Translate to Framework Event
-    UI->>App: Deliver Click Event
-    App->>App: Process Event Logic
-    App->>App: Update State
-    App->>UI: Request Redraw
-    UI->>UI: Update Component State
-    UI->>UI: Generate Draw Commands
-    UI->>GL: Submit Draw Commands
-    
-    alt Complex Rendering
-        GL->>GPU: Submit to GPU
-        GPU->>GPU: Execute Rendering
-        GPU->>GPU: Write to Framebuffer
-        GPU-->>GL: Rendering Complete
-    else Simple Rendering
-        GL->>GL: Software Rendering
-        GL->>GL: Write to Framebuffer
-    end
-    
-    GL->>OS: Framebuffer Ready
-    OS->>OS: Composite All Windows
-    OS->>OS: Send to Display Driver
-    OS->>Monitor: Display Pixels
-    Monitor-->>User: Updated Display Visible
-```
-
-![alt text](/assets/images/howdisplayworks.svg)
+![How display works — layered workflow overview](/assets/images/howdisplayworks.svg)
 
 
 ## Window Creation and Initialization Flow
 
 The process of creating a window and setting up the rendering pipeline:
 
-```mermaid
-sequenceDiagram
-    participant App as Application
-    participant UI as UI Framework
-    participant OS as Operating System<br/>(Windowing System)
-    participant GL as Graphics Library
-    participant GPU as GPU Hardware
+![Window creation and initialization: application, UI framework, OS window allocation, graphics context setup, GPU or CPU framebuffer, event loop](/assets/images/computer_graphics_window_initialization.png)
 
-    App->>UI: Request Window Creation
-    UI->>UI: Initialize Framework
-    UI->>OS: Request Window from OS
-    OS->>OS: Allocate Window Resources
-    OS->>OS: Create Window Object
-    OS->>OS: Register Window in Window Manager
-    OS-->>UI: Return Window Handle
-    UI->>UI: Create UI Components
-    UI->>GL: Initialize Graphics Context
-    GL->>GL: Check GPU Availability
-    
-    alt GPU Available
-        GL->>GPU: Initialize GPU Context
-        GPU-->>GL: GPU Context Ready
-        GL->>GL: Allocate Framebuffer (GPU)
-    else GPU Not Available
-        GL->>GL: Use Software Rendering
-        GL->>GL: Allocate Framebuffer (CPU)
-    end
-    
-    GL-->>UI: Graphics Context Ready
-    UI->>UI: Start Event Loop
-    UI-->>App: Ready to Handle Events
-    App->>App: Application Ready to Render
-```
-
-![alt text](/assets/images/windowinitialization.svg)
+![Window initialization — layered setup overview](/assets/images/windowinitialization.svg)
 
 
 ## Key Concepts and Responsibilities

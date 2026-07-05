@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Type Erasure: Part V — dynamic_cast and RTTI"
-date:   2026-07-05 10:00:00 +0800
+title:  "Type Erasure: Part VI — dynamic_cast and RTTI"
+date:   2026-07-05 12:00:00 +0800
 tags: [data-typing]
 ---
 
@@ -11,10 +11,11 @@ Previously:
 - [Type Erasure Part Two: How std::function Works](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
 - [Type Erasure Part Three: Downsides and Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 - [Type Erasure Part Four: ROS 2 Message Type System](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
+- [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
 
-In [Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) I described type erasure as hiding concrete type information behind a uniform interface, with runtime dispatch redirecting through function pointers of the **same signature**. Virtual dispatch and `std::function` fit that model. This part covers a different runtime mechanism: **RTTI** and **`dynamic_cast`**, where dispatch is keyed by **type identity** rather than by a pre-planned behavior slot.
+In [Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) I described type erasure as hiding concrete type information behind a uniform interface, with runtime dispatch redirecting through function pointers of the **same signature**. Virtual dispatch and `std::function` fit that model. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) shows the same mechanism on a **closed** alternative list: `variant<Ts...>`, `index()` as tag, visit/lifetime tables as redirect. This part covers a **different** runtime mechanism: **RTTI** and **`dynamic_cast`**, where dispatch is keyed by **type identity** rather than by a pre-planned behavior slot.
 
-One rule underlies all of this — virtual dispatch, type erasure, RTTI, and (in the companion [variant post](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html)) `std::variant`:
+One rule underlies all of this — virtual dispatch, type erasure, RTTI, and (in the companion [variant post](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html)) `std::variant`:
 
 > **C++ is statically typed.** If your program can *use* a type, that type must be **known at compile time**. Runtime never introduces a type the compiler did not already generate code for. Runtime only **selects among** compile-time-known alternatives.
 
@@ -65,9 +66,9 @@ if (object.type_info == typeid(Circle)) {
 
 Dispatch is still runtime, but it is **not** "pick among function pointers with the same signature."
 
-![Part I virtual dispatch vs Part V RTTI dispatch: vtable behavior slot compared to type_info check](/assets/images/type_erasure_part_v_dispatch.png)
+![Part I virtual dispatch vs Part VI RTTI dispatch: vtable behavior slot compared to type_info check](/assets/images/type_erasure_part_v_dispatch.png)
 
-Closed-set tag dispatch with `std::variant` and `std::visit` is **double dispatch**, not type erasure — see [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html) and [Double Dispatch and the Visitor Pattern](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html).
+Closed-set **type erasure** with `std::variant` and `std::visit` uses the same tag+table core as virtual dispatch — see [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) and [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html). **RTTI** (this part) is different: recovery by **`type_info`**, not by index or vtable behavior slot.
 
 ## Theory behind RTTI
 
@@ -81,7 +82,7 @@ A class with at least one **virtual** function is **polymorphic**. For such type
 
 Binding of which branches exist (`dynamic_cast<Circle*>`, `dynamic_cast<Rectangle*>`) is fixed when you write the source. The **choice** among them happens at runtime — but only among types the compiler already knows.
 
-RTTI metadata lives on the **vtable** because polymorphic types already have one. That is an implementation bundle, not proof that type identity requires virtual functions in principle — [`std::variant`](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html) stores an explicit index without any virtual function. C++ simply chose to attach `type_info` to polymorphic class metadata rather than to every object.
+RTTI metadata lives on the **vtable** because polymorphic types already have one. That is an implementation bundle, not proof that type identity requires virtual functions in principle — [`std::variant`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) stores an explicit **index** tag without any virtual function. C++ simply chose to attach `type_info` to polymorphic class metadata rather than to every object.
 
 ### What runtime reads
 
@@ -97,7 +98,7 @@ All three patterns defer **which branch runs**; none defer **knowing the types**
 | Pattern | Call site names | Compile time generates | Runtime selects |
 | --- | --- | --- | --- |
 | Virtual dispatch | `Base&` only | vtable slots for each override | which override |
-| Type erasure (Part I) | erased interface only | per-type implementations | which function pointer |
+| Type erasure (Part I, Part V) | erased interface only | per-type implementations | which function pointer / index |
 | `dynamic_cast` | **`Derived`** explicitly | `type_info`, cast paths | whether object **is** that `Derived` |
 
 Virtual dispatch and inheritance **abstract the call site** away from derived types — that is the design purpose of `Base*`. `dynamic_cast` **reverses that at one line of code** by naming `Derived` again. That feels like a contradiction until you see both as **selection among compile-time-known types**, with different rules for what the caller may spell in source.
@@ -143,7 +144,7 @@ See [Double Dispatch and the Visitor Pattern — Step 7](https://shan-weiqiang.g
 
 ### What it is not
 
-RTTI does **not** let callers avoid knowing `T` at compile time — you must write `dynamic_cast<T>`. It does **not** add types at runtime that were absent from the build. It does **not** replace virtual dispatch or type erasure for open-ended generic algorithms (Parts I–IV). Overuse breaks the open/closed principle — same cost as chaining `dynamic_cast` in visitor code.
+RTTI does **not** let callers avoid knowing `T` at compile time — you must write `dynamic_cast<T>`. It does **not** add types at runtime that were absent from the build. It does **not** replace virtual dispatch or type erasure for open-ended generic algorithms (Parts I–V). Overuse breaks the open/closed principle — same cost as chaining `dynamic_cast` in visitor code.
 
 ## Examples
 
@@ -177,6 +178,6 @@ Most callers call `draw()` and never name `Circle` in source — the static type
 
 C++ is **statically typed**: runtime dispatch — virtual, type-erased, or RTTI — always **selects among types the compiler already knew**. It never introduces a usable type that was absent from the build.
 
-Parts I–IV **hide type at the call site** and dispatch **behavior** through uniform interfaces. Part V adds: on polymorphic objects, **type identity survives as metadata**, and RTTI lets you **name** a derived type in source and **verify** it at runtime before using derived-only APIs.
+Parts I–V **hide type at the call site** and dispatch **behavior** through uniform interfaces (vtable on open hierarchies; index + table on `variant`). Part VI adds: on polymorphic objects, **type identity survives as metadata**, and RTTI lets you **name** a derived type in source and **verify** it at runtime before using derived-only APIs.
 
 **Rule of thumb:** use virtual dispatch and type erasure when call sites should not name concrete types; use `dynamic_cast` sparingly when a specific call site **must** name and verify `T` — understanding that `T` was always a compile-time commitment.

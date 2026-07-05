@@ -1,0 +1,16 @@
+flowchart LR
+  subgraph runtimeTag [Runtime tag]
+    vtableSlot["vtable slot (virtual)"]
+    indexTag["index() (variant)"]
+  end
+  subgraph table [Redirect table]
+    vtableFns["vtable entries"]
+    visitThunks["visit / lifetime thunks"]
+  end
+  subgraph bind [Binding at construction]
+    ctorDerived["construct Circle"]
+    ctorVariant["variant holds int or string"]
+  end
+  bind --> runtimeTag
+  runtimeTag --> table
+  table --> concreteImpl["handler for active type"]

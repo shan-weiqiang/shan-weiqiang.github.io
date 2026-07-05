@@ -927,6 +927,15 @@ void visitCircle(Circle& c) override {
 
 You can mix both in one visitor: `other.accept(*this)` when the partner is polymorphic; `visitRectangle(other)` when you already know it is a `Rectangle&`.
 
+# Same type-erasure core, different encoding
+
+Virtual Visitor and `std::variant`/`std::visit` share the **same type-erasure mechanism**: uniform interface at the use site, runtime tag, redirect table, binding at construction. The **key difference** is **open vs closed**:
+
+- **Open (virtual):** new shapes and visitors can be added in other translation units; call sites hold `Shape&` / `Visitor&`.
+- **Closed (`variant`):** every alternative is fixed in `variant<Ts...>`; dispatch uses `index()` + table instead of vtable slots.
+
+Full treatment of `variant` as type erasure: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html). RTTI recovery on open hierarchies: [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). Closed-set double dispatch: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
+
 # Golden rules
 
 - **`accept(Visitor&)` pure virtual on the shape base** — every concrete shape must implement it.
@@ -945,4 +954,4 @@ You can mix both in one visitor: `other.accept(*this)` when the partner is polym
 2. [Double Dispatch in C++ — Vishesh Chovatiya (Medium)](https://medium.com/@visheshchovatiya/double-dispatch-in-c-7649dbdda5c9)
 3. [Double Dispatch — behnamasadi/cpp_tutorials](https://github.com/behnamasadi/cpp_tutorials/blob/master/docs/double_dispatch.md)
 4. [Double Dispatch / Visitor Design Pattern in Modern C++ — vishalchovatiya.com](https://vishalchovatiya.com/posts/double-dispatch-visitor-design-pattern-in-modern-cpp/)
-5. [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html) — closed alternative list, `index()` + static visitor overloads (companion to this post)
+5. [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html) — closed alternative list, `index()` + static visitor overloads (companion to this post)

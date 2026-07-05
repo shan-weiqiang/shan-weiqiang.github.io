@@ -1,0 +1,39 @@
+sequenceDiagram
+    participant User
+    participant OS as Operating System<br/>(Windowing System)
+    participant UI as UI Framework
+    participant App as Application
+    participant GL as Graphics Library
+    participant GPU as GPU Hardware
+    participant Monitor as Display Hardware
+
+    User->>OS: Mouse Click
+    OS->>OS: Detect Mouse Click
+    OS->>OS: Determine Target Window
+    OS->>OS: Convert Global to Window Coordinates
+    OS->>UI: Send OS Event (window_x, window_y)
+    UI->>UI: Receive OS Event
+    UI->>UI: Translate to Framework Event
+    UI->>App: Deliver Click Event
+    App->>App: Process Event Logic
+    App->>App: Update State
+    App->>UI: Request Redraw
+    UI->>UI: Update Component State
+    UI->>UI: Generate Draw Commands
+    UI->>GL: Submit Draw Commands
+
+    alt Complex Rendering
+        GL->>GPU: Submit to GPU
+        GPU->>GPU: Execute Rendering
+        GPU->>GPU: Write to Framebuffer
+        GPU-->>GL: Rendering Complete
+    else Simple Rendering
+        GL->>GL: Software Rendering
+        GL->>GL: Write to Framebuffer
+    end
+
+    GL->>OS: Framebuffer Ready
+    OS->>OS: Composite All Windows
+    OS->>OS: Send to Display Driver
+    OS->>Monitor: Display Pixels
+    Monitor-->>User: Updated Display Visible

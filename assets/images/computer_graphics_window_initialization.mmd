@@ -1,0 +1,31 @@
+sequenceDiagram
+    participant App as Application
+    participant UI as UI Framework
+    participant OS as Operating System<br/>(Windowing System)
+    participant GL as Graphics Library
+    participant GPU as GPU Hardware
+
+    App->>UI: Request Window Creation
+    UI->>UI: Initialize Framework
+    UI->>OS: Request Window from OS
+    OS->>OS: Allocate Window Resources
+    OS->>OS: Create Window Object
+    OS->>OS: Register Window in Window Manager
+    OS-->>UI: Return Window Handle
+    UI->>UI: Create UI Components
+    UI->>GL: Initialize Graphics Context
+    GL->>GL: Check GPU Availability
+
+    alt GPU Available
+        GL->>GPU: Initialize GPU Context
+        GPU-->>GL: GPU Context Ready
+        GL->>GL: Allocate Framebuffer (GPU)
+    else GPU Not Available
+        GL->>GL: Use Software Rendering
+        GL->>GL: Allocate Framebuffer (CPU)
+    end
+
+    GL-->>UI: Graphics Context Ready
+    UI->>UI: Start Event Loop
+    UI-->>App: Ready to Handle Events
+    App->>App: Application Ready to Render
