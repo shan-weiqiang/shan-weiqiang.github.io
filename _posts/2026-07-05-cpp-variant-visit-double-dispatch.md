@@ -55,8 +55,18 @@ The **second axis** of classic [virtual double dispatch](https://shan-weiqiang.g
 ```cpp
 std::variant<int, std::string> v = /* ... */;
 
-std::visit([](int& i) { /* print int */ }, v);       // "PrintVisitor" at this call site
-std::visit([](int& i) { /* hash int */ }, v);        // "HashVisitor" at this call site
+// Each callable must accept every alternative (int& and string&):
+std::visit([](auto&& x) {
+  using T = std::decay_t<decltype(x)>;
+  if constexpr (std::is_same_v<T, int>) { /* print int */ }
+  else { /* print string */ }
+}, v);   // "PrintVisitor" at this call site
+
+std::visit([](auto&& x) {
+  using T = std::decay_t<decltype(x)>;
+  if constexpr (std::is_same_v<T, int>) { /* hash int */ }
+  else { /* hash string */ }
+}, v);   // "HashVisitor" at this call site
 // same v, different callables → different monomorphized visit specializations
 ```
 
@@ -67,11 +77,11 @@ Each call is a **unique template instantiation** — determined by the exact cal
 | **1 — stored / element type** | Runtime: virtual `accept` → `visitCircle(c)` | Runtime: `index()` → invoke with `int&` or `string&` |
 | **2 — operation / visitor type** | Runtime: virtual `visitXxx` on a shared `Visitor&` | **Compile time per call site:** each `std::visit(different_callable, v)` is its own monomorphized implementation |
 | Uniform interface? | Yes — `Visitor` base, `Shape&` | **No** — no erased signature; callable type is explicit in each instantiation |
-| Type erasure? | No (RTTI/vtable, not Part I erasure) | **No** — concrete `Ti` and concrete `Visitor` throughout |
+| Type erasure? | **Yes** — `Shape&` / `Visitor&` hide concrete types; vtable dispatch ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)) | **No** — concrete `Ti` and concrete callable type in each `visit` instantiation |
 
 **Analogy that makes them comparable:** treat each `std::visit(my_callable, v)` as one concrete visitor implementation (like `PrintVisitor : Visitor`). The *intent* of double dispatch — pick behavior by element type **and** by operation — is the same. But the mechanism behind is totally different.
 
-**There is dispatch; there is no type erasure.** Type erasure needs one public interface and forgotten concrete types ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)). `variant`/`visit` keep every `Ti` and every `Visitor` type in the generated code. Runtime only uses `index()` to choose **which compile-time-known branch** of **this** instantiation to run.
+**Virtual Visitor erases type at the call site; `variant`/`visit` does not.** [Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html) treats virtual inheritance as a form of type erasure: call sites hold `Shape&` / `Visitor&`, and the vtable recovers the concrete override at runtime. `variant`/`visit` keep every `Ti` and every callable type in the monomorphized code — runtime only uses `index()` to choose **which compile-time-known branch** of **this** instantiation to run.
 
 ## What std::variant stores
 
@@ -121,15 +131,15 @@ Copy, move, and assignment reuse **`__raw_idx_visit`** — the same index-driven
 
 `std::variant` / `std::visit` are often grouped with “type erasure” because they store different types behind one object and use function-pointer tables at runtime. The mechanism is different:
 
-| | Type erasure ([Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)) | `variant` / `visit` |
+| | Type erasure / virtual ([Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)) | `variant` / `visit` |
 | --- | --- | --- |
-| Allowed types | Open or plugin-like; concrete type hidden from caller | **Closed list** in `variant<Ts...>` |
-| What runtime selects | Which **erased object** / vtable to use | Which **index** into `{T1…Tn}` is active |
+| Allowed types | Open hierarchy; concrete type hidden at `Base&` call site | **Closed list** in `variant<Ts...>` |
+| What runtime selects | Which **vtable** / erased object | Which **index** into `{T1…Tn}` is active |
 | Ctor / dtor | Virtual or fn-ptr on **one erased interface** | Real **`Ti` ctor/dtor** at compile-known slot `i` |
 | Callable in `visit` | N/A | **Not** erased — `Visitor` is a template parameter |
-| Compiler output | One interface type; concrete types may be elsewhere | **Monomorphized** per `Ti` and per `Visitor` |
+| Compiler output | One interface type; concrete types behind vtable | **Monomorphized** per `Ti` and per callable |
 
-[Type Erasure Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) hides concrete type in the public interface (`void*`, `Base&`, single `operator()`). `variant<int, string>` **lists** its alternatives in the type name. That is **tagged union storage**, not erased behavior.
+[Type Erasure Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html) hides concrete type at the call site (`void*`, `Base&`, vtable) — virtual Visitor is in this camp. `variant<int, string>` **lists** its alternatives in the type name; `std::visit` monomorphizes each callable. That is **tagged union + index dispatch**, not erased behavior.
 
 ### What the compiler generates (all concrete)
 
@@ -153,7 +163,7 @@ variant/visit: variant<Ts...> + index → (index table) → known concrete Ti or
 
 ```cpp
 std::visit([](auto&& x) { /* A */ }, v);              // instantiation 1
-std::visit([](int& i) { /* B */ }, v);                // instantiation 2 (different Visitor)
+std::visit([](auto&& x) { /* B */ }, v);              // instantiation 2 (different Visitor)
 std::visit(f, std::variant<int, float>{});            // instantiation 3 (different Ts...)
 ```
 
@@ -161,59 +171,6 @@ Nothing is shared through a type-erased `std::function`-like interface unless **
 
 Callables can be lambdas, function objects, function pointers, or `std::function` in an overload set — `visit` accepts any type that is invocable with every alternative. The template argument is always the **concrete** callable type you pass in.
 
-### Two axes — not the same “double” as virtual dispatch
-
-Do not read virtual Visitor’s two **runtime** vtable hops onto `std::visit` one-to-one:
-
-1. **First dispatch (element)** — runtime `index()` decides which `Ti` is stored; the library passes `Ti&` to your callable. Parallel to virtual `accept` → concrete element type.
-2. **Second dispatch (operation)** — **not** a runtime hop on a visitor object. New operations mean **new `std::visit` calls** with **new callables**; the compiler monomorphizes each one. Parallel to adding a new `PrintVisitor : Visitor` class — but resolved when you **write the call site**, not when the program runs.
-
-Within a single call, overload resolution on `f(int&)` vs `f(string&)` still happens — driven by the index-chosen `Ti&`. The architectural split of “which visitor class” vs “which shape” is what moves to **separate call sites** instead of a shared virtual `Visitor` interface.
-
-## How std::visit works
-
-Per [cppreference](https://en.cppreference.com/w/cpp/utility/variant/visit2), for a single variant the call is equivalent to:
-
-```text
-INVOKE(v, std::get<indices>(values)...)
-```
-
-where `indices` is `values.index()` — read the active index at **runtime**, obtain a reference to the concrete stored type, then invoke the visitor.
-
-Requirements:
-
-- The callable must accept **every possible alternative** (exhaustive). If any index combination fails overload resolution, the program is ill-formed — the compiler enforces the static closed set.
-- Throws [`bad_variant_access`](https://en.cppreference.com/w/cpp/utility/variant/bad_variant_access) if any operand is `valueless_by_exception`.
-
-`visit` is not “call arbitrary code for whatever type shows up.” It is “call **one of these N compile-time-known handlers**,” selected by index.
-
-cppreference notes that implementations usually generate a **table of function pointers** for each `visit` specialization, **similar to virtual functions**. That similarity is only in the **index → thunk** jump for axis 1 — the visitor itself is **not** type-erased, and axis 2 is not a second runtime vtable on the callable. `visit` is a template; your lambda’s full type flows through as `Visitor&&` and is passed to `std::__invoke`. Each call site with a different callable is a **different** specialization. Complexity is O(1) relative to the number of alternatives for a single variant.
-
-### Related APIs — compile-time name + runtime check
-
-| API | On mismatch | Parallel to RTTI ([Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-dynamic-cast-rtti.html)) |
-| --- | --- | --- |
-| [`std::get<T>(v)`](https://en.cppreference.com/w/cpp/utility/variant/get) | Throws `bad_variant_access` | `dynamic_cast` reference form |
-| [`std::get_if<T>(&v)`](https://en.cppreference.com/w/cpp/utility/variant/get_if) | Returns `nullptr` | `dynamic_cast` pointer form |
-| [`std::holds_alternative<T>(v)`](https://en.cppreference.com/w/cpp/utility/variant/holds_alternative) | Bool only | Type test without recovery |
-| [`std::visit(f, v)`](https://en.cppreference.com/w/cpp/utility/variant/visit2) | Ill-formed if not exhaustive | Generated index branch chain |
-
-RTTI works on an **open** inheritance hierarchy via vtable metadata. `variant` works on a **closed** list with an explicit `index()`.
-
-### Code examples
-
-**`get<int>(v)` names `int` at compile time** — runtime only checks that `int` is the active alternative ([variant example](https://en.cppreference.com/w/cpp/utility/variant)):
-
-```cpp
-std::variant<int, float> v = 42;
-int i = std::get<int>(v);  // OK
-
-try {
-  std::get<float>(v);  // throws bad_variant_access
-} catch (const std::bad_variant_access& ex) {
-  std::cout << ex.what() << '\n';  // "std::get: wrong index for variant"
-}
-```
 
 ## std::visit vs classic Visitor pattern
 
@@ -235,14 +192,15 @@ visit:    std::visit(callable, v)     →  1 runtime index dispatch + callable f
           std::visit(other_callable, v)  →  separate monomorphization ≈ new Visitor subclass
 ```
 
-Both pursue **double dispatch in intent** (element tag + operation). Virtual dispatch runs **both** selections at runtime through shared bases. `std::visit` runs **one** runtime selection (`index()`); the operation dimension is **which call site / which callable you compiled**, analogous to instantiating a different derived `Visitor` per operation. Neither pattern is type erasure — both compile concrete types; virtual uses vtables, `variant`/`visit` uses index tables and template monomorphization.
+Both pursue **double dispatch in intent** (element tag + operation). Virtual dispatch runs **both** selections at runtime through **type-erased** shared bases (`Shape&`, `Visitor&`) and vtables. `std::visit` runs **one** runtime selection (`index()`); the operation dimension is **which call site / which callable you compiled**. Virtual Visitor **is** type erasure ([Part I](https://shan-weiqiang.github.io/2025/04/20-type-erasure.html)); `variant`/`visit` is index dispatch on a closed, monomorphized type list.
 
 
 ## Summary
 
 **Key findings:**
 
-- **`std::variant` / `std::visit` use dispatch; they do not use type erasure.** There is no uniform signature with different hidden implementations ([Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)). Every `Ti` and every `Visitor` type stays concrete in the generated code.
+- **`std::variant` / `std::visit` use dispatch; they do not use type erasure.** No uniform `Base&` interface — every `Ti` and every callable type stays concrete in the generated code.
+- **Virtual Visitor double dispatch does use type erasure** — `Shape&` and `Visitor&` at call sites, vtable recovery at runtime ([Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)).
 - **Each `std::visit` call is unique** — monomorphized from the exact callable and exact `variant<Ts...>` passed in. Runtime reads `index()` and jumps to the matching branch **within that instantiation**.
 - **“Double dispatch” is not the same as virtual double dispatch.** Axis 1 (which alternative is stored) is runtime index dispatch, comparable to virtual `accept`. Axis 2 (which operation runs) is **not** a second runtime vtable on a visitor object — it is **separate call sites** with **different callables**, like writing a new derived `Visitor` class per operation but bound statically at each call.
 - **Comparable intent, different mechanism:** if you treat each `std::visit(my_callable, v)` as one visitor implementation, the patterns align on *what* they achieve; they diverge on *how* the operation axis is selected (runtime virtual vs compile-time call-site monomorphization) and on axis 1 (vtable slot vs `index()`).

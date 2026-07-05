@@ -359,16 +359,31 @@ Rectangle area: 20
 
 ## Extensibility cost
 
-Adding a new visited type ripples through every visitor:
+The Visitor pattern trades **two different extensibility axes**:
+
+**Adding a new visited type** (e.g. `Triangle : Shape`) ripples through the whole protocol:
 
 ```cpp
 // Adding Triangle : Shape requires:
 //   1. Triangle::accept       -> v.visitTriangle(*this)
 //   2. Visitor::visitTriangle (pure virtual on base)
-//   3. AreaVisitor::visitTriangle, PrintVisitor::visitTriangle, ...
+//   3. AreaVisitor::visitTriangle, PrintVisitor::visitTriangle, ...  (every existing visitor)
 ```
 
-Adding a new operation (new visitor) requires a new `visitXxx` in every visited class's `accept` target. This trade-off is acceptable when the class hierarchy is stable and operations vary often — compilers, ASTs, scene graphs.
+**Adding a new operation** (e.g. `PrintVisitor : Visitor`) only requires a **new visitor class** that implements every `visitXxx` already declared on the visitor base. The visited side does **not** change — `Circle::accept` still calls `v.visitCircle(*this)`; `Rectangle::accept` still calls `v.visitRectangle(*this)`. Those `accept` implementations are fixed when the hierarchy is wired up; they dispatch through the `Visitor&` vtable to whichever concrete visitor you pass in.
+
+```cpp
+class PrintVisitor : public Visitor {
+public:
+  void visitCircle(Circle& c) override { /* print circle */ }
+  void visitRectangle(Rectangle& r) override { /* print rectangle */ }
+};
+
+// No edits to Circle::accept, Rectangle::accept, or Shape — just use the new visitor:
+c.accept(PrintVisitor{});
+```
+
+This trade-off favors a **stable class hierarchy** with **many operations** — compilers, ASTs, scene graphs. Adding a new shape type is expensive; adding a new pass or renderer is cheap.
 
 # Step 4 — Optional `visit()` sugar on the visitor
 
@@ -402,11 +417,13 @@ Rectangle area: 6
 
 **Note:** Prefer `shape.accept(visitor)` in APIs that define the visited hierarchy. The `visit(Shape&)` helper is optional ergonomics for call sites that hold a visitor and want to pass shapes in reverse order.
 
-# Step 5 — Partial visitors: only some `visitXxx`, but `accept` must match
+# Step 5 — Partial visitors: compile-time checks and intentional no-ops
 
-You may implement only a subset of `visitXxx` methods, but the visited class's `accept` must only call methods that actually exist — otherwise you get a compile error (if the base keeps them pure virtual) or silent wrong behavior (if you use no-op defaults).
+With a fat visitor base (Step 3), every concrete visitor must implement **all** `visitXxx` methods declared on the base. That is enforced at **compile time**: an incomplete visitor is an **abstract class** and cannot be instantiated. Step 5 also covers two other valid partial designs — no-op defaults and a base that **omits** some `visitXxx` APIs — where excluded shape types are never visited, again with compile-time checks.
 
-## Broken: missing `visitRectangle`
+## Compile-time check: incomplete visitor is abstract
+
+If `Visitor` keeps `visitRectangle` pure virtual, a visitor that only handles circles does not compile:
 
 ```cpp
 class PrintCircleOnlyVisitor : public Visitor {
@@ -414,11 +431,11 @@ public:
   void visitCircle(Circle& c) override {
     std::cout << "Circle r=" << c.radius() << '\n';
   }
-  // missing visitRectangle — still abstract if base has pure virtual
+  // missing visitRectangle — class stays abstract
 };
 
 int main() {
-  PrintCircleOnlyVisitor pv;  // error
+  PrintCircleOnlyVisitor pv;  // error: abstract type
 }
 ```
 
@@ -428,18 +445,18 @@ note: because the following virtual functions are pure within 'PrintCircleOnlyVi
 note:   virtual void Visitor::visitRectangle(Rectangle&)
 ```
 
-This is a feature: the type system prevents half-implemented visitors from being instantiated.
+This is a **feature** of the strict design: the type system refuses a half-implemented visitor. Every `accept` ↔ `visitXxx` pair on the base must have a real override in every concrete visitor you construct.
 
-## Safe approach 1: default no-op in the visitor base
+## When you want partial behavior: no-op defaults (intentional design)
 
-Make unimplemented pairs explicit no-ops instead of pure virtual:
+Sometimes a visitor **should** only do work for some shape types; for others, doing nothing is correct. That is not an error — it is a **deliberate API choice**. Provide empty default implementations on the visitor base instead of pure virtual for the pairs you want to opt out of:
 
 ```cpp
 class PartialVisitor {
 public:
   virtual ~PartialVisitor() = default;
-  virtual void visitCircle(Circle& c) = 0;
-  virtual void visitRectangle(Rectangle&) {}  // default no-op, not pure
+  virtual void visitCircle(Circle& c) = 0;       // must implement — circles matter
+  virtual void visitRectangle(Rectangle&) {}     // default no-op — rectangles optional
 };
 
 class PrintCircleOnlyVisitor : public PartialVisitor {
@@ -447,26 +464,112 @@ public:
   void visitCircle(Circle& c) override {
     std::cout << "Circle r=" << c.radius() << '\n';
   }
-  // visitRectangle inherits empty default
+  // visitRectangle inherits empty default — intentional
 };
-```
 
-## Safe approach 2: never call `accept` on mismatched pairs
-
-If you keep pure virtual `visitXxx` on the base, restrict usage at call sites:
-
-```cpp
 int main() {
   Circle c{2.0};
+  Rectangle r{1.0, 1.0};
   PrintCircleOnlyVisitor pv;
-  c.accept(pv);  // OK — visitCircle is implemented
 
-  // Rectangle r{1.0, 1.0};
-  // r.accept(pv);  // would require visitRectangle — don't pass this visitor to Rectangle
+  c.accept(pv);  // prints
+  r.accept(pv);  // calls inherited no-op — valid if that is what you designed
 }
 ```
 
-**Note:** `Rectangle::accept` always calls `v.visitRectangle(*this)`. With pure virtual `visitXxx` on the base, an incomplete visitor cannot be constructed — that is the compile-time check. No-op defaults (approach 1) are a separate, intentional choice: they let the visitor compile but do **not** catch `r.accept(circleOnlyVisitor)` at compile time. Prefer pure virtual `visitXxx` plus Style B naming so every `accept` ↔ `visitXxx` pair is explicit and missing handlers fail at compile time (see Step 6).
+Here `Rectangle::accept` still calls `v.visitRectangle(*this)`; the empty base implementation runs. That is **by design**, not silent failure — you chose a base where unhandled pairs are no-ops. Document which visitors handle which shapes, same as you would document any other API contract.
+
+## When the base omits `visitXxx` entirely
+
+You can also define a **narrower visitor base** that declares only the `visitXxx` methods you need — and **leave others out** of the API altogether. Shapes outside that protocol are simply never visited through it; that is still a valid, compile-time-checked design.
+
+```cpp
+class CircleOnlyVisitor {
+public:
+  virtual ~CircleOnlyVisitor() = default;
+  virtual void visitCircle(Circle& c) = 0;
+  // no visitRectangle — not part of this protocol
+};
+
+class Circle : public Shape {
+public:
+  // ...
+  void accept(CircleOnlyVisitor& v) { v.visitCircle(*this); }
+};
+
+class Rectangle : public Shape {
+public:
+  // ...
+  void accept(Visitor& v) override { v.visitRectangle(*this); }  // full Visitor only
+  // no accept(CircleOnlyVisitor&) — rectangles never enter the circle-only protocol
+};
+
+class PrintCircleOnlyVisitor : public CircleOnlyVisitor {
+public:
+  void visitCircle(Circle& c) override {
+    std::cout << "Circle r=" << c.radius() << '\n';
+  }
+};
+
+int main() {
+  Circle c{2.0};
+  Rectangle r{1.0, 1.0};
+  PrintCircleOnlyVisitor pv;
+
+  c.accept(pv);   // OK — double dispatch runs
+  // r.accept(pv);  // compile error — Rectangle has no accept(CircleOnlyVisitor&)
+}
+```
+
+If you try to wire a shape into a protocol the base does not support, the compiler fails immediately — same as Style B in Step 6:
+
+```cpp
+void Rectangle::accept(CircleOnlyVisitor& v) {
+  v.visitRectangle(*this);  // error: CircleOnlyVisitor has no member named visitRectangle
+}
+```
+
+So a missing `visitXxx` on the base means **that node is outside this visitor API** — it will never be reached via `accept` on that base type. No runtime surprise: either the shape has no matching `accept` overload, or the `accept` body names a method the base does not declare. All of it is resolved at compile time.
+
+### The visitor base API is the type contract
+
+As long as the visitor base declares the correct `visitXxx` signatures and each shape's `accept` calls the matching method with `*this`, **the pairing cannot go wrong at the `visitXxx` call**. The compiler checks every link:
+
+```cpp
+class CircleOnlyVisitor {
+public:
+  virtual ~CircleOnlyVisitor() = default;
+  virtual void visitCircle(Circle& c) = 0;
+  // no visitRectangle — not part of this protocol
+};
+
+void Circle::accept(CircleOnlyVisitor& v) {
+  v.visitCircle(*this);  // *this is Circle& — only visitCircle(Circle&) applies
+}
+```
+
+```text
+Circle::accept(v)
+  → v.visitCircle(*this)
+      *this static type: Circle&     ✓ matches visitCircle(Circle&)
+      cannot become Rectangle&      ✗ no conversion, no wrong overload
+```
+
+There is **no path** through `accept` that passes a `Rectangle&` into `visitCircle(Circle&)` or calls a `visitXxx` the base does not declare. Style B names each method explicitly (`visitCircle`, not overloaded `visit(Shape&)`), so the visited type and the visitor parameter type are **locked together at compile time**. Wrong wiring is a compile error; wrong runtime instance types at `visitXxx` are not possible once the API is correct.
+
+That is why partial and narrow visitor bases remain safe: the protocol you define in the base class **is** the type system the compiler enforces — not a convention you hope call sites follow at runtime.
+
+## Choosing between the three
+
+| Base design | Incomplete concrete visitor | Shape not in protocol |
+| --- | --- | --- |
+| Pure virtual every `visitXxx` on fat base | **Compile error** — cannot instantiate | N/A — all wired shapes must have matching `visitXxx` |
+| Default no-op for some `visitXxx` | **Compiles** — missing overrides inherit no-op | All wired shapes call `accept`; unhandled pairs run no-op |
+| `visitXxx` **omitted** from base | Concrete visitor implements only declared methods | **Never visited** — no `accept` overload or compile error if mis-wired |
+
+**Recommendation:** use pure virtual `visitXxx` on the main `Visitor` base when every operation must handle every shape (Style B in Step 6). Introduce no-op defaults on a **separate** base (e.g. `PartialVisitor`) only when partial behavior is an explicit product requirement. Use a **narrow base** that omits `visitXxx` when entire shape types should not participate in that protocol at all — still compile-time safe, with those nodes simply never visited.
+
+Both strict and partial designs keep wrong **visitor class definitions** and wrong **wiring** visible at compile time (abstract type, missing member, or missing `accept` overload). With a correct base API, there is also **no wrong argument type at `visitXxx`** through the `accept` path — `*this` and the method parameter type are fixed together. The difference is whether unhandled shapes are forbidden, no-ops, or excluded from the API entirely.
 
 # Step 6 — Two styles of visitor API: overloaded `visit()` vs named `visitXxx()`
 
@@ -646,7 +749,7 @@ public:
 };
 ```
 
-Each `accept` names exactly one method. If the visitor base lacks that `visitXxx`, the compiler fails immediately. This is the same property that makes partial visitors safe in Step 5: `Circle::accept` calls `visitCircle`; if your visitor class does not implement it (pure virtual on base), you cannot instantiate the visitor at all.
+Each `accept` names exactly one method. If the visitor base lacks that `visitXxx`, the compiler fails immediately. This is the same property as Step 5's strict base: `Circle::accept` calls `visitCircle`; with pure virtual on the base, a visitor that omits it cannot be instantiated.
 
 **Recommendation:** always prefer **Style B** (`visitCircle`, `visitRectangle`, …). Do **not** use overloaded `visit(T&)` as the primary double-dispatch API — missing pairs compile silently with Style A but fail loudly with Style B.
 
@@ -824,20 +927,17 @@ void visitCircle(Circle& c) override {
 
 You can mix both in one visitor: `other.accept(*this)` when the partner is polymorphic; `visitRectangle(other)` when you already know it is a `Rectangle&`.
 
-# Summary
+# Golden rules
 
-1. **Problem** — virtual functions dispatch on one object; two-operand operations need double dispatch.
-2. **Visited side** — every shape implements pure virtual `accept(Visitor&)`; it is always the entrance.
-3. **Visitor side** — fat visitor declares `visitXxx` for every visited type; logic lives in those overrides where both types are known.
-4. **Sugar** — optional `visitor.visit(shape)` forwards to `shape.accept(visitor)`; `accept` remains canonical.
-5. **Partial visitors** — implement only some `visitXxx`; match with no-op defaults or restrict which shapes call `accept`.
-6. **Naming** — prefer `visitCircle` over overloaded `visit(Circle&)` for clarity and safety.
-7. **Fine-grained visitors** — empty visitor base, one derived class per operation, `dynamic_cast` in `accept`; flexible but couples visited classes to visitor subtypes.
-8. **Propagation** — chain `other.accept(v)` when the next object is `Shape&`; inside `visitXxx`, call `visitYyy(other)` directly when `other` is already a concrete type.
-
-**When to use it:** Visitor/double dispatch shines when a stable hierarchy of visited classes accumulates many operations (render, serialize, optimize, …). Every new `Derived` and every new `visitXxx` is still a **compile-time** type or method — you recompile, you do not extend the running binary with unknown types. For small, **closed** type sets spelled as `variant<Ts...>`, C++17's `std::visit` is often simpler — see [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/06/cpp-variant-visit-double-dispatch.html).
-
-**Static typing reminder:** virtual Visitor and `std::visit` differ in how the compile-time type list is expressed (inheritance vs `variant`), not in whether types are known at compile time. [Type Erasure Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-dynamic-cast-rtti.html) covers the related case where a call site **names** a derived type again and uses RTTI to verify it.
+- **`accept(Visitor&)` pure virtual on the shape base** — every concrete shape must implement it.
+- Each **`accept` calls one Style B method:** `v.visitCircle(*this)`, never overloaded `v.visit(*this)` on `Shape&`.
+- **`visitCircle`, `visitRectangle`, …** — named methods, not overloaded `visit(T&)`.
+- **Every `visitXxx` pure virtual on `Visitor`** — same strict contract as `accept`; every concrete visitor implements all of them.
+- `visitXxx` should cover all kinds of visited types, this makes life easier by enforce one to one mapping of `visitXxx` and visited types.
+- Put logic in **`visitXxx` overrides** — both types are known there.
+- **New operation** → new visitor class only. **New shape** → `accept` + `visitXxx` on base + every existing visitor.
+- Propagate through graphs: **`other.accept(v)`** when `other` is `Shape&`; **`visitYyy(other)`** when `other` is already concrete.
+- **`visitor.visit(shape)`** is optional sugar; prefer **`accept`** in APIs you define.
 
 # References
 
