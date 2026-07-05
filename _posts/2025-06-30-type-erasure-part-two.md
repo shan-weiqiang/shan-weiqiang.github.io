@@ -33,3 +33,5 @@ The binding between data and code is done at construction phase at compile time.
 This data and code binding during compile time is at the core of how type erasure works, since only after the binding, type can be erased.
 
 ![std::function Implementation](/assets/images/std_function.png)
+
+For type erasure of **stored values** (not callables) with the same `_M_manager` pattern, see [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html).

@@ -12,6 +12,7 @@ Previously:
 - [Type Erasure Part Three: Downsides and Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 - [Type Erasure Part Four: ROS 2 Message Type System](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
 - [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
 
 In [Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) I described type erasure as hiding concrete type information behind a uniform interface, with runtime dispatch redirecting through function pointers of the **same signature**. Virtual dispatch and `std::function` fit that model. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) shows the same mechanism on a **closed** alternative list: `variant<Ts...>`, `index()` as tag, visit/lifetime tables as redirect. This part covers a **different** runtime mechanism: **RTTI** and **`dynamic_cast`**, where dispatch is keyed by **type identity** rather than by a pre-planned behavior slot.
 
@@ -68,7 +69,7 @@ Dispatch is still runtime, but it is **not** "pick among function pointers with 
 
 ![Part I virtual dispatch vs Part VI RTTI dispatch: vtable behavior slot compared to type_info check](/assets/images/type_erasure_part_v_dispatch.png)
 
-Closed-set **type erasure** with `std::variant` and `std::visit` uses the same tag+table core as virtual dispatch — see [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) and [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html). **RTTI** (this part) is different: recovery by **`type_info`**, not by index or vtable behavior slot.
+Closed-set **type erasure** with `std::variant` and `std::visit` uses the same tag+table core as virtual dispatch — see [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) and [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html). **Open-set value erasure** with [`std::any`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html) uses a **manager function pointer** as tag; `any_cast` compares that address (primary path), with `type_info` as RTTI fallback — see Part VII. **RTTI** (this part) is different: recovery by **`type_info`** on polymorphic hierarchies, not by manager address or variant index.
 
 ## Theory behind RTTI
 
@@ -82,7 +83,7 @@ A class with at least one **virtual** function is **polymorphic**. For such type
 
 Binding of which branches exist (`dynamic_cast<Circle*>`, `dynamic_cast<Rectangle*>`) is fixed when you write the source. The **choice** among them happens at runtime — but only among types the compiler already knows.
 
-RTTI metadata lives on the **vtable** because polymorphic types already have one. That is an implementation bundle, not proof that type identity requires virtual functions in principle — [`std::variant`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) stores an explicit **index** tag without any virtual function. C++ simply chose to attach `type_info` to polymorphic class metadata rather than to every object.
+RTTI metadata lives on the **vtable** because polymorphic types already have one. That is an implementation bundle, not proof that type identity requires virtual functions in principle — [`std::variant`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) stores an explicit **index** tag without any virtual function; [`std::any`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html) stores a **manager pointer** tag without inheritance. C++ simply chose to attach `type_info` to polymorphic class metadata rather than to every object.
 
 ### What runtime reads
 

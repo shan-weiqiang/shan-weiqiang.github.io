@@ -1,0 +1,19 @@
+flowchart LR
+  subgraph bind [Binding at construction]
+    ctorT["any T&& ctor picks Manager T"]
+  end
+  subgraph tag [Runtime tag]
+    mgrPtr["_M_manager = Manager T ::_S_manage"]
+  end
+  subgraph dispatch [Unified manager signature]
+    opSwitch["_S_manage Op destroy clone xfer access"]
+  end
+  subgraph storage [Hidden per-T impl]
+    sbo["_Manager_internal placement new T"]
+    heap["_Manager_external new T on heap"]
+  end
+  bind --> tag
+  tag --> dispatch
+  dispatch --> sbo
+  dispatch --> heap
+  dispatch --> anyCast["any_cast compares manager address"]

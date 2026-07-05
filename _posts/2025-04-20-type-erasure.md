@@ -244,3 +244,10 @@ After *construction* the binding is fixed and can not be changed.
 - **`std::visit(f, v)`** — runtime reads the tag, then invokes the matching branch of **this** callable (must handle every alternative). Each `std::visit` call site is like a new visitor class with its own handler table; the callable itself is **not** type-erased (contrast `std::function`).
 - **Key difference from virtual (open vs closed)** — virtual: **open** set; new `Derived` can be added in other translation units. `variant`: **closed** set; the author must fix every alternative in `variant<Ts...>`; no runtime discovery of new types.
 - Full treatment: [Type Erasure: Part V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html). RTTI / `dynamic_cast`: [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). Double-dispatch usage: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
+
+## std::any
+
+- [`std::any`](https://en.cppreference.com/w/cpp/utility/any) **is type erasure** — same core as [Core logic](#core-logic-behind-type-erasure): one interface type at the use site (`std::any`), stored value type hidden until `any_cast`, binding fixed when the `any` is constructed.
+- **Manager pointer as tag** — `_M_manager` points at `_Manager<T>::_S_manage`, a type-specific static function; all lifetime ops (`destroy`, `clone`, `move`) dispatch through **one unified function-pointer signature** with opcodes — parallel to [`std::function`'s `_M_manager`](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html).
+- **Open set** — any copy-constructible `T` at each construction site; contrast **closed** [`std::variant<Ts...>`](#stdvariant). Public ctor/dtor/copy/move signatures never name `T`; per-type logic lives in `_Manager<T>` instantiated at the bind site.
+- Full treatment: [Type Erasure: Part VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html).
