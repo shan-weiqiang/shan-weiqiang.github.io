@@ -23,6 +23,8 @@ TALL_MMD = {
     "python_c_ext_marshalling_core.mmd",
     "python_c_ext_stack_layers.mmd",
     "python_c_ext_binding_on_extension.mmd",
+    "python_c_ext_handle_pool_inheritance_uml.mmd",
+    "python_c_ext_handle_pool_owned_borrowed.mmd",
 }
 MEDIUM_MMD = {
     "python_c_ext_cffi_modes.mmd",

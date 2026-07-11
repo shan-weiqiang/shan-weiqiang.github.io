@@ -1,0 +1,52 @@
+classDiagram
+    direction TB
+
+    class CppAnimal {
+        <<abstract>>
+        +name() string
+        +get_kind() AnimalKind
+        +age() int
+        +sex() Sex
+        +friend_animal() Animal*
+    }
+    class CppDog {
+        +friend_cat() Cat*
+        +is_friend(Cat*) bool
+        +older_cat(Cat*, Cat*) Cat*
+    }
+    class CppCat {
+        +friend_dog() Dog*
+        +is_friend(Dog*) bool
+    }
+    CppAnimal <|-- CppDog
+    CppAnimal <|-- CppCat
+
+    class HandleResource {
+        +handle int
+        +owned bool
+        +close()
+    }
+    class PyAnimal {
+        +name() str
+        +kind() AnimalKind
+        +age() int
+        +sex() Sex
+        +friend() Animal
+    }
+    class PyDog {
+        +create() Dog
+        +friend_cat() Cat
+        +is_friend(Cat) bool
+        +older_cat_ptr(Cat, Cat) Cat
+    }
+    class PyCat {
+        +create() Cat
+        +friend_dog() Dog
+        +is_friend(Dog) bool
+    }
+    HandleResource <|-- PyAnimal
+    PyAnimal <|-- PyDog
+    PyAnimal <|-- PyCat
+
+    note for CppAnimal "C++ layer — cpp/animal.h dog.h cat.h"
+    note for PyAnimal "Python layer — python/animal.py dog.py cat.py"

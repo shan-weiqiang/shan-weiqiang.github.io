@@ -17,6 +17,7 @@ This article is Part VIII of the Python C extension series — a **conceptual ca
 - [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html) — C++ behind C ABI + handles
 - [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html) — production hybrid stack
 - [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html) — compile-time C++ extension authoring
+- [Part IX — Inheritance Handle Pool](https://shan-weiqiang.github.io/2026/07/11/python-c-ctypes-handle-pool-inheritance.html) — C++ inheritance behind handle pool
 
 **Two ideas this part separates:**
 
@@ -36,6 +37,7 @@ Both paths ultimately rest on the **Python C API** (`PyObject`, `PyTypeObject`, 
 | C++ handle pool | V §9 | [c_ext_handle_binding](https://github.com/shan-weiqiang/python/tree/main/c_ext_handle_binding) |
 | Hybrid binding system | VI §10 | [ros2_binding_demo](https://github.com/shan-weiqiang/python/tree/main/ros2_binding_demo) |
 | pybind11 extension authoring | VII §11 | [c_ext_pybind11_config](https://github.com/shan-weiqiang/python/tree/main/c_ext_pybind11_config) |
+| C++ inheritance handle pool | IX §13 | [c_ext_handle_inheritance](https://github.com/shan-weiqiang/python/tree/main/c_ext_handle_inheritance) |
 
 ---
 
@@ -316,6 +318,7 @@ The user's file is the top row only. **`InputRecordPy`** and **`transform`** are
 - [Part V — ctypes Handle Pool](https://shan-weiqiang.github.io/2026/06/20/python-c-ctypes-handle-pool.html)
 - [Part VI — ROS 2 Message Bindings](https://shan-weiqiang.github.io/2026/06/20/python-c-extension-ros2-bindings.html)
 - [Part VII — pybind11](https://shan-weiqiang.github.io/2026/06/21/python-c-extension-pybind11.html)
+- [Part IX — Inheritance Handle Pool](https://shan-weiqiang.github.io/2026/07/11/python-c-ctypes-handle-pool-inheritance.html)
 - [Extending Python with C or C++](https://docs.python.org/3/extending/extending.html)
 - [Python/C API Reference](https://docs.python.org/3/c-api/index.html)
 - [ctypes — Python 3 documentation](https://docs.python.org/3/library/ctypes.html)

@@ -1,0 +1,49 @@
+sequenceDiagram
+    participant App as Python app
+    participant DogPy as Dog owned
+    participant CDLL as _native CDLL
+    participant Bridge as bridge.cpp
+    participant Pool as HandlePool
+    participant AO_Owned as AnimalObject owned
+    participant AO_View as AnimalObject view
+    participant CatPy as Cat borrowed
+
+    App->>DogPy: Dog.create(...)
+    DogPy->>CDLL: dog_create(...)
+    CDLL->>Bridge: extern C call
+    Bridge->>Bridge: make Dog with unique_ptr Cat friend
+    Bridge->>Pool: store AnimalObject unique_ptr Dog
+    Pool->>AO_Owned: owns unique_ptr Animal Dog
+    Note over AO_Owned: Dog holds unique_ptr Cat friend
+    Pool-->>Bridge: handle 1
+    Bridge-->>DogPy: int64_t handle owned=True
+    DogPy-->>App: Dog handle=1
+
+    App->>DogPy: friend or friend_cat
+    DogPy->>CDLL: animal_friend_ptr 1
+    CDLL->>Bridge: extern C call
+    Bridge->>AO_Owned: dog friend_cat returns Cat raw ptr
+    Note over AO_Owned: Cat still owned by Dog unique_ptr
+    Bridge->>Pool: ensure_view_handle Cat ptr
+    Pool->>AO_View: store AnimalObject Cat ptr only
+    Note over AO_View: view holds Cat ptr no ownership
+    Pool-->>Bridge: handle 2
+    Bridge-->>DogPy: int64_t handle 2
+    DogPy-->>App: Cat handle=2 owned=False
+
+    App->>CatPy: close borrowed wrapper
+    Note over CatPy: owned=False no handle_release
+    CatPy-->>App: Python ref dropped view pool entry kept
+
+    App->>DogPy: close owned wrapper
+    DogPy->>CDLL: handle_release 1
+    CDLL->>Bridge: extern C call
+    Bridge->>Pool: remove_view_handles_for handle 2
+    Pool->>AO_View: erase view entry only
+    Note over AO_View: does not delete Cat object
+    Bridge->>Pool: release handle 1
+    Pool->>AO_Owned: erase owned entry
+    AO_Owned->>AO_Owned: ~unique_ptr Animal destroys Dog
+    Note over AO_Owned: Dog destructor deletes Cat unique_ptr
+    Pool-->>Bridge: done
+    Bridge-->>App: handle 1 and 2 invalid
