@@ -1,0 +1,25 @@
+flowchart TB
+    subgraph input [Handle from C API]
+        H["int64_t handle"]
+    end
+    subgraph step1 [Step 1 pool type]
+        HT["handle_type handle"]
+        TID{"TypeId == Animal?"}
+    end
+    subgraph step2 [Step 2 runtime kind]
+        GK["animal_get_kind handle"]
+        MAP{"AnimalKind?"}
+    end
+    subgraph output [Python wrapper]
+        A["Animal handle owned"]
+        D["Dog handle owned"]
+        C["Cat handle owned"]
+    end
+    H --> HT
+    HT --> TID
+    TID -->|no| ERR["RuntimeError unsupported pool type"]
+    TID -->|yes| GK
+    GK --> MAP
+    MAP -->|ANIMAL 0| A
+    MAP -->|DOG 1| D
+    MAP -->|CAT 2| C
