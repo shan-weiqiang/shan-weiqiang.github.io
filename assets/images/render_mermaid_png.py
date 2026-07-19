@@ -8,7 +8,22 @@ from pathlib import Path
 
 from PIL import Image, ImageChops
 
-CHROMIUM = "/usr/bin/chromium-browser"
+def find_chromium() -> str:
+    candidates = [
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    ]
+    for path in candidates:
+        if Path(path).exists():
+            return path
+    raise FileNotFoundError(
+        "No Chromium/Chrome binary found for headless Mermaid rendering"
+    )
+
+
+CHROMIUM = find_chromium()
 PADDING = 12
 
 WIDE_MMD = {
@@ -23,9 +38,11 @@ TALL_MMD = {
     "python_c_ext_marshalling_core.mmd",
     "python_c_ext_stack_layers.mmd",
     "python_c_ext_binding_on_extension.mmd",
+    "vmware_fusion_networking_three_modes.mmd",
 }
 MEDIUM_MMD = {
     "python_c_ext_cffi_modes.mmd",
+    "vmware_fusion_host_guest_relationship.mmd",
 }
 
 

@@ -1,0 +1,32 @@
+flowchart TB
+  subgraph guest [Linux guest]
+    G_priv["enp2s0 Private\n172.16.130.128\n00:0c:29:a5:02:c4"]
+    G_nat["enp2s0 Share\n192.168.10.129\n00:0c:29:a5:02:c4"]
+    G_br["enp2s0 Bridged\n192.168.3.20\n00:0c:29:a5:02:c4"]
+  end
+
+  subgraph host [macOS host]
+    VN_priv["vmenet Private path"]
+    VN_nat["vmenet Share path"]
+    VN_br["vmenet Bridged path"]
+    B100["bridge100\n172.16.130.1 host-only"]
+    B101["bridge101\n192.168.10.1 private L2"]
+    B102["bridge102\nbridged + MACNAT"]
+    EN0["en0 Wi-Fi\n192.168.3.4"]
+    NAT["NAT / routing service"]
+  end
+
+  LAN["Physical LAN 192.168.3.0/24"]
+
+  G_priv -->|"Private to my Mac"| VN_priv
+  VN_priv --> B100
+
+  G_nat -->|"Share with my Mac"| VN_nat
+  VN_nat --> B101
+  B101 --> NAT
+  NAT --> EN0
+  EN0 --> LAN
+
+  G_br -->|"Autodetect / Bridged"| VN_br
+  VN_br --> B102
+  B102 -->|"MACNAT rewrite"| EN0
