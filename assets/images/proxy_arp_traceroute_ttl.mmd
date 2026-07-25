@@ -1,0 +1,10 @@
+flowchart LR
+  A["Client<br/>wlan0"]
+  G["Gateway<br/>192.168.16.1"]
+  D["Destination<br/>192.168.16.75"]
+
+  A -- "Probe 1: TTL = 1" --> G
+  G -. "TTL becomes 0<br/>ICMP Time Exceeded<br/>traceroute hop 1" .-> A
+  A -- "Probe 2: TTL = 2" --> G
+  G -- "TTL becomes 1" --> D
+  D -. "Destination response<br/>traceroute hop 2" .-> A

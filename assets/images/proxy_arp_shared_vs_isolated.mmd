@@ -1,0 +1,22 @@
+flowchart TB
+  subgraph View["Client's Layer 3 view, derived from its /20 route"]
+    direction LR
+    A["Client A<br/>192.168.16.20/20"]
+    B["Peer B<br/>192.168.16.75"]
+    C["Peer C<br/>192.168.24.65"]
+    A -. "considered on-link" .-> B
+    A -. "considered on-link" .-> C
+  end
+
+  subgraph Path["Actual forwarding path revealed by ARP and traceroute"]
+    direction LR
+    D["Client A"]
+    G["Gateway / ARP proxy<br/>02:00:00:00:00:01"]
+    E["Peer B"]
+    F["Peer C"]
+    D -- "Layer 2 frame<br/>destination = proxy MAC" --> G
+    G -- "Layer 3 forwarding<br/>TTL decreases" --> E
+    G -- "Layer 3 forwarding<br/>TTL decreases" --> F
+  end
+
+  View ~~~ Path

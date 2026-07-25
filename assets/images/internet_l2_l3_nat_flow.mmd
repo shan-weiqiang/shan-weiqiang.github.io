@@ -1,0 +1,34 @@
+flowchart TB
+  subgraph Outbound["Outbound request"]
+    direction TB
+    DNS["DNS<br/>service name → 203.0.113.20"]
+    C1["Private client<br/>192.168.1.10:51514"]
+    S1["Local switch<br/>forwards by MAC"]
+    N1["Home gateway / NAT<br/>192.168.1.1<br/>public 198.51.100.10"]
+    R1["Internet routers<br/>longest-prefix match<br/>new Layer 2 header per hop"]
+    E1["Server-side router<br/>ARP for server MAC"]
+    W1["Public server<br/>203.0.113.20:443"]
+
+    DNS --> C1
+    C1 -- "Frame to gateway MAC<br/>IP dst 203.0.113.20" --> S1
+    S1 --> N1
+    N1 -- "NAT source<br/>198.51.100.10:62000" --> R1
+    R1 -- "TTL decreases per router<br/>IP destination unchanged" --> E1
+    E1 -- "Final local frame" --> W1
+  end
+
+  subgraph Return["Return reply"]
+    direction TB
+    C2["Private client<br/>192.168.1.10:51514"]
+    S2["Local switch"]
+    N2["NAT lookup<br/>public mapping → private flow"]
+    R2["Internet routers<br/>route toward 198.51.100.10"]
+    E2["Server's gateway<br/>first return next hop"]
+    W2["Public server<br/>reply to 198.51.100.10:62000"]
+
+    W2 -- "Frame to server gateway MAC" --> E2
+    E2 --> R2
+    R2 --> N2
+    N2 -- "Translate destination<br/>192.168.1.10:51514" --> S2
+    S2 -- "Final frame to client MAC" --> C2
+  end

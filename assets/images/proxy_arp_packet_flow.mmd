@@ -1,0 +1,14 @@
+sequenceDiagram
+  participant A as Client A
+  participant G as Gateway / ARP proxy
+  participant B as 192.168.24.65
+
+  Note over A: /20 route says destination is on-link
+  A->>G: ARP broadcast: Who has 192.168.24.65?
+  G-->>A: 192.168.24.65 is at 02:00:00:00:00:01
+  Note over A: Cache IP-to-MAC mapping
+  A->>G: Ethernet dst = gateway MAC<br/>IP dst = 192.168.24.65
+  Note over G: Route IP packet<br/>decrement TTL
+  G->>B: New link-layer frame<br/>same IP destination
+  B-->>G: Reply
+  G-->>A: Forwarded reply
