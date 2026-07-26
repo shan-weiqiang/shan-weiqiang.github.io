@@ -1,0 +1,47 @@
+sequenceDiagram
+  participant CA as Initiator App
+  participant CS as Initiator Stack
+  participant N as NAT Firewall
+  participant R as IP Routers
+  participant SS as Responder Stack
+  participant SA as Responder App
+
+  Note over CA,SA: Phase 1 - establish a working flow
+  CA->>CS: Send to responder IP and port
+  Note over CA: Application keeps request login or session state
+  Note over CS: TCP creates connection state<br/>UDP creates no connection state<br/>IP remains stateless
+  CS->>N: First outbound packet
+  Note over N: Create NAT mapping and filtering state<br/>Start idle timer
+  N->>R: Translated packet
+  Note over R: Keep no connection state<br/>Route each packet independently<br/>Decrement TTL
+  R->>SS: Packet reaches responder
+  Note over SS: IP selects TCP or UDP<br/>Transport selects a socket
+  SS->>SA: Deliver payload
+  Note over SA: Create or update application session state
+  SA-->>SS: Produce response
+  SS-->>R: Response to public endpoint
+  R-->>N: Route response
+  N-->>CS: Reverse translation
+  Note over N: Matching traffic refreshes mapping timer
+  CS-->>CA: Deliver response
+
+  Note over CA,SA: Phase 2 - endpoint state survives while path state expires
+  Note over CA,SA: Idle period keeps application and TCP state<br/>No packet refreshes NAT state
+  Note over N: Idle timer expires<br/>Delete old mapping<br/>Old public endpoint no longer identifies client
+  SA->>SS: Send data on old flow
+  SS->>R: Packet to old public endpoint
+  R->>N: Packet reaches NAT
+  N-->>CS: Drop because reverse mapping is missing
+  Note over CS,SS: TCP may still be ESTABLISHED at both endpoints<br/>Application sessions may still appear alive<br/>Path state is already gone
+
+  Note over CA,SA: Phase 3 - detect failure and rebuild state
+  Note over CS,SS: Retransmission keepalive or heartbeat fails
+  CS-->>CA: Report timeout or broken flow
+  CA->>CS: Retry exchange
+  CS->>N: New TCP handshake or UDP datagram
+  Note over CS: TCP creates a new connection and sequence state<br/>UDP stays connectionless and application retries
+  Note over N: Create new mapping<br/>Public port may change
+  N->>R: Packet with new public endpoint
+  R->>SS: Route as new flow
+  SS->>SA: Deliver new flow
+  Note over SA: Restore or reassociate application session

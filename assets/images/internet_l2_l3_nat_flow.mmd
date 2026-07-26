@@ -1,34 +1,31 @@
-flowchart TB
-  subgraph Outbound["Outbound request"]
-    direction TB
-    DNS["DNS<br/>service name → 203.0.113.20"]
-    C1["Private client<br/>192.168.1.10:51514"]
-    S1["Local switch<br/>forwards by MAC"]
-    N1["Home gateway / NAT<br/>192.168.1.1<br/>public 198.51.100.10"]
-    R1["Internet routers<br/>longest-prefix match<br/>new Layer 2 header per hop"]
-    E1["Server-side router<br/>ARP for server MAC"]
-    W1["Public server<br/>203.0.113.20:443"]
+sequenceDiagram
+  participant C as Private Client
+  participant S as LAN Switch
+  participant N as Home NAT
+  participant R as Internet Routers
+  participant E as Server Edge Router
+  participant P as Public Server
 
-    DNS --> C1
-    C1 -- "Frame to gateway MAC<br/>IP dst 203.0.113.20" --> S1
-    S1 --> N1
-    N1 -- "NAT source<br/>198.51.100.10:62000" --> R1
-    R1 -- "TTL decreases per router<br/>IP destination unchanged" --> E1
-    E1 -- "Final local frame" --> W1
-  end
+  Note over C,P: Outbound request
+  Note over C: DNS resolved server to 203.0.113.20<br/>Application selected TCP port 443
+  C->>S: Frame to gateway MAC<br/>IP flow 192.168.1.10:51514 to 203.0.113.20:443
+  Note over S: Layer 2 state<br/>MAC table selects gateway port
+  S->>N: Forward unchanged local frame
+  Note over N: Create source NAT mapping<br/>192.168.1.10:51514 maps to 198.51.100.10:62000
+  N->>R: Translated public flow<br/>198.51.100.10:62000 to 203.0.113.20:443
+  Note over R: Each router performs longest prefix match<br/>Replaces Layer 2 header and decrements TTL<br/>Preserves public IP and port endpoints
+  R->>E: Route toward server network
+  Note over E: Connected route reaches final link<br/>ARP resolves server MAC
+  E->>P: Final local frame to server MAC<br/>Public IP and port flow unchanged
 
-  subgraph Return["Return reply"]
-    direction TB
-    C2["Private client<br/>192.168.1.10:51514"]
-    S2["Local switch"]
-    N2["NAT lookup<br/>public mapping → private flow"]
-    R2["Internet routers<br/>route toward 198.51.100.10"]
-    E2["Server's gateway<br/>first return next hop"]
-    W2["Public server<br/>reply to 198.51.100.10:62000"]
-
-    W2 -- "Frame to server gateway MAC" --> E2
-    E2 --> R2
-    R2 --> N2
-    N2 -- "Translate destination<br/>192.168.1.10:51514" --> S2
-    S2 -- "Final frame to client MAC" --> C2
-  end
+  Note over C,P: Return response
+  Note over P: Server sees client as<br/>198.51.100.10:62000
+  P-->>E: Reply to public NAT endpoint<br/>203.0.113.20:443 to 198.51.100.10:62000
+  Note over E: Server uses its local gateway MAC<br/>not the remote client MAC
+  E-->>R: Route toward NAT public IP
+  Note over R: Return path may differ<br/>Each router makes its own next hop decision
+  R-->>N: Reply reaches 198.51.100.10:62000
+  Note over N: NAT state finds private flow<br/>Reverse translate destination to 192.168.1.10:51514
+  N-->>S: Private reply frame
+  Note over S: MAC table selects client port
+  S-->>C: Final frame to client MAC

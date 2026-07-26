@@ -41,6 +41,7 @@ TALL_MMD = {
     "vmware_fusion_networking_three_modes.mmd",
     "python_c_ext_handle_pool_inheritance_uml.mmd",
     "python_c_ext_handle_pool_owned_borrowed.mmd",
+    "network_state_layers_and_nat_timeout.mmd",
 }
 MEDIUM_MMD = {
     "python_c_ext_cffi_modes.mmd",
@@ -62,6 +63,10 @@ def trim_white(img: Image.Image, padding: int = PADDING) -> Image.Image:
 
 
 def window_size(mmd_name: str) -> tuple[int, int]:
+    if mmd_name == "network_state_layers_and_nat_timeout.mmd":
+        return 2000, 2800
+    if mmd_name == "internet_l2_l3_nat_flow.mmd":
+        return 2000, 1800
     if mmd_name in TALL_MMD:
         return 2000, 1800
     if mmd_name in WIDE_MMD:

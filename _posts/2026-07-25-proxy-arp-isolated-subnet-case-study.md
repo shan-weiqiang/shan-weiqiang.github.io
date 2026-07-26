@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Proxy ARP, Routing, and NAT: A Network Case Study"
+title:  "Network Paths: Routing, NAT, and State"
 date:   2026-07-25 16:00:00 +0800
 tags: [networking, linux]
 ---
@@ -22,7 +22,7 @@ The discussion has three parts:
 
 1. diagnose the surprising local Proxy ARP and traceroute results;
 2. follow a packet from a private host through Layer 2, routers, NAT, and back;
-3. separate symmetric IP/transport behavior from the practical asymmetry between an initiator and a responder.
+3. locate state in IP, UDP, TCP, NAT, and applications, then explain the practical asymmetry between an initiator and a responder.
 
 ## Part I — Diagnosing the local Proxy ARP case
 
@@ -520,6 +520,147 @@ The precise separation is:
 
 > IP delivers an accepted packet to the appropriate transport protocol. TCP or UDP uses port numbers to select a socket. The socket layer connects that transport endpoint to an application; only TCP has the specific listen/accept mechanism.
 
+### Where state actually lives
+
+“Stateful” and “stateless” only make sense after naming the layer or component:
+
+| Component | State model |
+| --- | --- |
+| IP | Stateless packet delivery; no connection handshake or connection table |
+| UDP | Connectionless transport; no built-in session establishment, acknowledgement, or teardown |
+| TCP | Stateful transport; endpoints maintain sequence numbers, windows, retransmission state, and a connection state machine |
+| NAT gateway | Stateful translation; maintains mappings between private and public flow endpoints |
+| Stateful firewall | Tracks flows to decide which return or inbound packets are allowed |
+| Application | May maintain its own login, request, messaging, media, or reliability session over TCP or UDP |
+
+![State ownership across applications, TCP or UDP, IP, NAT, and the effect of an expired NAT mapping](/assets/images/network_state_layers_and_nat_timeout.png)
+
+The sequence separates three phases and identifies the state affected at every step:
+
+1. The initiator application creates request or session state and asks its transport stack to send.
+2. TCP creates connection state; UDP does not. In both cases, IP treats each packet independently.
+3. The first outbound packet creates NAT translation and firewall-filtering state with an idle timer.
+4. Ordinary routers keep no connection state; each performs an independent destination-route lookup.
+5. The responder's IP layer selects TCP or UDP, the transport layer selects a socket, and the application creates or updates its own session state.
+6. A matching reply uses reverse NAT translation and refreshes the middlebox timer.
+7. During an idle period, endpoint TCP and application state may remain alive while NAT/firewall state expires independently.
+8. A later packet for the old public endpoint is dropped because the reverse mapping no longer exists, even though both TCP endpoints may still report `ESTABLISHED`.
+9. Retransmission failure, TCP keepalive, or an application heartbeat eventually exposes the broken path.
+10. TCP performs a new handshake, while UDP sends a new datagram and lets the application retry. NAT creates a new mapping whose public port may differ, and the application restores or re-associates its session.
+
+UDP being connectionless does not make the entire path or application stateless. QUIC, voice/video calls, games, and many other stateful applications run over UDP. Meanwhile, a NAT gateway usually creates temporary UDP mapping state when the first outbound datagram crosses it:
+
+```text
+UDP
+192.168.1.10:51514
+        ↕ NAT mapping
+198.51.100.10:62000
+```
+
+While that mapping exists, a response sent to `198.51.100.10:62000` can be translated back to the private client. If it expires, a late response normally reaches the gateway but cannot be associated with a private endpoint, so it is dropped. A new outbound datagram can create a new mapping—possibly with a different public port—but the application must retry or restore any higher-level exchange.
+
+UDP mapping timeouts vary. [RFC 4787](https://www.rfc-editor.org/rfc/rfc4787.html) says a general UDP mapping must not expire in less than two minutes of inactivity, with limited exceptions, and recommends a default of at least five minutes. UDP applications with longer idle periods often send keepalives.
+
+TCP endpoints maintain connection state, but an idle TCP connection does not necessarily transmit packets. Data, acknowledgements, optional TCP keepalive probes, or application heartbeats refresh intervening NAT and firewall state. [RFC 5382](https://www.rfc-editor.org/rfc/rfc5382.html) requires a compliant NAT's established TCP idle timeout to be at least two hours and four minutes, although real network equipment and firewall policy can vary. [RFC 1122](https://www.rfc-editor.org/rfc/rfc1122.html) specifies that TCP keepalive is optional, disabled by default, configurable per connection, and traditionally defaults to an idle interval of at least two hours.
+
+If a TCP mapping disappears while both endpoints still consider the connection established, their state becomes inconsistent:
+
+```text
+client TCP state: ESTABLISHED
+server TCP state: ESTABLISHED
+NAT flow state:   missing
+```
+
+The client and server cannot resume that old connection merely by creating another NAT mapping. The server identifies the TCP connection by its protocol and source/destination IP-and-port tuple; a new mapping may produce a different public endpoint. Packets for the old tuple are dropped or no longer translated correctly. One endpoint eventually detects retransmission failure, a keepalive failure, an application heartbeat timeout, or an explicit close, then creates a new TCP connection with a new handshake and restores any application session.
+
+A recreated mapping may expose the initiator through a new public port:
+
+```text
+old flow:
+198.51.100.10:62000 ↔ 203.0.113.20:443
+
+new flow:
+198.51.100.10:62001 ↔ 203.0.113.20:443
+```
+
+The responder's service endpoint, `203.0.113.20:443`, normally remains unchanged. What changes is the translated endpoint from which the responder observes the initiator. Replies for the new flow must target `198.51.100.10:62001`; traffic sent to the expired `62000` mapping can no longer reach the private client. A NAT may reuse the old public port, but applications cannot depend on that behavior.
+
+For TCP, the new endpoint belongs to a new connection with a new handshake, sequence-number space, and connection state—even if the NAT happens to reuse the same public port. For UDP, a new outbound datagram can create the replacement mapping without a transport handshake, but any higher-level session must recognize the new observed endpoint or re-establish its application identity.
+
+#### Multiple NATs form one translation chain
+
+A real path may contain a home NAT, an ISP carrier-grade NAT, and additional stateful gateways. Each one contributes a mapping:
+
+```text
+private client
+192.168.1.10:51514
+        │
+        ▼ home NAT
+100.64.1.20:61000
+        │
+        ▼ carrier-grade NAT
+198.51.100.10:62000
+        │
+        ▼
+server
+203.0.113.20:443
+```
+
+The server sees only the outermost public endpoint, but the return path depends on the complete reverse chain:
+
+```text
+198.51.100.10:62000
+        ↓ carrier-grade NAT mapping
+100.64.1.20:61000
+        ↓ home NAT mapping
+192.168.1.10:51514
+```
+
+Every required mapping must remain valid. If any dynamic mapping expires, the **old** reverse path is interrupted at that device. The NAT normally gives neither endpoint an immediate notification; the failure appears only when data, retransmissions, keepalives, or application heartbeats stop succeeding. A keepalive that crosses the complete path can refresh the mappings it traverses, so the effective idle lifetime is controlled by the shortest relevant NAT or firewall timeout and its refresh policy.
+
+New outbound traffic may create a new chain, but “a new path exists” does not mean “the old transport flow survived.” A flow is normally classified by its **5-tuple**:
+
+```text
+(protocol, source IP, source port, destination IP, destination port)
+```
+
+For TCP, changing any element identifies a different connection. Suppose the established server-side tuple is:
+
+```text
+TCP
+198.51.100.10:62000 ↔ 203.0.113.20:443
+```
+
+After remapping, an old TCP data segment may reach the server as:
+
+```text
+TCP
+198.51.100.10:63000 → 203.0.113.20:443
+```
+
+The server has no established connection for that tuple. A non-`SYN` segment is normally rejected with `RST` or dropped; it cannot be attached to the connection that used port `62000`. The application must abandon the old flow and initiate a new TCP handshake. If every NAT happened to reconstruct exactly the same externally visible tuple and allowed midstream packets, the old flow might continue, but applications cannot rely on that exceptional outcome.
+
+For UDP, the same 5-tuple identifies a network flow but not a transport connection. A server socket bound to `203.0.113.20:443` can receive a new datagram from `198.51.100.10:63000` and reply to that newly observed endpoint. The application decides whether it is:
+
+- a new independent request;
+- the same authenticated session, identified by an application token;
+- a peer that must re-register because its source tuple changed;
+- a transport such as QUIC that uses a connection ID to survive address or port rebinding.
+
+The precise rule is:
+
+> Losing any required NAT mapping breaks the old response path. Rebuilt mappings may create a new response path. TCP normally requires a new handshake when the public 5-tuple changes; UDP can use the new path immediately, but application-level state determines whether the logical session continues.
+
+This explains why a server-side connection can become unusable even while the client device and process remain alive. “The client is alive” does not prove that:
+
+- its old network path still exists;
+- its NAT and firewall mappings still exist;
+- it retained the same public IP and port;
+- its operating system still holds the same socket;
+- the application remained active while the device slept or changed networks.
+
+The server may temporarily retain a stale `ESTABLISHED` socket because TCP has not yet received evidence of failure. Conversely, an application or server may close an idle connection by policy even when the underlying NAT mapping remains valid. Keepalives and heartbeats both refresh state and help discover these half-open or unreachable flows sooner.
+
 ### What NAT changes about that relationship
 
 Without NAT or firewall restrictions, either globally reachable host can initiate traffic to the other. With ordinary source NAT, the private host normally must send first:
@@ -552,13 +693,7 @@ This is the practical initiation asymmetry:
 
 > The initiator must know a reachable logical destination, but its own address need not be globally unique or independently reachable. The responder returns traffic to the translated source endpoint created for that flow.
 
-This principle also applies to UDP even though UDP has no connection handshake. A NAT gateway usually creates temporary UDP flow state when it sees the first outbound datagram:
-
-```text
-private UDP endpoint → public UDP mapping → responder
-```
-
-Return datagrams matching that state can reach the initiator. The mapping eventually expires, so real-time applications may send keepalives. In this context, “initiator” means the side that sends the first packet and creates the necessary network state—not necessarily a TCP client.
+This applies to both TCP and UDP. In this context, “initiator” means the side that sends the first packet and creates the necessary network state—not necessarily a TCP client.
 
 ### Two private hosts in different networks
 
@@ -597,23 +732,82 @@ If their NAT or firewall behavior prevents a direct flow, a public relay such as
 
 > Two private hosts in different networks usually need publicly reachable infrastructure for discovery and coordination; they often use it as a relay, but compatible NAT traversal can sometimes create a direct public-mapping-to-public-mapping path.
 
-## Putting it all together: cooperation, not one global table
+### The final source of practical asymmetry
 
-Routing tables contain essential information, but they are not the entire mechanism and no router needs one global end-to-end route.
+NAT is the main mechanism that turns private/public addressing into strong initiation asymmetry, but it is not the only source. Three related asymmetries build on one another:
 
-End-to-end communication works because:
+1. **Application roles:** the responder publishes or waits on a known endpoint; the initiator discovers that endpoint and sends first. The responder learns the initiator's observed source only after receiving the first packet.
+2. **Address scope:** a public service endpoint is reachable through public routing, while a private address such as `192.168.1.10` is meaningful only inside its own routing domain and can be reused elsewhere.
+3. **NAT and firewall state:** the private side normally sends first to create the mapping and filtering state through which the responder can return traffic. Without existing state or an explicit inbound rule, the public side cannot start an unrelated flow directly to that private host.
 
-1. **Application discovery, DNS, or rendezvous** gives the initiator a reachable responder IP; the destination port identifies the requested transport service.
-2. **The subnet mask and host routing table** decide whether the first next hop is the destination or a gateway.
-3. **ARP and Layer 2 switching** deliver a frame to that next hop on the current local network.
-4. **Each router's forwarding table** independently moves the IP packet one hop closer to the destination prefix.
-5. **New Layer 2 framing** carries the packet across each successive link while routers preserve its logical endpoints and decrement TTL.
-6. **NAT state**, when private IPv4 is involved, translates the initiating flow at the public/private boundary and provides the inverse mapping for replies.
-7. **The destination IP, transport protocol, and port** let the final host's kernel select the correct socket and application.
-8. **Public relay infrastructure**, when direct NAT traversal is impossible or undesirable, joins the separate outbound flows of hosts in unrelated private networks.
+The resulting behavior is:
 
-The Proxy ARP case at the start is a special variation on the first-hop step. The subnet mask tells the client that the peer is on-link, but Proxy ARP returns a gateway MAC. From that point onward, the gateway routes the packet just like any other Layer 3 forwarding device.
+| Initiator behind NAT | Public responder |
+| --- | --- |
+| Knows a reachable responder endpoint before sending | Learns the initiator's translated endpoint from the first packet |
+| Creates outbound NAT and firewall state | Replies through that existing state |
+| May use a private, non-globally-unique source address | Exposes a publicly reachable logical service endpoint |
+| Usually cannot receive a new unsolicited public flow | Can wait for new flows on its published endpoint |
 
-In short:
+The protocols themselves remain symmetric where appropriate: IP packets always contain source and destination addresses, UDP can carry datagrams in either direction, and an established TCP connection is full-duplex. The practical asymmetry comes from the combination:
 
-> An initiator first discovers a reachable responder IP and port, but addresses each Layer 2 frame only to the next hop. Routers repeat that next-hop process, NAT state reconnects replies to a private initiator, and public rendezvous or relay infrastructure lets hosts in unrelated private networks find or communicate with one another.
+```text
+application discovery and roles
+               +
+private versus public routing scope
+               +
+NAT and stateful-firewall flow state
+               =
+practical initiator/responder asymmetry
+```
+
+In the ordinary outbound case, the initiator must know a reachable logical responder endpoint, but its own private address need not be globally unique or directly reachable. NAT supplies a temporary translated endpoint for the flow, and the responder returns traffic through that state.
+
+## Final summary: the communication path is also state
+
+Before useful TCP/IP or UDP/IP communication can occur, there must be a usable network path between the endpoints. This does not mean that IP reserves one end-to-end circuit. Instead, the operational path is assembled from two kinds of behavior:
+
+- **Routing reachability:** each host or router independently selects the next hop for the destination prefix.
+- **Middlebox state:** every NAT or stateful firewall on the path maintains the mapping and filtering information needed to carry the flow and its replies.
+
+The initiator must know a reachable responder IP and port and send the first packet. That packet follows routing decisions hop by hop and creates any required dynamic NAT and firewall state:
+
+```text
+initiator sends first packet
+        ↓
+host selects first next hop
+        ↓
+routers select successive next hops
+        ↓
+NATs and firewalls create flow state
+        ↓
+responder receives the packet
+        ↓
+reply follows the available reverse mappings
+```
+
+The resulting path is not represented by one global table. It is the composition of all routing decisions, Layer 2 next-hop deliveries, and stateful mappings along the way. The upper-layer communication channel depends on the entire composition remaining usable.
+
+This creates a crucial failure mode:
+
+> Two endpoint applications and their sockets may still be alive while the network path state between them has already disappeared.
+
+If any required NAT or firewall mapping expires, the old reverse path is broken. A responder may continue sending to the old public IP and port, but the expired mapping can no longer identify the private endpoint. Neither endpoint necessarily receives an immediate notification; the failure is discovered later through missing responses, retransmission timeout, TCP keepalive, or an application heartbeat.
+
+The initiator must then create a new operational path:
+
+- **TCP:** abandon the old connection and perform a new handshake. A changed public 5-tuple represents a different TCP connection.
+- **UDP:** send a new outbound datagram to create fresh mappings. UDP itself has no connection to restore, so the application decides whether the new source endpoint continues the old logical session.
+
+The application layer must therefore assume that network-path state can fail independently of endpoint state. Robust applications need appropriate combinations of:
+
+- timeout and failure detection;
+- retry and reconnection;
+- TCP keepalive or application heartbeat where justified;
+- session tokens or connection IDs that survive transport rebinding;
+- idempotency or duplicate handling for retried operations;
+- re-authentication and session restoration after a new path is created.
+
+The central lesson is:
+
+> The side that sends first establishes the usable dynamic path through any NATs and stateful firewalls. Upper-layer communication can continue only while that path remains valid. When intermediate state expires, the endpoints may remain healthy, but the old communication channel is broken and must be recreated or rebound.
