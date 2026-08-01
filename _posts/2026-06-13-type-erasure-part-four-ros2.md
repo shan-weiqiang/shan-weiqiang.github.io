@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure IV — ROS 2 Messages"
 date:   2026-06-13 10:00:00 +0800
-tags: [data-typing]
+tags: [data-typing, ros2]
 ---
 
 Previously:

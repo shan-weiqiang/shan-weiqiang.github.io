@@ -2,7 +2,7 @@
 layout: post
 title:  "Python/C VI — ROS 2 Bindings"
 date:   2026-06-20 14:00:00 +0800
-tags: [python]
+tags: [python, ros2]
 ---
 
 * toc
