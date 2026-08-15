@@ -1,0 +1,16 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 45, "rankSpacing": 55}}}%%
+flowchart TB
+  consumer["Consumer machine code<br/>contains the call site<br/>and sometimes the dispatch instructions"]
+  contract["Stable contract<br/>API plus exposed ABI and type layouts<br/>the consumer's only compilation dependency"]
+  binder["Binder / forwarding machinery<br/>the consumer-facing implementation boundary<br/>stores a target or encodes a forwarding route"]
+  location["Physical location depends on the mechanism<br/>consumer object code, provider library,<br/>object or function table, or runtime loader"]
+  implementation["Concrete implementation<br/>hidden from consumer compilation"]
+
+  consumer -->|"Invokes"| contract
+  contract -->|"Realized by executable machinery"| binder
+  binder -->|"Indirect dispatch to the selected target"| implementation
+  location -.-> binder
+
+  firewall["Compilation firewall<br/>Consumer knowledge stops at the stable contract.<br/>The binder redirects without exposing the concrete type."]
+  contract -.-> firewall
+  binder -.-> firewall
