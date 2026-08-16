@@ -1,89 +1,58 @@
 ---
 layout: post
-title:  "The Anatomy of a Compilation Firewall"
+title:  "C++ Compilation Firewalls I"
 date:   2026-08-15 09:00:00 +0800
-tags: [systems, data-typing]
+tags: [cpp, systems, data-typing]
 ---
 
-The common architectural principle behind virtual interfaces, type erasure,
-PImpl, and dynamically loaded APIs is the separation of behavior-consuming
-code from the concrete implementation of that behavior.
+This is Part I of the **C++ Compilation Firewalls** series. It explains the
+stable contract that separates consumer compilation from implementation and
+the additional runtime dispatch used by virtual interfaces, type erasure,
+function tables, and dynamically loaded APIs.
 
-This separation consists of three parts:
+A stable binary contract has two complementary meanings:
 
-1. **Contract**: a stable interface describes the operation's arguments,
-   result, ownership, lifetime, and error behavior. Across a binary boundary,
-   it also includes the ABI: calling convention, symbol identity, and the
-   size, alignment, and memory layout of every exposed type used by the
-   signature.
-2. **Binding**: some provider-side mechanism associates that contract with a
-   concrete implementation.
-3. **Dispatch**: a call made through the contract is redirected to the bound
-   implementation.
+1. **Stable call contract:** the operation keeps a compatible symbol identity,
+   signature, calling convention, ownership model, lifetime rules, and error
+   behavior.
+2. **Stable data contract:** every type exposed by that operation keeps a
+   compatible size, alignment, and memory layout so both sides interpret the
+   same bytes in the same way.
 
-In compact form, the consumer compiles against the stable contract while the
-binder makes a concrete implementation reachable through indirect dispatch:
-
-![A stable contract and binder machine code create a compilation firewall, while indirect dispatch redirects the consumer's call to the concrete implementation](/assets/images/contract_binding_dispatch_compilation_firewall.png)
-
-Here, **consumer-facing does not mean physically stored in the consumer's
-executable**. The consumer always contains its call-site machine code, and a
-virtual or function-table call may emit the slot load and indirect-call
-instructions there. The associated vtable or invoker can live in a provider
-library, however, while a PImpl forwarding method normally lives in the facade
-library and dynamic-loader machinery lives in the runtime loader. What these
-mechanisms share is the stable boundary seen by the consumer, not one universal
-machine-code location.
-
-The **stable contract is what creates the compilation firewall**. A direct,
-out-of-line API already lets a provider replace its function bodies without
-recompiling the consumer; with an ABI-compatible shared library, that may not
-require relinking the consumer either. The second dispatch adds a different
-and stronger property: **runtime selection behind one fixed consumer-facing
-ABI**. The consumer invokes the common contract. The machine code that realizes
-that contract boundary—the binder—uses a vtable slot, erased invoker, resolved
-function pointer, or other runtime state to redirect execution to the currently
-bound implementation. There is no universal "binder symbol": a PImpl facade
-may have a public symbol, while virtual and function-table dispatch can be
-implemented directly by instructions emitted at the call site. Nor must there
-be two literal machine-level call instructions; "second call" describes the
-architectural redirection behind the contract. Changing the selected target
-does not change the contract or the consumer's compiled use of it. Indirect
-dispatch is therefore not a prerequisite for compile-time isolation itself;
-it is the mechanism that permits rebinding or selecting concrete
-implementations after the consumer has been compiled. Ordinary PImpl with
-fixed, non-virtual forwarding provides the firewall but not this runtime
-selection unless another dispatch mechanism is added behind the facade.
-
-The result is a compilation firewall:
+Together, these rules create the compilation firewall:
 
 ```text
-Consumer
-   |
-   | depends only on the stable contract
-   v
-Binding and indirection boundary
-   |
-   | redirects the operation
-   v
-Concrete implementation
+stable call contract + stable exposed data layout
+                         = compilation firewall
 ```
 
-The consumer must know what operation can be performed and its invocation
-contract. For a binary interface, it must also know enough representation to
-pass, return, allocate, access, or destroy every exposed value correctly. It
-does not need to know the concrete implementation type, its hidden memory
-layout, its private dependencies, or the implementation function it will
-eventually execute.
+The consumer can compile against that fixed API and ABI without seeing the
+concrete implementation, its hidden representation, or its private
+dependencies. An ABI-compatible provider can then change its implementation
+without requiring consumer recompilation.
+
+PImpl achieves exactly this form of isolation. Its public methods preserve the
+call contract, while its opaque pointer gives the public facade a fixed layout
+without exposing the layout of `Impl`. The facade may forward to `Impl` using a
+normal direct call; runtime indirect dispatch is not required.
+
+Virtual interfaces, type erasure, function tables, and dynamically resolved
+APIs add another mechanism on top of the stable contract: **runtime binding and
+indirect dispatch**. Runtime data stores or identifies a target, and fixed
+dispatch instructions redirect the operation to that target. This makes it
+possible to select different concrete implementations at runtime while the
+consumer continues to use the same compiled contract.
+
+![A stable API and ABI create a compilation firewall; runtime-dispatch mechanisms additionally select a concrete implementation through binding data](/assets/images/contract_binding_dispatch_compilation_firewall.png)
 
 * toc
 {:toc}
 
-## The binder is machine code
+## Runtime dispatch machinery is machine code
 
-The binder is executable machinery, not merely an architectural relationship.
-It associates the common contract with a concrete implementation and makes
-that implementation reachable during dispatch.
+Runtime binding and dispatch are executable machinery, not merely an
+architectural relationship. They associate the common contract with a concrete
+implementation and make that implementation reachable at runtime.
 
 - For `std::function`, the binder is its library implementation together with
   compiler-generated callable adapters. Construction stores the callable and
@@ -92,12 +61,11 @@ that implementation reachable during dispatch.
   and loader code that resolve and return a runtime implementation address.
 - For virtual functions, the compiler and ABI implicitly generate the binder
   machinery: vtables, vptr initialization, slot loads, and indirect calls.
-- For PImpl, programmers handwrite the binder: construction and storage of the
-  hidden `Impl` plus forwarding functions that invoke it.
 
-Every binder is therefore concrete code. It either stores an implementation
-address in runtime data or encodes the route in a forwarding function. The
-contract defines the boundary; binder code constructs and follows its path.
+This machinery stores an implementation address in runtime data and follows
+that address during dispatch. The stable contract creates the compilation
+boundary; runtime binding data adds implementation selection behind it. PImpl
+needs only the former unless another dispatch mechanism is deliberately added.
 
 ---
 
@@ -155,7 +123,11 @@ interface pointer -> object vptr -> vtable slot -> concrete override
 ```
 
 Consumer code compiles against the base interface without knowing the derived
-type that will be provided at runtime.
+type that will be provided at runtime. The construction side knows that
+concrete type and creates the runtime binding data by initializing the derived
+object's vptr. It then passes the object through a base pointer or reference.
+The consumer operates on that already-bound object and uses its vptr to select
+the override.
 
 ---
 
@@ -172,7 +144,11 @@ erased callable storage -> invoker function -> concrete callable
 
 The translation unit consuming `std::function<R(Args...)>` can therefore be
 compiled without knowing the callable type or its implementation. Concrete
-callable knowledge is confined to the producer or binding side.
+callable knowledge is confined to the producer or binding side. As with a
+derived object, construction creates the runtime binding data: the producer
+stores the concrete callable and installs its type-specific invoker and
+lifecycle operations inside the `std::function` object. The consumer receives
+that already-bound object and invokes it only through `R(Args...)`.
 
 ---
 
@@ -229,22 +205,20 @@ Changing `Impl` therefore does not change the client's view of `Component`.
 
 ## The shared principle and the differences
 
-All these mechanisms isolate consumer compilation through a stable boundary,
-but they do not necessarily bind implementations at the same time or use the
-same machine-level instructions:
+All these mechanisms isolate consumer compilation through a stable API and
+ABI, but only some add runtime implementation selection:
 
-| Mechanism | Binding mechanism | Dispatch route |
+| Mechanism | Stable contract boundary | Runtime selection and dispatch |
 | --- | --- | --- |
-| Virtual interface | Concrete object construction | vptr and vtable |
-| `std::function` | Construction or assignment | Erased invoker table |
-| `dlopen` API | `dlopen()` and `dlsym()` | Resolved function pointer |
-| PImpl | Facade implementation and construction | Public forwarding method and `Impl*` |
+| PImpl | Public facade symbols plus fixed opaque-pointer layout | No; forwarding is normally fixed when the facade library is built |
+| Virtual interface | Base-class API and compatible object/vtable ABI | Yes; object construction supplies the vptr and vtable |
+| `std::function` | Common `R(Args...)` invocation contract and wrapper ABI | Yes; construction installs the erased invoker |
+| Function-table API | Fixed table layout and function signatures | Yes; the provider supplies a populated table |
+| `dlopen()` API | Shared function signature or API-table ABI | Yes; `dlopen()` and `dlsym()` resolve the runtime target |
 
-Runtime execution of an indirection is not always runtime selection of its
-target. Ordinary PImpl normally fixes the forwarding behavior when the facade
-library is built, whereas virtual objects, `std::function`, and `dlsym()`
-associate implementations using runtime state. Nevertheless, all of them can
-provide the compile-time isolation discussed here.
+The stable contract is the shared compilation-firewall mechanism. Runtime
+binding data and indirect dispatch are an additional mechanism used when the
+same compiled consumer must select among implementations at runtime.
 
 ---
 
@@ -252,26 +226,33 @@ provide the compile-time isolation discussed here.
 
 A compilation firewall and a link/load boundary answer different questions.
 The firewall determines what definitions and private dependencies a consumer
-translation unit must see. Normal shared linking determines which symbols and
-shared objects must be available when an executable is linked and loaded.
+translation unit must see. Shared linking determines which binary libraries
+and symbols must be available when a consumer binary is linked and loaded.
 
-Keep the stages distinct:
+### A shared library is already compiled implementation
+
+A shared library is itself the output of compilation and linking. Its machine
+code, exported symbols, private references, and `DT_NEEDED` entries are fixed
+when that library is built. An executable or another shared library that uses
+it cannot regenerate or specialize that implementation.
+
+### Static linking records direct dependencies
+
+Keep compilation and the build-time link step distinct:
 
 ```text
 compilation:       source + declarations -> object file
 static link step:  object files + library metadata -> executable or shared object
-dynamic loading:   executable + DT_NEEDED graph -> running process
 ```
 
-The *static linker* is the build-time link editor even when its inputs include
-shared libraries. This does not mean shared-library machine code is copied into
-the executable.
+The compiler emits object files containing symbol references. The static
+linker—the build-time link editor—matches the consumer's direct references
+against its link inputs and writes the dynamic symbols, relocations, and
+`DT_NEEDED` entries needed for runtime. Using a shared-library input does not
+copy that library's machine code into the output binary.
 
-With PImpl, a normally linked virtual interface, or type erasure behind a
-shared-library API, the consumer can compile without the concrete
-implementation. Its object file still normally contains direct undefined
-references to public facade or factory symbols, and the executable normally
-records the providing library in `DT_NEEDED`:
+For example, a PImpl client may compile without `Component::Impl`, but it still
+refers to the public facade and normally records its provider:
 
 ```text
 app
@@ -283,24 +264,33 @@ libcomponent.so
   may need:  private implementation symbols and libraries
 ```
 
-The implementation library owns its private symbol references. They do not
-become direct undefined references of the executable merely because the link
-editor inspects or validates the dependency closure. Whether undefined symbols
-already present in input shared objects must be satisfied while linking an
-executable is toolchain- and option-dependent. GNU-style options such as
-`--allow-shlib-undefined`, `--no-allow-shlib-undefined`, and
-`--copy-dt-needed-entries` affect validation and dependency propagation.
+The link editor resolves or records the output's direct symbol requirements.
+Whether it also validates undefined symbols already contained in dependent
+shared libraries—and whether transitive dependencies are copied into the
+output's own dependency list—is toolchain- and option-dependent. GNU-style
+options such as `--allow-shlib-undefined`, `--no-allow-shlib-undefined`, and
+`--copy-dt-needed-entries` control this validation and propagation. Inspecting
+a dependency's symbols does not make them direct undefined references of the
+consumer; those references remain owned by the shared library that contains
+them.
 
-> Direct public API references are normal link-time dependencies. The runtime
-> loader must eventually make the required shared-object graph and processed
-> relocations valid, even when the executable link step did not validate the
-> entire transitive closure.
+### Runtime loading follows `DT_NEEDED` transitively
 
-For a normally linked `DT_NEEDED` object, the dynamic loader must normally find
-and map the object and its dependency graph before `main()`. Eager relocations
-must resolve then. Eligible PLT function relocations may be bound lazily on
-first call; lazy binding postpones address lookup, not loading of the
-`DT_NEEDED` library.
+At startup, the dynamic loader follows the executable's `DT_NEEDED` entries
+and then the `DT_NEEDED` entries of those libraries. This dependency graph must
+normally be found and mapped before control enters `main()`:
+
+```text
+executable
+    -> direct DT_NEEDED libraries
+        -> their DT_NEEDED libraries
+            -> complete mapped startup dependency graph
+```
+
+Required eager relocations are resolved during loading. Eligible PLT function
+relocations may instead resolve lazily when first called. Lazy symbol binding
+postpones lookup of a function address; it does not postpone loading the
+normally linked `DT_NEEDED` library that supplies it.
 
 ---
 
@@ -343,9 +333,10 @@ responsibility of the programmer and build system.
 
 ## Conclusion
 
-A behavioral abstraction exposes a stable contract, confines concrete
-implementation knowledge to a binding/provider side, and gives the consumer
-an indirect route to that implementation. This boundary acts as a compilation
-firewall, allowing the concrete implementation to change without becoming
-part of the consumer's compilation dependency, provided the shared contract
-remains compatible.
+A compilation firewall exposes a stable call contract and stable layouts for
+the data that crosses it, while keeping concrete implementation knowledge on
+the provider side. PImpl provides this isolation through a fixed facade and
+opaque representation without requiring runtime dispatch. Virtual interfaces,
+type erasure, function tables, and dynamically loaded APIs preserve the same
+kind of contract while additionally using runtime binding data and indirect
+dispatch to select a concrete implementation.

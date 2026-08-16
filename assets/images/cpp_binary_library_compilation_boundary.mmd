@@ -1,0 +1,22 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 45, "rankSpacing": 55}}}%%
+flowchart TB
+    subgraph Consumer["Consumer compilation: public headers"]
+        direction LR
+        T["User-defined type T<br/>known only by the consumer"]
+        A["Minimal type-dependent code<br/>template adapter or binding"]
+        T --> A
+    end
+
+    subgraph Boundary["Stable compilation boundary"]
+        C["Fixed contract<br/>view, virtual interface,<br/>erased operation table, or facade"]
+    end
+
+    subgraph Binary["Shared library"]
+        direction LR
+        Core["Type-independent core<br/>algorithms, state, and lifecycle"]
+        Impl["Private implementation<br/>PImpl and internal types"]
+        Core --> Impl
+    end
+
+    A -->|"normalize, bind, or erase T"| C
+    C -->|"fixed ABI/API calls"| Core
