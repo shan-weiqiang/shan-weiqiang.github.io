@@ -1,0 +1,15 @@
+%%{init: {"themeVariables": {"fontSize": "20px"}, "flowchart": {"nodeSpacing": 35, "rankSpacing": 45}}}%%
+flowchart TD
+    P["Polymorphism<br/>one interface, type-appropriate behavior"]
+    P --> SP["Static polymorphism<br/>compile-time selection"]
+    P --> RP["Runtime polymorphism<br/>runtime selection"]
+    SP --> OL["Function overloads"]
+    SP --> TP["Templates and specialization"]
+    RP --> VT["Closed tagged dispatch<br/>std::variant"]
+    RP --> TE["Type erasure"]
+    TE --> VD["Virtual interface"]
+    VD --> CVT["Compiler-generated vtable<br/>a function table"]
+    TE --> FT["Explicit function or<br/>operation table"]
+    TP -->|"generates type-specific adapters<br/>with a uniform signature"| FT
+    TP -->|"compile-time callable adaptation"| SF["std::function<br/>hybrid abstraction"]
+    FT -->|"runtime erased dispatch"| SF
