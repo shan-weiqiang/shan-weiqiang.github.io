@@ -27,6 +27,7 @@ CHROMIUM = find_chromium()
 PADDING = 12
 
 WIDE_MMD = {
+    "type_erasure_virtual_variant_dispatch.mmd",
     "abi_linking_binary_substitution.mmd",
     "abi_linking_combined_patterns.mmd",
     "abi_linking_compilation_firewall.mmd",

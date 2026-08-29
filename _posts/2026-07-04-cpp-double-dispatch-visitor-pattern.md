@@ -7,6 +7,10 @@ tags: [cpp]
 
 Double dispatch is the technique C++ uses to pick the right behavior when **two** object types matter at runtime — for example, which print routine runs for a `Circle` on an `InkjetPrinter` vs a `LaserPrinter`. This post walks through the Visitor pattern step by step, using one shape hierarchy and concrete, compilable code at every stage.
 
+> **Editor's note:** The comparison with `std::variant` now distinguishes
+> virtual type erasure from closed tagged dispatch; a runtime tag or function
+> table alone does not imply type erasure.
+
 * toc
 {:toc}
 
@@ -927,14 +931,19 @@ void visitCircle(Circle& c) override {
 
 You can mix both in one visitor: `other.accept(*this)` when the partner is polymorphic; `visitRectangle(other)` when you already know it is a `Rectangle&`.
 
-# Same type-erasure core, different encoding
+# Related runtime dispatch, different abstraction boundaries
 
-Virtual Visitor and `std::variant`/`std::visit` share the **same type-erasure mechanism**: uniform interface at the use site, runtime tag, redirect table, binding at construction. The **key difference** is **open vs closed**:
+Virtual Visitor and `std::variant`/`std::visit` both perform runtime dispatch,
+but only the virtual interface is type-erased under the taxonomy used in this
+series:
 
-- **Open (virtual):** new shapes and visitors can be added in other translation units; call sites hold `Shape&` / `Visitor&`.
-- **Closed (`variant`):** every alternative is fixed in `variant<Ts...>`; dispatch uses `index()` + table instead of vtable slots.
+- **Virtual type erasure:** call sites hold `Shape&` / `Visitor&` without
+  enumerating concrete derived types. Compiler-generated vtables act as
+  operation tables over an open implementation set.
+- **Closed tagged dispatch:** every alternative is fixed and visible in
+  `variant<Ts...>`; `index()` selects among compile-time-generated branches.
 
-Full treatment of `variant` as type erasure: [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html). RTTI recovery on open hierarchies: [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). Closed-set double dispatch: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
+Full treatment: [V — Closed Tagged Dispatch](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html). RTTI recovery on open hierarchies: [Part VI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html). Closed-set double dispatch: [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
 
 # Golden rules
 

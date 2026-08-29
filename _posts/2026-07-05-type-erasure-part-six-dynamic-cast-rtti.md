@@ -11,10 +11,13 @@ Previously:
 - [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
 - [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 - [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
-- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [V — Closed Tagged Dispatch](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
 - [Type Erasure VII — std::any](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
 
-In [Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) I described type erasure as hiding concrete type information behind a uniform interface, with runtime dispatch redirecting through function pointers of the **same signature**. Virtual dispatch and `std::function` fit that model. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) shows the same mechanism on a **closed** alternative list: `variant<Ts...>`, `index()` as tag, visit/lifetime tables as redirect. This part covers a **different** runtime mechanism: **RTTI** and **`dynamic_cast`**, where dispatch is keyed by **type identity** rather than by a pre-planned behavior slot.
+> **Editor's note:** References to `std::variant` were revised to classify it
+> as closed tagged dispatch rather than type erasure.
+
+In [Part I](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html) I described type erasure as hiding concrete type information behind a uniform interface, with runtime dispatch redirecting through function pointers of the **same signature**. Virtual dispatch and `std::function` fit that model. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) contrasts that model with a **closed** alternative list: `variant<Ts...>` exposes every alternative and uses `index()` for tagged dispatch. This part covers another runtime mechanism: **RTTI** and **`dynamic_cast`**, where selection is keyed by **type identity** rather than by a pre-planned behavior slot.
 
 One rule underlies all of this — virtual dispatch, type erasure, RTTI, and (in the companion [variant post](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html)) `std::variant`:
 
@@ -69,7 +72,15 @@ Dispatch is still runtime, but it is **not** "pick among function pointers with 
 
 ![Part I virtual dispatch vs Part VI RTTI dispatch: vtable behavior slot compared to type_info check](/assets/images/type_erasure_part_v_dispatch.png)
 
-Closed-set **type erasure** with `std::variant` and `std::visit` uses the same tag+table core as virtual dispatch — see [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) and [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html). **Open-set value erasure** with [`std::any`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html) uses a **manager function pointer** as tag; `any_cast` compares that address (primary path), with `type_info` as RTTI fallback — see Part VII. **RTTI** (this part) is different: recovery by **`type_info`** on polymorphic hierarchies, not by manager address or variant index.
+Closed tagged dispatch with `std::variant` and `std::visit` uses an explicit
+discriminant over alternatives enumerated in `variant<Ts...>`; it is runtime
+polymorphism without type erasure. See
+[V — Closed Tagged Dispatch](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+and [Double Dispatch with std::variant and std::visit](https://shan-weiqiang.github.io/2026/07/05/cpp-variant-visit-double-dispatch.html).
+**Open-set value erasure** with [`std::any`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-seven-any.html)
+uses a **manager function pointer** as tag; `any_cast` compares that address
+(primary path), with `type_info` as RTTI fallback. **RTTI** (this part) is
+different again: recovery by **`type_info`** on polymorphic hierarchies.
 
 ## Theory behind RTTI
 
@@ -99,7 +110,8 @@ All three patterns defer **which branch runs**; none defer **knowing the types**
 | Pattern | Call site names | Compile time generates | Runtime selects |
 | --- | --- | --- | --- |
 | Virtual dispatch | `Base&` only | vtable slots for each override | which override |
-| Type erasure (Part I, Part V) | erased interface only | per-type implementations | which function pointer / index |
+| Type erasure (Part I) | erased interface only | per-type implementations | which function pointer |
+| Closed tagged dispatch (Part V) | complete `variant<Ts...>` list | handlers for every alternative | active index |
 | `dynamic_cast` | **`Derived`** explicitly | `type_info`, cast paths | whether object **is** that `Derived` |
 
 Virtual dispatch and inheritance **abstract the call site** away from derived types — that is the design purpose of `Base*`. `dynamic_cast` **reverses that at one line of code** by naming `Derived` again. That feels like a contradiction until you see both as **selection among compile-time-known types**, with different rules for what the caller may spell in source.
@@ -145,7 +157,7 @@ See [Double Dispatch and the Visitor Pattern — Step 7](https://shan-weiqiang.g
 
 ### What it is not
 
-RTTI does **not** let callers avoid knowing `T` at compile time — you must write `dynamic_cast<T>`. It does **not** add types at runtime that were absent from the build. It does **not** replace virtual dispatch or type erasure for open-ended generic algorithms (Parts I–V). Overuse breaks the open/closed principle — same cost as chaining `dynamic_cast` in visitor code.
+RTTI does **not** let callers avoid knowing `T` at compile time — you must write `dynamic_cast<T>`. It does **not** add types at runtime that were absent from the build. It does **not** replace virtual dispatch or type erasure for open-ended generic algorithms (Parts I–IV and VII). Overuse breaks the open/closed principle — same cost as chaining `dynamic_cast` in visitor code.
 
 ## Examples
 
@@ -179,7 +191,12 @@ Most callers call `draw()` and never name `Circle` in source — the static type
 
 C++ is **statically typed**: runtime dispatch — virtual, type-erased, or RTTI — always **selects among types the compiler already knew**. It never introduces a usable type that was absent from the build.
 
-Parts I–V **hide type at the call site** and dispatch **behavior** through uniform interfaces (vtable on open hierarchies; index + table on `variant`). Part VI adds: on polymorphic objects, **type identity survives as metadata**, and RTTI lets you **name** a derived type in source and **verify** it at runtime before using derived-only APIs.
+Parts I–IV hide concrete implementation types behind uniform interfaces. Part
+V is the contrast: `variant<Ts...>` keeps every alternative visible while a
+runtime index selects the active one. Part VI adds another distinction: on
+polymorphic objects, **type identity survives as metadata**, and RTTI lets you
+**name** a derived type in source and **verify** it at runtime before using
+derived-only APIs.
 
 **Rule of thumb:** use virtual dispatch and type erasure when call sites should not name concrete types; use `dynamic_cast` sparingly when a specific call site **must** name and verify `T` — understanding that `T` was always a compile-time commitment.
 

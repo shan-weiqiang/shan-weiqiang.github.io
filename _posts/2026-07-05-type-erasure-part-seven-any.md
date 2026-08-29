@@ -11,10 +11,13 @@ Previously:
 - [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
 - [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09/type-erasure-part-three.html)
 - [Type Erasure IV — ROS 2 Messages](https://shan-weiqiang.github.io/2026/06/13/type-erasure-part-four-ros2.html)
-- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [V — Closed Tagged Dispatch](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
 - [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
 
-[Part II](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html) showed type erasure of **callables** via `std::function` — `_M_manager` and `_M_invoker` hide the concrete lambda or function object behind one signature. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) showed erasure of a **closed** stored-value set via `std::variant<Ts...>`. This part covers **[`std::any`](https://en.cppreference.com/w/cpp/utility/any)** — **open-set** erasure of **stored values**: one public type name at the call site, any copy-constructible `T` at each construction, recovered later via `any_cast`.
+> **Editor's note:** The comparison with `std::variant` now treats variant as
+> a closed tagged union rather than an erased value wrapper.
+
+[Part II](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html) showed type erasure of **callables** via `std::function` — `_M_manager` and `_M_invoker` hide the concrete lambda or function object behind one signature. [Part V](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) provides the contrast: `std::variant<Ts...>` is a closed tagged union whose public type enumerates every alternative. This part covers **[`std::any`](https://en.cppreference.com/w/cpp/utility/any)** — **open-set** erasure of **stored values**: one public type name at the call site, any copy-constructible `T` at each construction, recovered later via `any_cast`.
 
 * toc
 {:toc}
@@ -24,7 +27,8 @@ Previously:
 From [Part I — Core logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html):
 
 - Encapsulate type information in the **implementation**; remove it from the **interface** the caller sees.
-- **Binding** completes at construction — after that, dispatch is fixed.
+- **Binding** completes at construction — after that, dispatch follows the
+  stored manager until assignment or `emplace` replaces the value and manager.
 - **Dispatch** redirects through **function pointers of the same signature**.
 
 `std::any` follows this model exactly. The public API always speaks `std::any`; construction binds a type-specific **manager** function; every later lifetime operation calls that manager through one unified function-pointer type.
@@ -149,7 +153,7 @@ Each `T` gets its own **`_S_manage` function** with that signature but a body th
 | Virtual | `Derived` behind `Base&` | vtable pointer + slot | virtual dtor, copy (if defined) |
 | [`std::function`](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html) | callable type | `_M_manager` + `_M_invoker` | `_M_manager` opcodes |
 | **`std::any`** | stored value type | `_M_manager` address | `_M_manager` opcodes |
-| [`std::variant`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) | active alternative | `index()` | `__do_visit` / visit table |
+| [`std::variant`](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html) closed tagged union | no erasure; every alternative is listed | `index()` | switch or visit table |
 
 **Why one function + opcodes (not a vtable)?** libstdc++ keeps `any` compact — typically **16 bytes** on 64-bit: one manager pointer plus a storage word/buffer. Move, copy, and destroy always need at least one indirect call; a single `_S_manage` with opcodes avoids a second pointer while preserving the unified-signature pattern.
 
@@ -309,7 +313,7 @@ See [Type Erasure III — Trade-offs](https://shan-weiqiang.github.io/2025/07/09
 
 - [Type Erasure I — Core Logic](https://shan-weiqiang.github.io/2025/04/20/type-erasure.html)
 - [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
-- [Type Erasure V — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+- [V — Closed Tagged Dispatch](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
 - [Type Erasure VI — dynamic_cast & RTTI](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-six-dynamic-cast-rtti.html)
 - [Type Erasure VIII — Final Thoughts](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-eight-final-thoughts.html)
 - [std::any — cppreference](https://en.cppreference.com/w/cpp/utility/any)

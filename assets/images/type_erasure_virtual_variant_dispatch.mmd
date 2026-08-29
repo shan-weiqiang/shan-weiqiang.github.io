@@ -1,16 +1,13 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 48, "rankSpacing": 56}}}%%
 flowchart LR
-  subgraph runtimeTag [Runtime tag]
-    vtableSlot["vtable slot (virtual)"]
-    indexTag["index() (variant)"]
-  end
-  subgraph table [Redirect table]
-    vtableFns["vtable entries"]
-    visitThunks["visit / lifetime thunks"]
-  end
-  subgraph bind [Binding at construction]
-    ctorDerived["construct Circle"]
-    ctorVariant["variant holds int or string"]
-  end
-  bind --> runtimeTag
-  runtimeTag --> table
-  table --> concreteImpl["handler for active type"]
+    Question["Runtime polymorphism"]
+
+    Question --> Virtual["Virtual interface<br/>Base&"]
+    Virtual --> Hidden["Derived types are not<br/>enumerated by the consumer"]
+    Hidden --> VTable["vptr -> vtable slot<br/>-> concrete override"]
+    VTable --> Erasure["Operational type erasure<br/>open implementation set"]
+
+    Question --> Variant["std::variant&lt;A, B, C&gt;"]
+    Variant --> Listed["A, B, and C remain explicit<br/>in the public type"]
+    Listed --> Tagged["index() -> switch or table<br/>-> active alternative handler"]
+    Tagged --> Closed["Closed tagged dispatch<br/>not type erasure"]

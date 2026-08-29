@@ -83,6 +83,9 @@ remain visible in `std::variant<Image, Command>`. Under the conventional
 definition, their types have not been erased. Type erasure is therefore not
 required for every form of runtime polymorphism.
 
+See [Closed Tagged Dispatch — std::variant](https://shan-weiqiang.github.io/2026/07/05/type-erasure-part-five-variant.html)
+for the detailed storage, index, visitation, and lifetime model.
+
 ### Type erasure
 
 Type erasure converts a concrete typed object into a uniform runtime
@@ -357,6 +360,9 @@ Thus `std::function` combines:
 1. **Static polymorphism** to generate type-specific adapters.
 2. **Type erasure** to remove the callable type from the public value.
 3. **Runtime polymorphism** to dispatch through the stored adapter.
+
+See [Type Erasure II — std::function](https://shan-weiqiang.github.io/2025/06/29/type-erasure-part-two.html)
+for the focused implementation walkthrough.
 
 ## Two ways to isolate type-specific logic from a core library
 
