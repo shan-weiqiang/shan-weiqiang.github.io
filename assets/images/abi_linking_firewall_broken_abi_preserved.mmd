@@ -1,0 +1,4 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 56}}}%%
+flowchart LR
+    Change["widget_impl.hpp changes"] --> Public["widget.hpp includes it"]
+    Public --> Client["client.cpp must recompile"]

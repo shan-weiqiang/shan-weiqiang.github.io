@@ -1,0 +1,9 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 50, "rankSpacing": 58}}}%%
+flowchart TB
+    H["Public binary contract v1"] --> C["Compile once"]
+    C --> Old["Existing client binary"]
+    Old --> New["Replacement library v2"]
+    New --> Check{"Same binary contract?"}
+    Check -->|"Yes"| Good["ABI-compatible substitution"]
+    Check -->|"No"| Bad["Link, load, or runtime failure"]
+

@@ -1,0 +1,6 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 56}}}%%
+flowchart LR
+    ImplChange["Library implementation changes"] --> HeaderSame["Public header unchanged"]
+    HeaderSame --> Reuse["Reuse client object"]
+    Reuse --> Missing["New library omits required symbol"]
+    Missing --> ABIBreak["ABI broken"]

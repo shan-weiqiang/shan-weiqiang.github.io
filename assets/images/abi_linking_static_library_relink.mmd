@@ -1,0 +1,5 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 48, "rankSpacing": 56}}}%%
+flowchart LR
+    PrivateChange["Private implementation change"] --> RebuildLibrary["Rebuild library objects"]
+    RebuildLibrary --> Relink["Relink executable"]
+    ClientSource["Client source"] -. "no recompilation" .-> Relink

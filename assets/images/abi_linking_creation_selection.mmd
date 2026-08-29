@@ -1,0 +1,11 @@
+%%{init: {"themeVariables": {"fontSize": "20px"}, "flowchart": {"nodeSpacing": 42, "rankSpacing": 46}}}%%
+flowchart LR
+    Virtual["Virtual interface with hidden implementations"] --> VF["Library factory"]
+    VF --> V1["TcpTransport object"]
+    VF --> V2["UdpTransport object"]
+    V1 --> VI["Returned as Transport pointer"]
+    V2 --> VI
+    VI -. "separate creation policy" .-> PImpl["PImpl facade"]
+    PImpl --> PC["Transport constructor"]
+    PC --> PI["Transport::Impl object"]
+    PI --> PF["Stored behind opaque pointer"]

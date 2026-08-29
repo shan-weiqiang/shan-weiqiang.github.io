@@ -1,0 +1,11 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "20px"}, "flowchart": {"nodeSpacing": 42, "rankSpacing": 46}}}%%
+flowchart TB
+    Virtual["Virtual interface<br/>behavior selected per object"] --> Factory["Library factory"]
+    Factory --> TCP["TcpTransport object"]
+    Factory --> UDP["UdpTransport object"]
+    TCP --> Interface["Return as Transport pointer"]
+    UDP --> Interface
+    Interface -. "separate creation policy" .-> PImpl["PImpl facade<br/>hidden representation selected by library"]
+    PImpl --> Constructor["Transport constructor"]
+    Constructor --> Impl["Transport::Impl object"]
+    Impl --> Pointer["Store behind opaque impl_ pointer"]

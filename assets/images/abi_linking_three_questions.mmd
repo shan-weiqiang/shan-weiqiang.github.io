@@ -1,0 +1,8 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 52}}}%%
+flowchart LR
+    Source["Client source"] --> Q1{"Must the client translation unit<br/>be recompiled?"}
+    Q1 -->|"Compilation firewall says no"| Object["Existing client object file"]
+    Object --> Q2{"Can required symbols<br/>be resolved?"}
+    Q2 -->|"Linker or loader says yes"| Connected["Connected binaries"]
+    Connected --> Q3{"Do both sides agree on<br/>the binary contract?"}
+    Q3 -->|"ABI compatible"| Working["Safe binary interaction"]

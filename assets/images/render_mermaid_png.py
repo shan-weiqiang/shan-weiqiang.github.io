@@ -27,11 +27,24 @@ CHROMIUM = find_chromium()
 PADDING = 12
 
 WIDE_MMD = {
+    "abi_linking_binary_substitution.mmd",
+    "abi_linking_combined_patterns.mmd",
+    "abi_linking_compilation_firewall.mmd",
+    "abi_linking_creation_selection.mmd",
+    "abi_linking_firewall_broken_abi_preserved.mmd",
+    "abi_linking_firewall_preserved_abi_broken.mmd",
+    "abi_linking_pimpl_dispatch.mmd",
+    "abi_linking_shared_architecture.mmd",
+    "abi_linking_static_library_relink.mmd",
+    "abi_linking_three_questions.mmd",
+    "abi_linking_virtual_dispatch.mmd",
     "python_c_ext_three_approaches.mmd",
     "python_c_ext_ros2_bindings_publish_flow.mmd",
     "python_c_ext_pybind11_call_flow.mmd",
 }
 TALL_MMD = {
+    "abi_creation_and_selection.mmd",
+    "abi_three_independent_questions.mmd",
     "python_c_ext_ros2_bindings_architecture.mmd",
     "python_c_ext_pybind11_internals.mmd",
     "python_c_ext_extension_vs_binding_layers.mmd",

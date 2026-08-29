@@ -1,0 +1,7 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 55, "rankSpacing": 62}}}%%
+flowchart TB
+    Client["client.cpp"] --> Public["widget.hpp<br/>stable public compilation input"]
+    Library["widget.cpp"] --> Public
+    Library --> Private["widget_impl.hpp<br/>private representation and dependencies"]
+    Private -. "not included by client" .-> Client
+

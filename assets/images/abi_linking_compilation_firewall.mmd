@@ -1,0 +1,6 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 50, "rankSpacing": 58}}}%%
+flowchart LR
+    Client["client.cpp"] --> Public["widget.hpp"]
+    Library["widget.cpp"] --> Public
+    Library --> Private["widget_impl.hpp"]
+    Private -. "no include dependency" .-> Client

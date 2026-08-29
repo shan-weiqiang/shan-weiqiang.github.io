@@ -1,0 +1,6 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 50, "rankSpacing": 56}}}%%
+flowchart TB
+    Client["Client"] -->|"ordinary ABI call"| Facade["Transport::send()"]
+    Facade -->|"dereference impl_"| Object["Transport::Impl object"]
+    Object -->|"ordinary private call"| Behavior["Transport::Impl::send()"]
+

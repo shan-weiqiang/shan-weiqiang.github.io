@@ -1,0 +1,9 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 52}}}%%
+flowchart TB
+    S["Client source"] --> Q1{"Must the client translation unit<br/>be recompiled?"}
+    Q1 -->|"Firewall permits reuse"| O["Existing client object file"]
+    O --> Q2{"Can required symbols<br/>be resolved?"}
+    Q2 -->|"Linker or loader: yes"| C["Connected binaries"]
+    C --> Q3{"Do both sides agree on<br/>the binary contract?"}
+    Q3 -->|"ABI compatible"| W["Safe binary interaction"]
+

@@ -1,0 +1,8 @@
+%%{init: {"themeVariables": {"fontSize": "21px"}, "flowchart": {"nodeSpacing": 52, "rankSpacing": 50}}}%%
+flowchart LR
+    Client["Client"] -->|"Transport pointer"| Object["Concrete object"]
+    Object --> VPtr["vptr"]
+    VPtr --> VTable["vtable for dynamic type"]
+    VTable --> TCP["TcpTransport::send"]
+    VTable --> UDP["UdpTransport::send"]
+    VTable --> Mock["MockTransport::send"]

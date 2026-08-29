@@ -1,0 +1,5 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 56}}}%%
+flowchart LR
+    Client["Client"] -->|"ordinary ABI call"| Facade["Transport::send"]
+    Facade -->|"dereference impl_"| Impl["Transport::Impl object"]
+    Impl -->|"ordinary call"| Behavior["Impl::send"]

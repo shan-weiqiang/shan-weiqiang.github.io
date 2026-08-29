@@ -1,0 +1,6 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 56}}}%%
+flowchart LR
+    Client["Client"] --> Interface["ITransport interface"]
+    Interface -->|"virtual dispatch"| Concrete["TcpTransport"]
+    Concrete -->|"opaque pointer"| Impl["TcpTransport::Impl"]
+    Impl --> System["Socket, thread, DDS,<br/>or vendor APIs"]

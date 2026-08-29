@@ -1,0 +1,10 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "20px"}, "flowchart": {"nodeSpacing": 54, "rankSpacing": 48}}}%%
+flowchart TB
+    Client["Client call<br/>transport->send()"] --> Object["Object selected at runtime"]
+    Object --> VPtr["Load object vptr"]
+    VPtr --> Table["Load send slot from<br/>dynamic type's vtable"]
+    Table --> Call["Indirect call"]
+    Call --> TCP["TcpTransport::send"]
+    Call --> UDP["UdpTransport::send"]
+    Call --> Mock["MockTransport::send"]
+

@@ -1,0 +1,8 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 45, "rankSpacing": 56}}}%%
+flowchart TB
+    Client["Client translation unit"] --> Contract["Stable public API and ABI"]
+    Contract --> Boundary["Virtual dispatch or<br/>opaque representation boundary"]
+    Boundary --> Hidden["Hidden library implementation"]
+    Hidden --> Private["Private implementation headers"]
+    Contract -. "does not expose" .-> Private
+

@@ -1,0 +1,8 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}, "flowchart": {"nodeSpacing": 46, "rankSpacing": 54}}}%%
+flowchart LR
+    HeaderV1["Public contract v1"] --> Compile["Compile once"]
+    Compile --> OldClient["Existing client binary"]
+    OldClient --> LibraryV2["Replacement library v2"]
+    LibraryV2 --> Check{"Same binary contract?"}
+    Check -->|"Yes"| Compatible["ABI compatible"]
+    Check -->|"No"| Broken["ABI broken"]

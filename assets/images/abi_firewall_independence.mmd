@@ -1,0 +1,12 @@
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "20px"}, "flowchart": {"nodeSpacing": 50, "rankSpacing": 48}}}%%
+flowchart TB
+    Change["Library implementation changes"]
+    Change --> FYes["Public compilation inputs unchanged"]
+    FYes --> Reuse["Client object can be reused"]
+    Reuse --> ABINo["Replacement drops or changes<br/>a required binary contract"]
+    ABINo --> Broken["Firewall preserved<br/>ABI broken"]
+    Change --> FNo["Private header leaks into<br/>the public include graph"]
+    FNo --> Recompile["Client recompiles"]
+    Recompile --> ABIYes["Public symbols and client-visible<br/>layout remain compatible"]
+    ABIYes --> Compatible["Firewall broken<br/>ABI preserved"]
+
