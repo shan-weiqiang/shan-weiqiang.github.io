@@ -2,7 +2,7 @@
 layout: post
 title:  "C++ Compilation Firewalls II"
 date:   2026-08-16 09:00:00 +0800
-tags: [cpp, systems, data-typing]
+tags: [cpp, compilation-firewalls, templates, shared-libraries]
 ---
 
 This is Part II of the **C++ Compilation Firewalls** series and a sequel to

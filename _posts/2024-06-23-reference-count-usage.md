@@ -2,7 +2,7 @@
 layout: post
 title:  "Reference Counting in Systems"
 date:   2024-06-23 15:20:46 +0800
-tags: [systems]
+tags: [memory-management, filesystems, linux]
 ---
 
 reference count is a recurring design pattern in many fields of computer systems. It's interesting to put them together and have a look at them.

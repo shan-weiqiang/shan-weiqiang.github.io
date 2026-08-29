@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure VII — std::any"
 date:   2026-07-05 13:00:00 +0800
-tags: [data-typing]
+tags: [cpp, type-erasure, rtti]
 ---
 
 Previously:

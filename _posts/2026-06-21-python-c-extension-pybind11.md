@@ -2,7 +2,7 @@
 layout: post
 title:  "Python/C VII — pybind11"
 date:   2026-06-21 09:00:00 +0800
-tags: [python]
+tags: [python, cpp, python-extensions, ffi]
 ---
 
 * toc

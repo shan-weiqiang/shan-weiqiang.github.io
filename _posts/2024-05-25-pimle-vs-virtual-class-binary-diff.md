@@ -2,7 +2,7 @@
 layout: post
 title:  "pimpl vs Virtual Class"
 date:   2024-05-25 10:22:46 +0800
-tags: [cpp]
+tags: [cpp, pimpl, polymorphism, abi]
 ---
 
 

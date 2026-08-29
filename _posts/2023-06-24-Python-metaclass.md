@@ -2,7 +2,7 @@
 layout: post
 title:  "Python Metaclasses: Class Creation"
 date:   2023-06-24 19:22:46 +0800
-tags: [python]
+tags: [python, object-model, metaprogramming]
 ---
 
 This article tries to explain how metaclass work in Python and the process of creation of class instance and class itself.

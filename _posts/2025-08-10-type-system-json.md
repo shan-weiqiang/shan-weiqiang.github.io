@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Systems III — JSON Types"
 date:   2025-08-10 9:22:46 +0800
-tags: [data-typing]
+tags: [json, type-systems, serialization]
 ---
 
 Previously:
@@ -377,5 +377,4 @@ This is how the `nlohmann::json` dynamically represents all json data. At it's c
         }
     };
 ```
-
 

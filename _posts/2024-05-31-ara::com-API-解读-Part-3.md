@@ -2,7 +2,7 @@
 layout: post
 title:  "ara::com API: Part III — Skeleton Class"
 date:   2024-06-01 09:22:46 +0800
-tags: [automotive]
+tags: [automotive, autosar, middleware]
 ---
 
 标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)
@@ -147,5 +147,4 @@ kEvent模式和kEventSingleThread模式下，当通信协议接收到method的re
 ### 5.4.7 Events
 
 第一个发送接口使用拷贝的方式将用户数据拷贝到底层通信协议：`ara::core::Result<void> Send(const SampleType &data);`; 为了减少拷贝AUTOSAR提供了另外一个发送接口：`ara::core::Result<void> Send(ara::com::SampleAllocateePtr<SampleType>data);`，其中`ara::com::SampleAllocateePtr<SampleType>`的行为可以当成`std::unique_ptr`，在调用这个发送接口前可以通过使用`ara::core::Result<ara::com::SampleAllocateePtr<SampleType>> Allocate();`接口向ComAPI层申请空间，申请到后用户将数据填充，然后调用`Send`，加入ComAPI在共享内存中开辟这些空间，则在同一个机器上的不同进程可以在Sender和Reciever之间实现`zero copy`。
-
 

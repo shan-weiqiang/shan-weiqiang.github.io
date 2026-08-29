@@ -2,7 +2,7 @@
 layout: post
 title:  "All-In-One Routers"
 date:   2026-01-24 9:22:46 +0800
-tags: [reading]
+tags: [networking, routing, nat]
 ---
 
 * toc
@@ -253,4 +253,3 @@ This allows dozens of devices to use the internet through a single public IP whi
 [Application] → [VPN Virtual Interface] → [Encapsulated Packet] → [Real Interface] → [VPN Server] → [Internet]  
 - Traffic to VPN server itself goes via **real interface** to establish the tunnel.  
 - Traffic sent through VPN interface is **encrypted and encapsulated**, delivered via the real interface to the VPN server, then forwarded to the destination.
-

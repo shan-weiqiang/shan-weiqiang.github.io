@@ -2,7 +2,7 @@
 layout: post
 title:  "A C++ Programmer's Guide to Rust"
 date:   2023-08-12 19:22:46 +0800
-tags: [rust]
+tags: [rust, cpp, language-design, memory-management]
 ---
 
 

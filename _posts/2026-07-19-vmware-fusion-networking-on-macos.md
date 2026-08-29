@@ -2,7 +2,7 @@
 layout: post
 title:  "VMware Fusion Networking on macOS"
 date:   2026-07-19 10:47:08 +0800
-tags: [networking, virtualization, macos]
+tags: [networking, virtualization, macos, routing]
 ---
 
 * toc

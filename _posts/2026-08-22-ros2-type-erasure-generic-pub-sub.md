@@ -2,7 +2,7 @@
 layout: post
 title:  "ROS 2 Type Erasure with Generic Pub/Sub"
 date:   2026-08-22 09:00:00 +0800
-tags: [ros2, data-typing]
+tags: [ros2, type-erasure, serialization, middleware]
 ---
 
 ROS 2 provides both compile-time typed and runtime-typed publisher and

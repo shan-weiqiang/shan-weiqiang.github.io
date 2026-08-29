@@ -2,7 +2,7 @@
 layout: post
 title:  "Keeping Type-Erased Components Type-Compatible"
 date:   2026-08-23 09:00:00 +0800
-tags: [cpp, data-typing]
+tags: [cpp, type-erasure, rtti, abi]
 ---
 
 Type erasure reduces template propagation, stabilizes interfaces, hides

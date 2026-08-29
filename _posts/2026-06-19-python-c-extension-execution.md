@@ -2,7 +2,7 @@
 layout: post
 title:  "Python/C II — tp_call"
 date:   2026-06-19 13:31:46 +0800
-tags: [python]
+tags: [python, python-extensions, interpreter, ffi]
 ---
 
 * toc

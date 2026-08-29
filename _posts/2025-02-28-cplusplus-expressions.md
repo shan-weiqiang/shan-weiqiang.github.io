@@ -2,7 +2,7 @@
 layout: post
 title:  "C++ Expressions and Value Category"
 date:   2025-02-28 09:22:46 +0800
-tags: [cpp]
+tags: [cpp, language-semantics, type-systems]
 ---
 
 According to my experience, the most difficult part in understanding C++ is however the most basic one: the `expression`. Only by having a comprehensive understanding of `expression`, one can further have a clear understanding about lvalue, rvalue, type deduction, `auto` keyword, universal reference, `decltype`, move semantics,etc. As you can see, above-mentioned concepts are at the core of C++ 11 and afterwards.
@@ -628,4 +628,3 @@ typename std::add_rvalue_reference<T>::type declval() noexcept
 [Why add rvalue reference, instead of lvalue reference?](https://stackoverflow.com/questions/20303250/is-there-a-reason-declval-returns-add-rvalue-reference-instead-of-add-lvalue-ref/20303350#20303350)
 
 The reason is related to reference collapsing rules: only by adding rvalue reference, `declval` might have the possibility return a rvalue reference, so as to have more possibility to call methods, such as methods that can only be called by rvalue.
-

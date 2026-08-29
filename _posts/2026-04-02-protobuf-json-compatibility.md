@@ -2,7 +2,7 @@
 layout: post
 title:  "Protobuf vs JSON Compatibility"
 date:   2026-04-02 9:22:46 +0800
-tags: [programming]
+tags: [protobuf, json, serialization, schema-evolution]
 ---
 
 * toc

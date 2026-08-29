@@ -2,7 +2,7 @@
 layout: post
 title:  "pimpl and unique_ptr Incomplete Type"
 date:   2023-12-24 19:22:46 +0800
-tags: [cpp]
+tags: [cpp, pimpl, memory-management, compilation-firewalls]
 ---
 
 

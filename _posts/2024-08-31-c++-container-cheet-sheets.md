@@ -2,7 +2,7 @@
 layout: post
 title:  "C++ Standard Library Containers: Cheat Sheet"
 date:   2024-08-31 09:22:46 +0800
-tags: [cpp]
+tags: [cpp, data-structures]
 ---
 
 ![alt text](/assets/images/cplusplus_containers.png)
@@ -18,5 +18,3 @@ tags: [cpp]
 - [What's the difference between deque and list STL containers?](https://stackoverflow.com/questions/1436020/whats-the-difference-between-deque-and-list-stl-containers#:~:text=std%3A%3Alist%20is%20basically,performance%20characteristics%20than%20a%20list.)
 
 ---
-
-

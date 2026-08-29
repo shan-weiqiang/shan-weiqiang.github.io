@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure VIII — Final Thoughts"
 date:   2026-07-05 14:00:00 +0800
-tags: [data-typing]
+tags: [cpp, type-erasure, polymorphism, type-systems]
 ---
 
 Previously:

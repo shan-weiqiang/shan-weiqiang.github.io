@@ -2,7 +2,7 @@
 layout: post
 title:  "Python Decorators"
 date:   2023-05-02 19:22:46 +0800
-tags: [python]
+tags: [python, metaprogramming]
 ---
 
 

@@ -2,7 +2,7 @@
 layout: post
 title:  "Static vs Dynamic Typing and Type Erasure"
 date:   2026-02-07 9:22:46 +0800
-tags: [data-typing]
+tags: [type-systems, type-erasure, reflection, language-design]
 ---
 
 * toc

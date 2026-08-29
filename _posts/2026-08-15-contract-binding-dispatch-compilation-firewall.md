@@ -2,7 +2,7 @@
 layout: post
 title:  "C++ Compilation Firewalls I"
 date:   2026-08-15 09:00:00 +0800
-tags: [cpp, systems, data-typing]
+tags: [cpp, compilation-firewalls, type-erasure, abi]
 ---
 
 This is Part I of the **C++ Compilation Firewalls** series. It explains the

@@ -2,7 +2,7 @@
 layout: post
 title:  "ABI Compatibility, Compilation Firewalls, and Linking"
 date:   2026-08-29 08:00:00 +0800
-tags: [cpp, systems]
+tags: [cpp, abi, linking, compilation-firewalls]
 ---
 
 * toc

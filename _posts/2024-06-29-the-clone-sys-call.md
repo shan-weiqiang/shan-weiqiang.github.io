@@ -2,7 +2,7 @@
 layout: post
 title:  "Linux clone() System Call"
 date:   2024-06-30 10:20:46 +0800
-tags: [systems]
+tags: [linux, processes, concurrency]
 ---
 
 This blog reference most of it's content to Chapter 28.2 of [The Linux Programming Interface](https://man7.org/tlpi/)

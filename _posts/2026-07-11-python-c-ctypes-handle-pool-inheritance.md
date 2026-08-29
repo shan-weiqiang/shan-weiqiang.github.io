@@ -2,7 +2,7 @@
 layout: post
 title:  "Python/C IX — Inheritance Handle Pool"
 date:   2026-07-11 10:00:00 +0800
-tags: [python]
+tags: [python, ffi, ctypes, polymorphism]
 ---
 
 * toc

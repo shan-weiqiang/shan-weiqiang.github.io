@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure II — std::function"
 date:   2025-06-29 10:00:00 +0800
-tags: [data-typing]
+tags: [cpp, type-erasure, polymorphism]
 ---
 
 > **Editor's note:** This article has been revised to distinguish compile-time

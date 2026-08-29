@@ -2,7 +2,7 @@
 layout: post
 title:  "Polymorphism, Type Erasure, and std::function"
 date:   2026-08-23 11:00:00 +0800
-tags: [cpp, data-typing]
+tags: [cpp, polymorphism, type-erasure, templates]
 ---
 
 Polymorphism means that the same operation or interface can be applied to

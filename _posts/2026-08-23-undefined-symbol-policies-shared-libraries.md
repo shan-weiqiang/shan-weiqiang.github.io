@@ -2,7 +2,7 @@
 layout: post
 title:  "Undefined-Symbol Policies When Linking Executables and Shared Libraries"
 date:   2026-08-23 10:00:00 +0800
-tags: [cpp, systems]
+tags: [cpp, linking, shared-libraries, polymorphism]
 ---
 
 GNU `ld` distinguishes undefined symbols by where the reference originates. A

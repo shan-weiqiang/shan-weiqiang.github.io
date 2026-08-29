@@ -2,7 +2,7 @@
 layout: post
 title:  "Docker CLI Architecture"
 date:   2024-03-20 19:22:46 +0800
-tags: [systems]
+tags: [linux, containerization, ipc, terminals]
 ---
 
 * toc

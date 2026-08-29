@@ -2,7 +2,7 @@
 layout: post
 title:  "Agents as Universal Interfaces"
 date:   2026-04-08 8:22:46 +0800
-tags: [systems]
+tags: [ai-agents, protobuf, code-generation]
 ---
 
 * toc
@@ -39,4 +39,3 @@ All of this can be driven from the command line with natural-language interactio
 **Agents let people use tools through natural language. So all tools should be provided in the form of an Agent**
 
 ![alt text](/assets/images/agent_arch.png)
-

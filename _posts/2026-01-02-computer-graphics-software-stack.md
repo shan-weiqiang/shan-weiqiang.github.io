@@ -2,7 +2,7 @@
 layout: post
 title:  "Computer Graphics Software Stack"
 date:   2026-01-02 9:22:46 +0800
-tags: [graphics, systems]
+tags: [graphics, linux, systems-design]
 ---
 
 Modern computer graphics involve a complex software stack that orchestrates multiple layers of abstraction, from the operating system's windowing system to the final pixel output on the monitor. Understanding this stack is crucial for developers working with graphics applications, UI frameworks, or system-level programming.
@@ -215,4 +215,3 @@ The computer graphics software stack is a sophisticated multi-layer system that 
 - **System Programmers**: Understanding windowing system internals and display management
 
 The abstraction layers allow developers to work at their appropriate level of detail while the system handles the complex coordination between software and hardware components.
-

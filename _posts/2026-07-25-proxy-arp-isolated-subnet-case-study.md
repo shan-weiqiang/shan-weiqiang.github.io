@@ -2,7 +2,7 @@
 layout: post
 title:  "Network Paths: Routing, NAT, and State"
 date:   2026-07-25 16:00:00 +0800
-tags: [networking, linux]
+tags: [networking, linux, routing, nat]
 ---
 
 * toc

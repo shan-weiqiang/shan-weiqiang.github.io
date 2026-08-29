@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Systems II — Protobuf Reflection"
 date:   2025-06-14 9:22:46 +0800
-tags: [data-typing]
+tags: [protobuf, reflection, type-systems, serialization]
 ---
 
 Previously:
@@ -494,4 +494,3 @@ obj2.double_x()
 ```
 
 **For dynamic types, the programmer are programming towards *interpreter*. For static types, the programmer are programming towards *compiler***
-

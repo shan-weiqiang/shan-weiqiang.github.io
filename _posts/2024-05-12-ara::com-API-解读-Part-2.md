@@ -2,7 +2,7 @@
 layout: post
 title:  "ara::com API: Part II — Proxy and Events"
 date:   2024-05-12 13:22:46 +0800
-tags: [automotive]
+tags: [automotive, autosar, middleware]
 ---
 
 标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)

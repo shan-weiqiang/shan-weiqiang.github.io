@@ -2,7 +2,7 @@
 layout: post
 title:  "ROS 2 Generated Message Runtime Dependencies"
 date:   2026-08-01 09:00:00 +0800
-tags: [ros2, systems]
+tags: [ros2, serialization, shared-libraries, code-generation]
 ---
 
 * toc

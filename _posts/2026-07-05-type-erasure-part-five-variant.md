@@ -2,7 +2,7 @@
 layout: post
 title:  "Closed Tagged Dispatch — std::variant"
 date:   2026-07-05 10:00:00 +0800
-tags: [data-typing]
+tags: [cpp, closed-tagged-dispatch, polymorphism]
 ---
 
 Previously:

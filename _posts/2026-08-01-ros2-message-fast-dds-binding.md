@@ -2,7 +2,7 @@
 layout: post
 title:  "How ROS 2 Binds a Message Type to Fast DDS"
 date:   2026-08-01 11:00:00 +0800
-tags: [ros2, systems]
+tags: [ros2, middleware, serialization, type-erasure]
 ---
 
 * toc

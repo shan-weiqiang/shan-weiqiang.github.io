@@ -2,7 +2,7 @@
 layout: post
 title:  "The Mapping Design Pattern"
 date:   2024-06-09 9:20:46 +0800
-tags: [systems]
+tags: [systems-design, memory-management, storage]
 ---
 
 It's fun to observe and generalize the similarities between different systems. In computer storage, the virtual memory design in RAM management and the logical block design in mass storage management shares the same pattern: mapping of logical/virtual memory to physical memory.
@@ -52,4 +52,3 @@ The ideology behind virtual memory design and the logical block address design i
 It is indeed true that：
 
 > "We can solve any problem by introducing an extra level of indirection."
-

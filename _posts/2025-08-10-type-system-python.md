@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Systems IV — Python Runtime Types"
 date:   2025-08-10 9:22:46 +0800
-tags: [data-typing]
+tags: [python, type-systems, object-model]
 ---
 
 Previously:
@@ -386,4 +386,3 @@ c.p_method()  # Works — no casting needed
 ```
 Parent method, self is: <__main__.Child object at 0x10100dbe0>
 ```
-

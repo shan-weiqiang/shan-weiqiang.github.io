@@ -2,7 +2,7 @@
 layout: post
 title:  "C++ Parameter Binding"
 date:   2024-04-05 19:22:46 +0800
-tags: [cpp]
+tags: [cpp, parameter-passing, language-semantics]
 ---
 
 # 绑定矩阵（binding matrix）

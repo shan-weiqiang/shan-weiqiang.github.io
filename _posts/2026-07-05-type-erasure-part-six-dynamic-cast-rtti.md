@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure VI — dynamic_cast & RTTI"
 date:   2026-07-05 12:00:00 +0800
-tags: [data-typing]
+tags: [cpp, rtti, polymorphism, type-erasure]
 ---
 
 Previously:

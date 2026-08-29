@@ -2,7 +2,7 @@
 layout: post
 title:  "Double Dispatch with std::variant and std::visit"
 date:   2026-07-05 11:00:00 +0800
-tags: [cpp]
+tags: [cpp, closed-tagged-dispatch, double-dispatch, polymorphism]
 ---
 
 This post complements [Double Dispatch and the Visitor Pattern in C++](https://shan-weiqiang.github.io/2026/07/04/cpp-double-dispatch-visitor-pattern.html). That post uses **virtual** dispatch on **open** class hierarchies (`accept` + `visitCircle`). Here we cover **closed tagged runtime dispatch** over the compile-time alternative list in [`std::variant`](https://en.cppreference.com/w/cpp/utility/variant), using [`std::visit`](https://en.cppreference.com/w/cpp/utility/variant/visit2).

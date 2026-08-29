@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure III — Trade-offs"
 date:   2025-07-09 01:00:00 +0800
-tags: [data-typing]
+tags: [cpp, type-erasure, memory-management]
 ---
 
 I talk about two drawbacks about type erasure: confusing *type erasure* with *object slicing* and the need for manual memory management.

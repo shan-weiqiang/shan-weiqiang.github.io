@@ -2,7 +2,7 @@
 layout: post
 title:  "ara::com API: Part I — Proxy/Skeleton Model"
 date:   2024-05-05 13:22:46 +0800
-tags: [automotive]
+tags: [automotive, autosar, middleware]
 ---
 
 标准连接：[ara::com API](https://www.autosar.org/fileadmin/standards/R23-11/AP/AUTOSAR_AP_EXP_ARAComAPI.pdf)
@@ -206,6 +206,5 @@ manifest, which maps the same ara::core::InstanceSpecifier differently
 Instance Identifier和Instance Specifier都是*部署*阶段的模型元素，代码引擎会根据不同的部署模型生成不同的部署配置文件清单（例如json），在配置清单中会详细的包含Instance Specifier与Instance Identifier的对应关系。这就是文中从Instance Specifier解析Instance Identifier的信息来源：解析配置清单，获取对应信息。
 
 ---
-
 
 

@@ -2,7 +2,7 @@
 layout: post
 title:  "Type Erasure I — Core Logic"
 date:   2025-04-20 9:22:46 +0800
-tags: [data-typing]
+tags: [cpp, type-erasure, polymorphism]
 ---
 
 

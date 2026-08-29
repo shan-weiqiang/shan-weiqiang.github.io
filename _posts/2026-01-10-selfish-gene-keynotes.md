@@ -2,7 +2,7 @@
 layout: post
 title:  "The Selfish Gene: Keynotes"
 date:   2026-01-10 9:22:46 +0800
-tags: [reading]
+tags: [evolution, genetics]
 ---
 
 * toc
@@ -133,5 +133,3 @@ tags: [reading]
 
 《自私的基因》并不是在否定人类价值，  
 而是在迫使我们从一个更冷静、更深层的视角，重新理解“自我”“意义”和“文明”。
-
-

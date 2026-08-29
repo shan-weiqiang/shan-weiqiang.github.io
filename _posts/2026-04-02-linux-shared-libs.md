@@ -2,7 +2,7 @@
 layout: post
 title:  "Linux Shared Libraries: SONAME and RPATH"
 date:   2026-04-02 9:00:46 +0800
-tags: [systems]
+tags: [linux, shared-libraries, linking, abi]
 ---
 
 * toc
