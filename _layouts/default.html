@@ -3,12 +3,12 @@
 
   {%- include head.html -%}
 
-  <body>
+  <body{% if page.wide_layout %} class="wide-layout"{% endif %}>
 
     {%- include header.html -%}
 
     <main class="page-content" aria-label="Content">
-      <div class="wrapper">
+      <div class="wrapper{% if page.wide_layout %} wrapper--wide{% endif %}">
         {{ content }}
       </div>
     </main>
