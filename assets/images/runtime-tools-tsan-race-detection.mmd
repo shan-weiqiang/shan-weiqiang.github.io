@@ -1,0 +1,12 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    T1[Thread 1 writes address X] --> H[TSan access hook]
+    T2[Thread 2 reads address X] --> H
+    H --> S[Shadow state for address X]
+    H --> O[Thread synchronization clocks]
+    S --> Q{Conflicting accesses?}
+    O --> R{Ordered by happens-before?}
+    Q -->|No| N[No race]
+    Q -->|Yes| R
+    R -->|Yes| N
+    R -->|No| W[Report data race]

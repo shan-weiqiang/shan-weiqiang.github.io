@@ -1,0 +1,16 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+sequenceDiagram
+    participant A as Thread A
+    participant M as Mutex
+    participant B as Thread B
+    participant T as TSan runtime
+
+    A->>M: Lock
+    A->>A: Write shared value
+    A->>T: Record the write
+    A->>M: Unlock and publish logical time
+    B->>M: Lock and acquire logical time
+    B->>B: Read shared value
+    B->>T: Record the read
+    T->>T: Confirm write happens before read
+    T-->>B: No data-race report

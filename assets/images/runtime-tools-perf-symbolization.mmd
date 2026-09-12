@@ -1,0 +1,20 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+sequenceDiagram
+    participant P as perf userspace command
+    participant K as Linux perf-events subsystem
+    participant H as CPU PMU counter
+    participant T as Target thread
+    participant B as Kernel ring buffer
+    participant A as Offline analyzer
+
+    P->>K: perf_event_open and sampling configuration
+    K->>H: Enable event counter and overflow period
+    T->>T: Execute normal application instructions
+    H->>H: Count cycles or another selected event
+    H-->>K: Counter overflow triggers PMU interrupt
+    K->>K: Capture CPU, PID, TID, timestamp, and instruction pointer
+    K->>K: Capture or reconstruct call-chain data when requested
+    K->>B: Write sample and mapping metadata
+    P->>B: Read records and write perf.data
+    P->>A: Open perf.data with perf report or perf script
+    A->>A: Map addresses to DSOs, symbols, source lines, and call paths

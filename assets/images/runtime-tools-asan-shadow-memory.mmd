@@ -1,0 +1,7 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TB
+    A0[Application bytes 0 through 7] --> S0[Shadow byte 0]
+    A1[Application bytes 8 through 15] --> S1[Shadow byte 1]
+    S0 --> V0[0 means all eight bytes accessible]
+    S1 --> V1[1 through 7 can describe a partially accessible group]
+    S1 --> VP[Special poison values describe invalid regions]

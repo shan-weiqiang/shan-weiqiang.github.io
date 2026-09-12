@@ -1,0 +1,12 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    S[C or C++ source] --> C[GCC or Clang]
+    C --> I[Instrumented machine code]
+    I --> E[Native multithreaded execution]
+    R[TSan runtime] --> E
+    I --> A[Instrumented reads and writes]
+    I --> Y[Instrumented atomics and synchronization]
+    A --> SH[TSan shadow state]
+    Y --> HB[Happens-before model]
+    SH --> D[Race detector]
+    HB --> D

@@ -1,0 +1,7 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+stateDiagram-v2
+    [*] --> Allocated: allocate
+    Allocated --> Accessible: return user pointer
+    Accessible --> Quarantined: free and poison
+    Quarantined --> Reusable: quarantine expires
+    Reusable --> Accessible: allocate same region again

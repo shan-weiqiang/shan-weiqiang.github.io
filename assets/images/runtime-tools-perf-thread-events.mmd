@@ -1,0 +1,16 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TB
+    APP[One process / thread group]
+    APP --> T0[Main thread<br/>TID 1000]
+    APP --> T1[Worker thread<br/>TID 1001]
+    APP --> T2[Worker thread<br/>TID 1002]
+
+    T0 -. scheduled on .-> C0[CPU 0<br/>local PMU]
+    T1 -. scheduled on .-> C2[CPU 2<br/>local PMU]
+    T2 -. scheduled on .-> C5[CPU 5<br/>local PMU]
+
+    C0 --> D[perf.data]
+    C2 --> D
+    C5 --> D
+
+    D --> V[Aggregate by process,<br/>TID, CPU, symbol,<br/>or call stack]

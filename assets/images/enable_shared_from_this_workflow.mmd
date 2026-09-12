@@ -1,0 +1,20 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "sequence": {"diagramMarginX": 30, "actorMargin": 55, "messageMargin": 35}}}%%
+sequenceDiagram
+    participant U as Caller
+    participant S as shared_ptr machinery
+    participant O as Foo and CRTP base
+    participant C as Control block
+
+    U->>S: make_shared<Foo>()
+    S->>C: Create ownership storage
+    S->>O: Construct Foo
+    Note over O: Inherited weak_ptr starts empty
+    O-->>S: Construction finishes
+    S->>O: Connect weak_ptr to Foo and control block
+    Note over O,C: Weak connection adds no strong owner
+    S-->>U: owner (strong count = 1)
+
+    U->>O: owner->shared_from_this()
+    O->>C: Promote inherited weak_ptr
+    C-->>O: shared_ptr in the same ownership group
+    O-->>U: self (strong count = 2)

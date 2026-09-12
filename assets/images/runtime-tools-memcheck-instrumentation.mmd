@@ -1,0 +1,9 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    MI[Original machine load] --> IR[Valgrind IR load]
+    IR --> MC[Memcheck instrumentation]
+    MC --> AC[Check addressability]
+    MC --> VL[Load or propagate definedness]
+    AC --> EX[Translated host instructions]
+    VL --> EX
+    EX --> CPU[Real CPU execution]

@@ -1,0 +1,10 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TB
+    K[Host kernel]
+    K --> P[One Valgrind-managed process and address space]
+    P --> VC[Valgrind core and dispatcher]
+    P --> AS[Application memory and guest CPU state]
+    P --> TC[Translated-code cache]
+    P --> SM[Memcheck or Helgrind metadata]
+    P --> TH[Application threads managed by Valgrind]
+    TH --> KS[Kernel scheduling and host system calls]

@@ -1,0 +1,11 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TD
+    A[Translated memory access] --> B{Address range valid in A-bits?}
+    B -->|No| C[Report invalid read or write]
+    B -->|Yes| D[Perform access and transfer V-bits]
+    D --> E{Value fully defined?}
+    E -->|Yes| F[Continue normally]
+    E -->|No| G[Propagate undefined state]
+    G --> H{Undefined value used observably?}
+    H -->|No| F
+    H -->|Yes| I[Report undefined-value use]

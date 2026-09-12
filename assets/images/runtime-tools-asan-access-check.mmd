@@ -1,0 +1,11 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TD
+    A[Compute application address and access size]
+    A --> B[Map application address to shadow address]
+    B --> C[Read and interpret shadow metadata]
+    C --> D{Entire access allowed?}
+    D -->|Yes| E[Perform the real load or store]
+    D -->|No| F[Call ASan reporting runtime]
+    F --> G[Classify error and collect stack information]
+    G --> H[Print diagnostic]
+    H --> I[Terminate by default]

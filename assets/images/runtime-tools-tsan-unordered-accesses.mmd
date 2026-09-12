@@ -1,0 +1,14 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+sequenceDiagram
+    participant A as Thread A
+    participant M as Shared value
+    participant B as Thread B
+    participant T as TSan runtime
+
+    A->>M: Write value
+    A->>T: Record write by Thread A
+    B->>M: Read value
+    B->>T: Record read by Thread B
+    T->>T: Find overlapping write and read
+    T->>T: Find no happens-before ordering
+    T-->>A: Report data race with both access stacks

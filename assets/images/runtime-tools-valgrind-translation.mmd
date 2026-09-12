@@ -1,0 +1,12 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TB
+    S1[Source code] --> C1[Compiler with ASan or TSan]
+    C1 --> B1[Instrumented executable]
+    B1 --> N1[Direct native execution plus sanitizer runtime]
+
+    B2[Ordinary executable] --> V[Valgrind core]
+    V --> X[Decode executed machine-code blocks]
+    X --> IR[Translate to Valgrind intermediate representation]
+    IR --> TI[Memcheck or Helgrind adds instrumentation]
+    TI --> HC[Generate and cache host machine code]
+    HC --> N2[Execute translated instrumented code on the real CPU]

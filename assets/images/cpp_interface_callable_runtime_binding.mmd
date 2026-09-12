@@ -1,0 +1,32 @@
+%%{init: {"themeVariables": {"fontSize": "20px"}, "flowchart": {"nodeSpacing": 40, "rankSpacing": 55}}}%%
+flowchart TB
+  subgraph row1[" "]
+    direction LR
+    step1["1. Define a common interface"]
+    techniques1["Abstract base class and virtual methods<br/>Type erasure and adapters<br/>Uniform function signatures"]
+    step1 -.- techniques1
+  end
+
+  subgraph row2[" "]
+    direction LR
+    step2["2. Represent implementation as a callable value"]
+    techniques2["Compiler-managed virtual dispatch<br/>Function pointer and state pointer<br/>Explicit function table or erased callable"]
+    step2 -.- techniques2
+  end
+
+  subgraph row3[" "]
+    direction LR
+    step3["3. Bind the concrete implementation at runtime"]
+    techniques3["Object or callable injection<br/>dlopen + dlsym, then factory invocation<br/>Factory registration, lookup, and creation"]
+    step3 -.- techniques3
+  end
+
+  row1 --> row2 --> row3
+
+  classDef step fill:#e8f0fe,stroke:#3567a8,stroke-width:2px,color:#172b4d;
+  classDef annotation fill:#f8fafc,stroke:#94a3b8,stroke-dasharray:4 4,color:#334155;
+  class step1,step2,step3 step;
+  class techniques1,techniques2,techniques3 annotation;
+  style row1 fill:transparent,stroke:transparent
+  style row2 fill:transparent,stroke:transparent
+  style row3 fill:transparent,stroke:transparent

@@ -1,0 +1,14 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    PC[Guest program counter] --> Q{Translation cached?}
+    Q -->|No| D[Decode target machine instructions]
+    D --> I[Convert instructions to Valgrind IR]
+    I --> A[Selected tool adds analysis operations]
+    A --> G[Generate host machine code]
+    G --> C[Store translation in cache]
+    Q -->|Yes| E[Execute cached translated block]
+    C --> E
+    E --> F{Next control transfer}
+    F -->|Cached direct target| E
+    F -->|Runtime attention needed| R[Return to dispatcher]
+    R --> PC

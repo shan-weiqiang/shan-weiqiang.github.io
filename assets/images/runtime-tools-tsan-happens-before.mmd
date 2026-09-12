@@ -1,0 +1,7 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    A[Thread A writes data] --> U[Thread A unlocks mutex]
+    U --> L[Thread B later locks same mutex]
+    L --> B[Thread B reads data]
+    A ==> B
+    HB[Happens-before path exists] --> OK[Accesses are ordered]

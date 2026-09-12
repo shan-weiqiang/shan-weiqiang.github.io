@@ -1,0 +1,12 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart TD
+    A[Translated load or store] --> B[Record thread, address, size, and access kind]
+    B --> C{Conflicts with another thread?}
+    C -->|No| D[Continue]
+    C -->|Yes| E{Ordered by recognized synchronization?}
+    E -->|Yes| D
+    E -->|No| F[Report possible data race]
+    G[Lock acquisition] --> H[Update ownership and lock-order graph]
+    H --> I{Observed inconsistent lock order?}
+    I -->|No| D
+    I -->|Yes| J[Report lock-order violation]

@@ -1,0 +1,13 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}}}%%
+flowchart LR
+    A[Application under Valgrind] --> B[Allocate, resize, or free]
+    B --> C[Massif allocation wrappers]
+    C --> D[Block records and allocation stacks]
+    D --> E[Update live-byte totals and allocation tree]
+    E --> F{Take snapshot?}
+    F -->|Normal| G[Totals]
+    F -->|Detailed or peak| H[Totals and allocation tree]
+    G --> I[massif.out.PID]
+    H --> I
+    I --> J[ms_print]
+    J --> K[Memory profile and responsible allocation paths]

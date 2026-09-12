@@ -1,0 +1,7 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    A[Program requests 16 bytes] --> B[ASan allocator obtains a larger block]
+    B --> L[Poisoned left red zone]
+    B --> U[16 accessible user bytes]
+    B --> R[Poisoned right red zone]
+    U --> P[Pointer returned to program]

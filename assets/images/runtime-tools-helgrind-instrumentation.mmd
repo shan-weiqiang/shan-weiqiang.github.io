@@ -1,0 +1,10 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    MI[Machine loads and stores] --> IR[Valgrind IR]
+    IR --> HI[Helgrind access instrumentation]
+    SY[Mutex and thread operations] --> WR[Valgrind wrappers]
+    HI --> AH[Shared-memory access history]
+    WR --> HB[Happens-before and lock state]
+    AH --> RD[Race detector]
+    HB --> RD
+    HB --> LD[Lock-order detector]

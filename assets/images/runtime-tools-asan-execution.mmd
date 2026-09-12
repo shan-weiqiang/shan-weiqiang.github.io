@@ -1,0 +1,9 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+flowchart LR
+    S[C or C++ source] --> C[GCC or Clang]
+    C --> I[Instrumented machine code]
+    C --> M[Stack and global object metadata]
+    I --> E[Native CPU execution]
+    E -->|uses| R[ASan runtime]
+    R --> H[Heap allocation tracking]
+    R --> SH[Shadow memory]

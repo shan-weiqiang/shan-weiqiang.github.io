@@ -1,0 +1,17 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+sequenceDiagram
+    participant T as Thread TID 1001
+    participant K as Linux scheduler/perf
+    participant P2 as CPU 2 PMU
+    participant P5 as CPU 5 PMU
+    participant B as Perf ring buffer
+
+    K->>P2: Schedule TID 1001 and restore event
+    T->>P2: Run on CPU 2 and count events
+    K->>P2: Switch out and account partial count
+    Note over K: Logical TID event retains accumulated state
+    K->>P5: Migrate TID 1001 and restore event
+    T->>P5: Run on CPU 5 and continue logical count
+    P5-->>K: Sampling threshold reached and interrupt CPU 5
+    K->>B: Record sample with PID, TID 1001, CPU 5, IP, and call-chain data
+    K->>P5: Reload the next sampling period

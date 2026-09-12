@@ -1,0 +1,13 @@
+%%{init: {"theme": "neutral", "flowchart": {"wrappingWidth": 220}, "sequence": {"wrap": true, "width": 170, "useMaxWidth": false}}}%%
+sequenceDiagram
+    participant A as Translated application
+    participant V as Valgrind core
+    participant K as Host kernel
+    participant M as Tool metadata
+
+    A->>V: Reach a logical system call
+    V->>V: Validate and prepare arguments
+    V->>K: Issue real host system call
+    K-->>V: Return result and modified memory
+    V->>M: Update addressability or definedness state
+    V-->>A: Resume translated execution
