@@ -248,179 +248,171 @@ A transport combines an implementation, configuration, and communication resourc
 
 Transports move bytes. RTPS endpoints and histories handle sequence tracking and reliable-delivery state. Discovery establishes matches.
 
-### Ownership and resource relationships
+### Transports, channels, and resource objects
 
-Each RTPS participant owns a network factory, which owns its transport instances. Built-in and application endpoints share this infrastructure.
+Four related concepts appear repeatedly in the transport code, but they are not interchangeable:
 
-Sender resources provide sending access; receiver resources register incoming-data delivery. Neither abstraction universally corresponds to one socket.
+| Concept | Meaning in Fast DDS |
+| ------- | ------------------- |
+| **Transport instance** | The participant-local UDP, TCP, or SHM implementation. It owns transport-wide state and the concrete I/O objects that the implementation keeps. |
+| **Locator** | A value that names where communication should occur. It is used to select a transport and to find, create, or reuse a channel; it does not own anything. |
+| **Channel** | A transport-defined communication path prepared or registered through `OpenInputChannel()` or `OpenOutputChannel()`. The identity and physical realization of a channel depend on the transport. |
+| **Resource object** | A participant-facing handle or callback adapter that gives the RTPS layer access to a transport channel. `SenderResource` and `ReceiverResource` are the two main resource abstractions. |
 
-The participant retains resource objects. Resources and transports cooperate to manage the underlying channels.
+“Channel” is therefore an interface concept, not a promise that there is exactly one socket or one shared-memory region behind it. Fast DDS also has an internal `ChannelResource` base class, but that class is only a receive-loop/connection implementation helper. It should not be confused with every channel described by the `TransportInterface` API.
+
+Input and output are named from the local participant's point of view:
+
+- An **output channel** carries locally produced RTPS messages toward remote locators.
+- An **input channel** accepts messages addressed to a local locator and delivers them through a `TransportReceiverInterface` callback.
+
+#### UML relationship overview
+
+The model is shown in one layered view. A filled diamond means exclusive structural ownership, a hollow diamond means retained shared ownership, a solid arrow means an association, a dashed arrow means a dependency or delegation, and a hollow triangle means inheritance or interface realization. Multiplicities describe one object on the source side unless the label says otherwise.
+
+[![Fast DDS participant, transport, sender-resource, and receiver-resource ownership UML](/assets/images/fast_dds_transport_resource_ownership_uml.svg)](/assets/images/fast_dds_transport_resource_ownership_uml.svg)
+
+The upper layers show participant ownership and the common abstractions. The class boxes name the data members that implement each mapping rather than presenting only a conceptual association. One enclosing receiver-setup block covers one `Endpoint*`—an enabled reader, or a reliable writer that needs to receive RTPS feedback—and contains two independent phases. Phase 1 calls `createReceiverResources()` for the endpoint's local unicast list and then its multicast list. For each locator, `NetworkFactory::BuildReceiverResources()` iterates every registered transport instance. An unsupported transport is skipped, and a transport with an open matching input registration creates nothing. For a missing registration, the factory constructs one `ReceiverResource`; its constructor calls `OpenInputChannel(locator, this, ...)`, which prepares the transport-specific input backing and stores the resource as the `TransportReceiverInterface` callback. UDP calls `get_binding_interfaces_list()` and, for every returned binding entry, creates a socket-backed `UDPChannelResource`; with no interface whitelist that list can contain a wildcard binding rather than one entry per physical interface. Multicast setup may additionally enumerate interfaces to join the group. Shared memory creates one `SharedMemChannelResource`.
+
+TCP handles interfaces at a different lifecycle stage. During `TCPv4Transport` or `TCPv6Transport` initialization, a configured physical listening port causes `create_acceptor_socket()` to run. Without an interface whitelist it creates one wildcard acceptor; with a whitelist it iterates `get_binding_interfaces_list()` and creates an acceptor for each returned address. Later, `TCPTransportInterface::OpenInputChannel()` does not bind another socket or repeat that interface loop: it only registers the new `ReceiverResource` callback in `receiver_resources_[logical_port]`. Physical acceptors and established `TCPChannelResource` connections are transport-wide and can carry frames for several logical ports. After the transport-specific registration succeeds, the factory returns the new resource so the participant can create its `ReceiverControlBlock` and `MessageReceiver`.
+
+Phase 2 begins only after both lists have been prepared; the diagram does not connect the two phase rows because their loop scopes are described independently. `assignEndpoint2LocatorList()` is called for the same unicast and multicast lists, and therefore makes a second pass over their effective locators. For each locator it scans the participant-wide `m_receiverResourcelist`, calls the transport-specific `ReceiverResource::SupportsLocator()`, and associates the endpoint with every matching `MessageReceiver`. This scan is intentional: `BuildReceiverResources()` returns newly created resources but does not return an already-open resource, one locator can match resources belonging to several supporting transport instances, and the participant has no direct locator-to-control-block index. `MessageReceiver::associateEndpoint()` suppresses duplicates when several locators select the same block.
+
+The incoming-data row shows how those associations are used at runtime. A UDP or shared-memory channel invokes its stored `TransportReceiverInterface*`; TCP selects the callback registered for the frame's logical port. `ReceiverResource::OnDataReceived()` wraps the received bytes in a non-owning `CDRMessage_t` and calls `MessageReceiver::processCDRMsg()` with the remote locator as the source and the local locator as the reception locator. After parsing the RTPS header and submessages, the `MessageReceiver` uses the destination reader entity ID to select `associated_readers_`, while reliability feedback such as ACKNACK and NACK_FRAG is offered to `associated_writers_`.
+
+The three lower columns expand UDP, TCP, and shared-memory backing and state their cardinalities explicitly. A `SenderResource` represents one transport-defined output channel or path, but that does not imply ownership of one internal `ChannelResource`. A UDP sender owns one socket and no `ChannelResource`; a TCP sender retains zero or one weak `TCPChannelResource` identity; and a shared-memory sender holds no `ChannelResource` and delegates through a transport-wide path. `UDPChannelResource` and `SharedMemChannelResource` are receive-side objects. `TCPChannelResource` is different: it represents a bidirectional physical connection, so the transport uses the same connection resource for sending and receiving. Receiver-side cardinality also differs: one UDP registration supplies the callback to one or more socket channel resources, one TCP logical-port registration can receive through zero or more connections, and one shared-memory registration maps to one transport-owned input channel resource. The SVG is generated by `scripts/render-fast-dds-transport-uml.py`, which fixes every class to an explicit architectural layer.
+
+#### Ownership and lifetime
+
+Each `RTPSParticipantImpl` contains one `NetworkFactory`. The factory owns the participant's initialized transport instances. The participant separately owns its sender-resource list and its receiver control blocks. Built-in and application endpoints share these participant-level objects.
 
 ```text
 RTPSParticipantImpl
 |
-+-- m_network_Factory : NetworkFactory                                            // Owns transports; coordinates locator and resource operations.
++-- m_network_Factory : NetworkFactory
 |   +-- mRegisteredTransports
-|       : vector<unique_ptr<TransportInterface>>                                  // Retains successfully initialized transport instances.
-|           --> UDPv4Transport / TCPv4Transport / SharedMemTransport
-|                                                                                 // UDP-specific members below; TCP and SHM have different resources.
-|               +-- mInputSockets : map<uint16_t, vector<UDPChannelResource*>>
-|                                                                                 // UDP transport owns these input channels, grouped by physical port.
-|                   +-- UDPChannelResource                                        // Transport deletes it when closing the input channel.
-|                       +-- socket_ : eProsimaUDPSocket                           // Owned by this input channel; closed when the channel is destroyed.
+|       : vector<unique_ptr<TransportInterface>>
+|       +-- UDP transport
+|       |   +-- receive-side UDPChannelResource objects --> one socket each
+|       +-- TCP transport
+|       |   +-- acceptors                              --> listening sockets
+|       |   +-- TCPChannelResource objects             --> connection sockets
+|       |   +-- receiver_resources_                    --> logical-port callbacks
+|       +-- SHM transport
+|           +-- input SharedMemChannelResource objects --> port listeners
+|           +-- opened output ports
+|           +-- one local segment used to allocate outgoing buffers
 |
-+-- send_resource_list_ : SendResourceList                                        // Owns reusable sender resources used by participant dispatch.
-|                                                                                 // SendResourceList = vector<unique_ptr<SenderResource>>
-|   +-- SenderResource                                                            // Accepts message buffers and destination locators.
-|                                                                                 // No endpoint registry: the calling endpoint has already formed the RTPS message.
-|       --> UDPSenderResource                                                     // Owns its sending socket; delegates sending and cleanup to the transport.
-|           +-- socket_ : eProsimaUDPSocket                                       // Socket moved into this resource; destructor requests cancel/close.
-|           +-- transport_ : UDPTransportInterface&                               // Non-owning reference; implements socket operations.
++-- send_resource_list_ : vector<unique_ptr<SenderResource>>
+|   +-- UDPSenderResource      --> owns one output socket
+|   +-- TCPSenderResource      --> identifies a physical destination; observes a connection
+|   +-- SharedMemSenderResource --> delegates to transport-wide SHM state
 |
-+-- m_receiverResourcelist
-|   : list<ReceiverControlBlock>                                                  // Retains input resources and their RTPS message receivers.
-|   +-- ReceiverControlBlock
-|       +-- Receiver : shared_ptr<ReceiverResource>                               // Registers reception with one transport instance.
-|       |   --> TransportInterface instance                                       // Non-owning association through callback captures; no transport_ member.
-|       |   +-- Cleanup : function<void()>                                        // Captures that transport and locator; closes UDP channels or unregisters a TCP logical port.
-|       |   +-- LocatorMapsToManagedChannel
-|       |   |   : function<bool(const Locator_t&)>                                // Captures the same transport and locator; delegates channel matching.
-|       |   +-- receiver : MessageReceiver*                                       // Forwards incoming bytes to the registered parser.
-|       |                                                                         // Receives from this transport's associated channels only; does not own their sockets.
-|       +-- mp_receiver : MessageReceiver*                                        // Parses RTPS identifiers to choose local destinations.
-|                                                                                 // One input channel can carry traffic for several endpoints; reception needs this index.
-|           +-- associated_writers_
-|           |   : vector<BaseWriter*>                                             // References writers receiving reader feedback here.
-|           +-- associated_readers_
-|               : unordered_map<EntityId_t,
-|                               vector<BaseReader*>>                              // Indexes local readers for incoming writer traffic.
-|
-+-- m_allWriterList : vector<BaseWriter*>                                         // Registers all local writers, including built-in writers.
-+-- m_allReaderList : vector<BaseReader*>                                         // Registers all local readers, including built-in readers.
-+-- m_userWriterList : vector<BaseWriter*>                                        // References the non-built-in subset of local writers.
-+-- m_userReaderList : vector<BaseReader*>                                        // References the non-built-in subset of local readers.
-|
-+-- mp_builtinProtocols : BuiltinProtocols*                                       // Manages built-in protocol components.
-    +-- mp_PDP : PDP*                                                             // Participant discovery; PDPSimple in SIMPLE mode.
-        +-- mp_EDP : EDP*                                                         // Endpoint discovery/pairing; EDPSimple for SIMPLE EDP.
++-- m_receiverResourcelist : list<ReceiverControlBlock>
+    +-- shared_ptr<ReceiverResource> --> one transport's input-channel registration
+    +-- MessageReceiver*             --> parses RTPS and dispatches to local endpoints
 ```
 
-Resources are not paired one-to-one with endpoints. Several endpoints can share a receiver resource, and one endpoint can use several resources.
+The arrows in this diagram do not all mean ownership. A sender or receiver resource is associated with exactly one transport instance, but it normally calls that transport through a reference captured in a function object. The network factory's transport must therefore outlive the participant's resource objects. The participant's shutdown order enforces that relationship.
 
-`MessageReceiver` holds endpoint associations for incoming dispatch. Sender resources need no endpoint registry: the caller supplies the message and destinations.
+Concrete channel objects belong to the transport that creates them. For example, the UDP transport stores raw `UDPChannelResource*` values in `mInputSockets` and deletes them when it closes the input channel. TCP stores connection resources in `shared_ptr`s, while the SHM transport stores its input channel resources and cached output ports.
+
+The source comments describe `SenderResource` and `ReceiverResource` as RAII objects, but their current cleanup behavior is asymmetric:
+
+- Concrete sender-resource destructors run their cleanup callbacks. A UDP sender closes its socket; a TCP sender invalidates its locator but leaves connection shutdown to the transport; an SHM sender has no per-resource cleanup.
+- `ReceiverResource` opens the input registration in its constructor, but its destructor is empty. `RTPSParticipantImpl::disable()` explicitly calls `ReceiverResource::disable()`, which closes or unregisters the transport channel and waits for active callbacks. The current implementation therefore relies on ordered participant shutdown rather than destructor-only RAII for reception.
+
+Resources are not paired one-to-one with RTPS endpoints. Several endpoints can share a receiver resource, and one endpoint can use several resources. They are also not paired with each other: a sender resource has no corresponding receiver-resource object.
+
+#### What `SenderResource` does
+
+`SenderResource` is the type-erased sending interface retained by the participant. Its public `send()` function receives already-formed message buffers, a range of destination locators, a blocking deadline, and a transport priority. A concrete sender resource installs a callback that delegates this operation to its transport.
+
+The resource stores the transport kind so a transport can recognize and reuse its own resources. It does not keep an endpoint registry because the caller has already selected the destinations and formed the RTPS message. The participant iterates its sender-resource list; each resource consumes or skips locators according to its transport and interface restrictions.
+
+The concrete meaning of one sender resource varies:
+
+- `UDPSenderResource` owns one moved-in UDP socket plus interface-related flags. The same socket can send datagrams to many remote locators.
+- `TCPSenderResource` stores a remote physical locator and a weak identity reference to the connection that existed when the resource was created. The TCP transport owns the actual `TCPChannelResource` and socket. A sender resource can exist while the transport is waiting for the peer to establish that connection.
+- `SharedMemSenderResource` owns no port or memory segment. One such resource is reused for the transport; each send asks the transport to allocate a buffer in its local segment and push a descriptor to each selected destination port.
+
+#### What `ReceiverResource` does
+
+`ReceiverResource` is an internal network-layer adapter between one transport input registration and one `MessageReceiver`. Only `NetworkFactory` can invoke its private constructor. Construction calls:
+
+```cpp
+transport.OpenInputChannel(locator, this, max_message_size);
+```
+
+The `this` pointer is a `TransportReceiverInterface`. A transport calls `OnDataReceived()` with the bytes plus local and remote locators. `ReceiverResource` wraps the bytes in a `CDRMessage_t` and forwards them to its registered `MessageReceiver`, which parses the RTPS message and dispatches it through its associated-reader and associated-writer indexes.
+
+`ReceiverResource` does not own a socket, TCP connection, SHM port, or receive thread. It stores callbacks that capture the transport and the locator used at construction:
+
+- `Cleanup` calls `CloseInputChannel(locator)`.
+- `LocatorMapsToManagedChannel` calls `DoInputLocatorsMatch()` so the participant can reuse the registration for an equivalent local locator.
+
+Its mutex, callback counter, and condition variable prevent shutdown from completing while `OnDataReceived()` is active. The enclosing `ReceiverControlBlock` keeps the `ReceiverResource` and its `MessageReceiver` together.
+
+#### How many I/O objects are in one channel?
+
+There is no transport-independent cardinality. The mappings in the current implementation are:
+
+| Transport | Input-channel identity and backing | Output-channel identity and backing |
+| --------- | ---------------------------------- | ----------------------------------- |
+| **UDP** | Input-channel matching uses the physical UDP port. `mInputSockets[port]` is a vector, so one logical input channel can contain several `UDPChannelResource` objects, typically for different local interfaces. Each `UDPChannelResource` owns one socket and runs its receive loop. | Output preparation can add several `UDPSenderResource` objects for local interfaces. Each resource owns exactly one socket, and each socket can send to many destination addresses and ports. |
+| **TCP** | An input channel is a `receiver_resources_[logical_port]` callback registration. It owns no socket. Any established `TCPChannelResource` can parse that logical port and invoke the registration, so one input channel can receive through many TCP connections. | A sender resource is keyed by a remote physical locator. The transport's `TCPChannelResource` represents one TCP connection and owns one connection socket; several logical ports share it. The sender resource observes rather than owns that connection and may temporarily have no connection. |
+| **SHM** | An input channel is a `SharedMemChannelResource` for a locator. It owns one listener attached to a shared-memory port queue, not a memory region. Descriptors received on that port can refer to buffers allocated in different sending processes' segments. | The transport normally reuses one `SharedMemSenderResource` for all destinations. It owns one local allocation segment and caches multiple writable destination ports. There is no separate region per output channel or locator. |
+
+At the lowest concrete layer, a UDP or TCP `ChannelResource` normally wraps one socket, and an SHM `SharedMemChannelResource` wraps one listener. At the participant-facing layer, however, one “input channel” can fan out over several UDP sockets or several TCP connections, while an SHM sender resource can fan out over several ports. The word *channel* names the communication relationship recognized by that transport, not a universal container with one fixed operating-system handle.
+
+Channel-existence checks and endpoint-to-resource matching are also separate operations. UDP uses the physical port for both. SHM compares the locator kind and port. TCP's `IsInputChannelOpen()` checks the logical-port registry, whereas `ReceiverResource::SupportsLocator()` delegates to `DoInputLocatorsMatch()`, which currently compares physical ports. The first test prevents duplicate callback registrations; the second decides which `MessageReceiver` objects should index an endpoint. Treating all of these checks as one generic “locator equality” would hide an important layer boundary.
 
 #### Locator-to-resource workflows
 
-A sending locator is a selected remote receiving destination. A receiving locator describes local reception.
-
-The following resource lifecycle applies to both UDP and TCP:
-
-- **Sending:** Discovery setup, endpoint matching, and locator updates prepare sender resources. Transports reuse existing resources or create missing ones; the participant retains them. Each transport-path send iterates the sender-resource list with the selected destination locators. Each resource applies its transport's destination restrictions; iteration does not stop at the first successful send.
-- **Receiving:** Participant and endpoint setup prepare reception from local locators. For each supporting transport, the network factory creates a `ReceiverResource` only when the corresponding input registration is absent. The resource registers its callback with the transport, and the participant attaches a `MessageReceiver` for endpoint dispatch. Existing registrations are reused.
-
-Resource checks start from destination locators for sending and local locators for receiving. Resources can serve multiple locators.
-
-Both transports follow this abstraction:
+A sending locator names a selected remote receive destination. A receiving locator describes a local receive registration. The network factory asks every registered transport that supports the locator kind; support by one transport does not stop the search.
 
 ```text
-Sending:
-Destination locator → check registered transports → reuse/create suitable sender resources
-    Each sender resource → one associated transport instance
-                         → one UDP sending socket or resolved TCP connection
+Sending
+remote locator
+    -> NetworkFactory::build_send_resources()
+    -> each supporting transport reuses or creates SenderResource objects
+    -> SenderResource::send(message, selected remote locators)
+    -> transport-specific sockets, connections, or SHM ports
 
-Receiving setup:
-Local locator → check registered transports → reuse/create a registration per supporting transport
-    Each ReceiverResource → one associated transport instance
-                          ← that transport's associated receiving socket channels
+Receiving setup
+local locator
+    -> NetworkFactory::BuildReceiverResources()
+    -> if the supporting transport has no matching input registration:
+         construct ReceiverResource
+         -> TransportInterface::OpenInputChannel(locator, callback)
+    -> participant creates and registers MessageReceiver
 
-Incoming data:
-Socket channel → its transport's ReceiverResource → MessageReceiver → RTPS endpoint
+Incoming data
+transport-owned receive object
+    -> ReceiverResource::OnDataReceived()
+    -> MessageReceiver::processCDRMsg()
+    -> associated local reader or writer
 ```
 
-One locator can use resources associated with different transport instances. Each resource is bound to one transport; it does not combine channels from several transports. A transport can provide multiple sender resources. One receiver resource can receive through multiple UDP socket channels or TCP connections belonging to the same transport instance.
+One locator may be handled by resources from several transport instances of the same kind. A single resource never combines state from several transport instances.
 
-Resource cleanup differs by transport:
+For UDP reception, locators with the same physical port match the same input registration. Opening that port may create one socket channel per applicable local interface and register the same `ReceiverResource` callback with each. Disabling the receiver closes all socket channels stored under that port.
 
-- **UDP:** Sender-resource destruction closes its sending socket through transport code. Disabling a receiver resource closes its associated transport-owned receiving socket channels.
-- **TCP:** Sender-resource destruction invalidates its destination locator; disabling a receiver resource unregisters its logical port. Neither directly closes the connection socket; the transport manages connection lifetime separately.
+For TCP reception, the locator's physical address and port concern connectivity, while its logical port selects the callback registration. Opening or closing a `ReceiverResource` adds or removes that logical-port entry; it does not create or close a connection socket. A connection can carry several logical ports, and one logical-port registration can receive over several connections.
 
-#### UDP sending
-
-```text
-Destination locator (IP + UDP port)
-    → Network factory asks the UDP transport to prepare sending resources
-    → Reuse suitable resources; create sockets only as required by interface setup
-    → UDPSenderResource holds a sending socket
-    → Transport sends through that socket to the destination
-```
-
-Multiple destination locators reuse sender resources. Each UDP sender resource holds one socket in the move-enabled implementation; interface-specific sockets use separate resources.
-
-#### TCP sending
-
-```text
-Destination locator (IP + physical port + logical port)
-    → Transport reuses or creates a sender resource for the physical destination
-    → Reuse a connection, initiate one, or wait for an incoming connection
-    → Sender resource delegates transmission to the transport
-    → Transport adds the destination logical port to its framing header
-    → Connection socket sends the message
-```
-
-Locators sharing a physical destination can reuse one sender resource and connection, even with different logical ports. The transport retains the connection; the sender resource does not own its socket. A sender resource can exist before connection establishment.
-
-Both readers and writers prepare sender resources; their application roles do not determine who initiates TCP. In normal output setup, when no connection exists, the transport initiates if the remote physical port exceeds its first configured listening port (or zero for a non-listening client). Otherwise, it awaits the peer, except for the equal-port tie-break.
-
-For equal ports, the transport compares its first eligible local-interface locator, with the port set to the remote physical port, against the remote physical locator. A smaller local locator triggers connection initiation. This is a bytewise comparison of locator representations, not simply IP strings. Initial-peer setup can explicitly initiate connections through a separate path.
-
-#### UDP receiving
-
-```text
-Local receiving locator (IP + UDP port)
-    → Network factory checks the transport's receiving-port registry
-    → Existing port: reuse its receiver registration
-    → New port: create ReceiverResource
-        → Transport creates applicable interface/multicast socket channels
-        → Register the same receiver callback with each UDPChannelResource
-```
-
-Within one UDP transport instance, locators sharing a receiving port reuse one receiver registration. That registration can serve several transport-owned `UDPChannelResource` objects, each holding one socket.
-
-Received bytes flow from a socket channel to `ReceiverResource`, then `MessageReceiver`, then the associated RTPS endpoint. Disabling the registration closes its UDP socket channels.
-
-For UDP, the receiver resource controls the associated input channels through the transport; the transport owns their socket-holding objects.
-
-#### TCP receiving
-
-A physical port establishes TCP connectivity. A logical port selects a receive registration inside the transport. The logical port comes from configuration or default locator generation; it does not identify an endpoint or bind another socket.
-
-```text
-Local receiving locator (IP + physical port + logical port)
-    → Network factory checks the transport's logical-port registry
-    → Existing logical port: reuse its receiver registration
-    → New logical port: create ReceiverResource and register its callback
-    → Transport dispatches arriving connection data by the message's logical port
-    → ReceiverResource → MessageReceiver → associated RTPS endpoint
-```
-
-Within one TCP transport instance, locators sharing a logical port reuse one receiver registration. TCP connections are managed separately: one connection can carry several logical ports, and one registration can receive through several connections.
-
-Creating or removing a registration does not create or close a connection socket. Removing it unregisters the logical port; connection shutdown is separate.
+For TCP sending, locators with the same physical destination can reuse a sender resource and connection even when their logical ports differ. In normal output setup, the transport either initiates the connection or waits for the peer according to the listening-port ordering and equal-port locator tie-break. Initial-peer setup can explicitly initiate a connection through a separate path.
 
 ### Transport and resource creation
 
-Transport descriptors supply configuration. Each participant creates its own transport instances from its selected descriptors, including enabled built-in defaults.
+Transport descriptors supply configuration. Each participant creates its own transport instances from its selected descriptors, including enabled built-in defaults. Locators subsequently cause resource and channel registrations to be created or reused; configuring a locator does not itself instantiate a transport.
 
 ```text
 XML profile or C++ participant QoS
-    ↓
-Selected transport descriptors
-    ↓
-Participant's network factory
-    ↓
-Create and initialize transport instances
-    ↓
-Create or reuse sending/receiving resources as needed
+    -> selected transport descriptors
+    -> participant's NetworkFactory
+    -> initialized transport instances
+    -> locator-driven sender resources and receiver registrations
+    -> transport-owned concrete I/O objects
 ```
 
 ### Locators and transport selection
