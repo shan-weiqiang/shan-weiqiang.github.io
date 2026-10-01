@@ -44,6 +44,7 @@ class Diagram:
         colors = {
             "primary": ("#dbeafe", "#3b82f6", "#1e40af"),
             "process": ("#fef3c7", "#f59e0b", "#b45309"),
+            "transport": ("#ede9fe", "#8b5cf6", "#6d28d9"),
             "data": ("#d1fae5", "#22c55e", "#166534"),
             "neutral": ("#ffffff", "#64748b", "#1e293b"),
         }
@@ -142,18 +143,20 @@ class Diagram:
 
 
 def render() -> None:
-    d = Diagram(1962, "Fast DDS transport, resource, channel, and backing relationships")
+    d = Diagram(2932, "Fast DDS transport, resource, channel, and backing relationships")
 
     d.group(20, 52, 1360, 135, "PARTICIPANT")
     d.group(20, 212, 1360, 170, "PARTICIPANT-OWNED NETWORK OBJECTS")
     d.group(20, 407, 1360, 165, "COMMON ABSTRACTIONS")
-    d.group(10, 582, 1380, 435, "RECEIVER SETUP FOR ONE ENDPOINT")
-    d.group(25, 612, 1350, 270, "PHASE 1 — CREATE OR REUSE RECEIVE REGISTRATIONS")
-    d.group(25, 897, 1350, 105, "PHASE 2 — ASSOCIATE ENDPOINT WITH MATCHING CONTROL BLOCKS")
-    d.group(20, 1027, 1360, 125, "INCOMING DATA AND ENDPOINT DISPATCH")
-    d.group(20, 1177, 435, 760, "UDP")
-    d.group(480, 1177, 435, 760, "TCP")
-    d.group(940, 1177, 435, 760, "SHARED MEMORY")
+    d.group(10, 582, 1380, 520, "SENDER RESOURCE PREPARATION TO REACH A REMOTE ENDPOINT")
+    d.group(25, 612, 1350, 135, "PARTICIPANT AND NETWORKFACTORY — DESTINATION LOCATOR TO TRANSPORT ITERATION")
+    d.group(25, 752, 1350, 335,
+            "PER TRANSPORT INSTANCE — OPENOUTPUTCHANNEL() REUSES OR APPENDS TO PARTICIPANT send_resource_list_")
+    d.group(20, 1112, 1360, 450, "OUTGOING DATA AND DESTINATION DISPATCH")
+    d.group(10, 1582, 1380, 845, "RECEIVER SETUP FOR ONE LOCALLY CREATED ENDPOINT")
+    d.group(25, 1612, 1350, 680, "PHASE 1 — CREATE OR REUSE RECEIVE REGISTRATIONS")
+    d.group(25, 2307, 1350, 105, "PHASE 2 — ASSOCIATE ENDPOINT WITH MATCHING CONTROL BLOCKS")
+    d.group(20, 2442, 1360, 465, "INCOMING DATA AND ENDPOINT DISPATCH")
 
     d.box(350, 82, 700, 80, "RTPSParticipantImpl",
           ("m_network_Factory: NetworkFactory",
@@ -205,43 +208,202 @@ def render() -> None:
            marker_start="diamond-open", marker_end="")
     d.path("M690,494 L699,494", marker_end="triangle")
 
+    sender_setup_steps = (
+        (40, "Remote endpoint to reach", ("matched remote reader or writer",
+                                           "bootstrap: configured initial destination")),
+        (310, "Remote endpoint locators", ("proxy remote_locators: unicast + multicast",
+                                            "filter with local endpoint attributes")),
+        (580, "Prepare outgoing resources", ("createSenderResources(",
+                                               "RemoteLocatorList, attributes)",
+                                               "bootstrap uses createSendResources(Endpoint*)")),
+        (850, "For each selected remote locator", ("lock m_send_resources_mutex_",
+                                                     "resources remain participant-wide")),
+        (1120, "For each registered transport", ("transport in mRegisteredTransports",
+                                                   "OpenOutputChannel(send_resource_list_, locator)")),
+    )
+    for x, title, body in sender_setup_steps:
+        d.box(x, 642, 235, 92, title, body, "process")
+    for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+        d.path(f"M{start_x},688 L{end_x},688")
+
+    udp_output_steps = (
+        (40, "UDP OpenOutputChannel()", ("UDPv4Transport or UDPv6Transport",)),
+        (310, "Find missing local interfaces", ("get_unknown_network_interfaces()",
+                                                  "reuse existing UDP resources")),
+        (580, "Choose output bindings", ("wildcard when no allowlist",
+                                           "otherwise allowed interfaces")),
+        (850, "Create each missing output socket", ("OpenAndBindUnicastOutputSocket()",
+                                                      "set outbound interface")),
+        (1120, "Append UDPSenderResource", ("send_resource_list_.emplace_back()",
+                                             "resource owns the socket")),
+    )
+    tcp_output_steps = (
+        (40, "TCP OpenOutputChannel()", ("TCPv4Transport or TCPv6Transport",)),
+        (310, "Resolve destination identity", ("physical locator selects connection",
+                                                 "logical port selects remote receiver")),
+        (580, "Reuse existing TCPSenderResource", ("key: remote physical locator or WAN alias",
+                                                     "logical port is not part of reuse key",
+                                                     "add it to channel or pending-port set")),
+        (850, "Otherwise prepare connection", ("reuse accepted TCPChannelResource,",
+                                                 "initiate connection, or wait for peer")),
+        (1120, "Append TCPSenderResource", ("physical locator + weak channel reference",
+                                             "send_resource_list_.emplace_back()",
+                                             "channel reference may initially be empty")),
+    )
+    shm_output_steps = (
+        (40, "SHM OpenOutputChannel()", ("SharedMemTransport",)),
+        (310, "Validate locator kind", ("IsLocatorSupported(locator)",)),
+        (580, "Scan participant sender list", ("SharedMemSenderResource::cast()",
+                                                 "reuse if already present")),
+        (850, "Create only when missing", ("new SharedMemSenderResource(*this)",
+                                            "no destination port opened yet")),
+        (1120, "Append shared SHM resource", ("send_resource_list_.emplace_back()",
+                                               "one per SHM transport instance")),
+    )
+    for y, steps in ((782, udp_output_steps), (884, tcp_output_steps), (986, shm_output_steps)):
+        for x, title, body in steps:
+            d.box(x, y, 235, 90, title, body, "transport")
+        for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+            d.path(f"M{start_x},{y + 45} L{end_x},{y + 45}")
+
+    outgoing_steps = (
+        (40, "RTPS endpoint", ("forms message buffers",)),
+        (310, "Selected destination locators", ("remote unicast and multicast locators",)),
+        (580, "RTPSParticipantImpl::sendSync()", ("lock m_send_resources_mutex_",)),
+        (850, "For each SenderResource", ("copy fresh locator iterators",
+                                            "visit the whole participant list")),
+        (1120, "SenderResource::send()", ("invoke transport-bound send_lambda_",
+                                           "each resource filters destinations")),
+    )
+    for x, title, body in outgoing_steps:
+        d.box(x, 1147, 235, 80, title, body, "data")
+    for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+        d.path(f"M{start_x},1187 L{end_x},1187")
+
+    udp_send_steps = (
+        (40, "UDPSenderResource", ("socket_ + interface-purpose flags",)),
+        (310, "Filter each destination", ("UDP kind, multicast purpose,",
+                                            "allowlist and netmask")),
+        (580, "Build destination endpoint", ("generate_endpoint(remote_locator,",
+                                               "physical UDP port)")),
+        (850, "Send datagram", ("socket_.send_to(buffers, endpoint)",)),
+        (1120, "Remote UDP destination", ("destination IP + physical UDP port",
+                                           "receives one RTPS datagram")),
+    )
+    tcp_send_steps = (
+        (40, "TCPSenderResource", ("locator_ = remote physical locator",)),
+        (310, "Filter each destination", ("TCP kind and matching physical locator",)),
+        (580, "Find established connection", ("channel_resources_.find(locator_)",
+                                                "accepted or locally initiated")),
+        (850, "Prepare framed message", ("open remote logical port if needed",
+                                          "TCPHeader carries logical port")),
+        (1120, "Send on bidirectional channel", ("TCPChannelResource::send()",
+                                                   "connection socket writes bytes")),
+    )
+    shm_send_steps = (
+        (40, "SharedMemSenderResource", ("delegates to SharedMemTransport",)),
+        (310, "Filter each destination", ("shared-memory locator kind",)),
+        (580, "Allocate payload once", ("copy_to_shared_buffer()",
+                                         "reuse buffer for all destinations")),
+        (850, "Find or open destination port", ("find_port(remote_locator.port)",
+                                                  "cache in opened_ports_")),
+        (1120, "Publish buffer descriptor", ("SharedMemManager::Port::try_push()",)),
+    )
+    for y, steps in ((1250, udp_send_steps), (1350, tcp_send_steps), (1450, shm_send_steps)):
+        for x, title, body in steps:
+            d.box(x, y, 235, 84, title, body, "transport")
+        for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+            d.path(f"M{start_x},{y + 42} L{end_x},{y + 42}")
+
     registration_steps = (
-        (40, "createReceiverResources()", ("scope: current Endpoint* pend",
-                                            "call with unicastLocatorList,",
-                                            "then multicastLocatorList")),
-        (310, "for each locator in input_list", ("first pass over this list",)),
-        (580, "BuildReceiverResources(locator)", ("NetworkFactory handles this locator",)),
-        (850, "for each registered transport", ("transport in mRegisteredTransports",
-                                                  "one decision per transport instance")),
+        (40, "Local endpoint created or enabled", ("reader: receive data",
+                                                     "reliable writer: receive feedback")),
+        (310, "createAndAssociateReceiverswithEndpoint()", ("argument: Endpoint* pend",)),
+        (580, "createReceiverResources(list)", ("local unicast list, then multicast list",
+                                                  "for each locator in input_list")),
+        (850, "BuildReceiverResources(locator)", ("NetworkFactory handles current locator",
+                                                    "iterate mRegisteredTransports")),
         (1120, "Per-transport decision", ("unsupported: skip",
                                            "open: reuse; return no resource",
                                            "missing: follow creation row")),
     )
     for x, title, body in registration_steps:
-        d.box(x, 642, 235, 92, title, body, "process")
+        d.box(x, 1642, 235, 92, title, body, "process")
     for start_x, end_x in ((275, 299), (545, 569), (815, 839)):
-        d.path(f"M{start_x},688 L{end_x},688")
-    d.path("M1085,688 L1109,688")
+        d.path(f"M{start_x},1688 L{end_x},1688")
+    d.path("M1085,1688 L1109,1688")
 
     channel_creation_steps = (
         (40, "Missing registration path", ("IsInputChannelOpen(locator) is false",)),
         (310, "ReceiverResource constructor", ("captures this transport and locator",)),
-        (580, "OpenInputChannel(locator, this)", ("passes this TransportReceiverInterface*",)),
-        (850, "Create/register input backing", ("UDP: get_binding_interfaces_list()",
-                                                  "for each entry: socket + UDPChannelResource",
-                                                  "TCP: register receiver_resources_[logical port]",
-                                                  "TCP acceptors/interfaces: transport initialization",
-                                                  "SHM: 1 SharedMemChannelResource")),
-        (1120, "Complete new control block", ("return new ReceiverResource",
-                                               "create ReceiverControlBlock + MessageReceiver",
-                                               "RegisterReceiver(MessageReceiver*)")),
+        (580, "OpenInputChannel(locator, this)", ("this is the ReceiverResource*",
+                                                    "passed as TransportReceiverInterface*")),
+        (850, "Concrete transport implementation", ("follow exactly one row below",)),
     )
     for x, title, body in channel_creation_steps:
-        d.box(x, 767, 235, 104, title, body, "process")
-    for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
-        d.path(f"M{start_x},819 L{end_x},819")
-    d.path("M1238,739 C1238,752 158,752 158,756", "missing", 700, 749,
+        d.box(x, 1757, 235, 84, title, body, "process")
+    for start_x, end_x in ((275, 299), (545, 569), (815, 839)):
+        d.path(f"M{start_x},1799 L{end_x},1799")
+    d.path("M1238,1739 L1238,1747 L158,1747 L158,1751", "missing", 700, 1745,
            marker_end="arrow")
+
+    udp_input_steps = (
+        (40, "UDP OpenInputChannel()", ("UDPv4Transport or UDPv6Transport",)),
+        (310, "Validate and check registry", ("IsLocatorSupported() and is_locator_allowed()",
+                                                "IsInputChannelOpen(locator)")),
+        (580, "Get binding entries", ("get_binding_interfaces_list()",
+                                       "wildcard or whitelisted addresses")),
+        (850, "For each binding entry", ("CreateInputChannelResource()",
+                                          "create socket + UDPChannelResource")),
+        (1120, "Store UDP input backing", ("mInputSockets[physical port]",
+                                            "stores UDPChannelResource*",
+                                            "message_receiver_ = receiver",
+                                            "receiver points to ReceiverResource")),
+    )
+    tcp_input_steps = (
+        (40, "TCP OpenInputChannel()", ("TCPv4Transport or TCPv6Transport",)),
+        (310, "Validate locator", ("IsLocatorSupported(locator)",)),
+        (580, "Extract logical port", ("getLogicalPort(locator)",
+                                        "transport has 0..1 physical listening port",
+                                        "acceptor sockets already exist per interface")),
+        (850, "Check logical-port registry", ("is_input_port_open(logical_port)",
+                                               "open registration: create nothing")),
+        (1120, "Store TCP callback pair", ("receiver_resources_[logical_port]",
+                                            "receiver points to ReceiverResource",
+                                            "+ new ReceiverInUseCV()",
+                                            "creates no TCPChannelResource")),
+    )
+    shm_input_steps = (
+        (40, "SHM OpenInputChannel()", ("SharedMemTransport",)),
+        (310, "Validate and check registry", ("IsLocatorSupported(locator)",
+                                                "IsInputChannelOpen(locator)")),
+        (580, "Open shared-memory port", ("shared_mem_manager_->open_port()",
+                                           "port = locator.port")),
+        (850, "Create listener and channel", ("Port::create_listener()",
+                                               "new SharedMemChannelResource")),
+        (1120, "Store SHM input backing", ("input_channels_",
+                                            "stores SharedMemChannelResource*",
+                                            "message_receiver_ = receiver",
+                                            "receiver points to ReceiverResource")),
+    )
+    for y, steps in ((1866, udp_input_steps), (1979, tcp_input_steps), (2092, shm_input_steps)):
+        for x, title, body in steps:
+            d.box(x, y, 235, 96, title, body, "transport")
+        for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+            d.path(f"M{start_x},{y + 48} L{end_x},{y + 48}")
+
+    completion_steps = (
+        (40, "Back in participant setup", ("selected transport row returned true",)),
+        (310, "Return ReceiverResource", ("BuildReceiverResources() result",)),
+        (580, "Create ReceiverControlBlock", ("store shared_ptr<ReceiverResource>",)),
+        (850, "Create MessageReceiver", ("store in block.mp_receiver",)),
+        (1120, "Register callback target", ("ReceiverResource::RegisterReceiver()",
+                                             "argument: MessageReceiver*")),
+    )
+    for x, title, body in completion_steps:
+        d.box(x, 2205, 235, 70, title, body, "process")
+    for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+        d.path(f"M{start_x},2240 L{end_x},2240")
 
     association_steps = (
         (40, "assignEndpointListenResources()", ("same Endpoint* pend",
@@ -255,9 +417,9 @@ def render() -> None:
                                                         "false: continue scanning")),
     )
     for x, title, body in association_steps:
-        d.box(x, 927, 235, 72, title, body, "data")
+        d.box(x, 2337, 235, 72, title, body, "data")
     for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
-        d.path(f"M{start_x},963 L{end_x},963")
+        d.path(f"M{start_x},2373 L{end_x},2373")
 
     dispatch_steps = (
         (40, "Transport input path", ("UDP/SHM channel callback or",
@@ -270,80 +432,48 @@ def render() -> None:
                                              "ACKNACK/NACK_FRAG → associated_writers_")),
     )
     for x, title, body in dispatch_steps:
-        d.box(x, 1062, 235, 70, title, body, "data")
+        d.box(x, 2477, 235, 70, title, body, "data")
     for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
-        d.path(f"M{start_x},1097 L{end_x},1097")
+        d.path(f"M{start_x},2512 L{end_x},2512")
 
-    columns = (
-        {
-            "x": 40,
-            "sender": ("UDPSenderResource", ("eProsimaUDPSocket socket_", "bool only_multicast_purpose_",
-                                             "bool whitelisted_", "UDPTransportInterface& transport_")),
-            "transport": ("UDPTransportInterface", ("std::map<uint16_t, std::vector<UDPChannelResource*>>",
-                                                      "mInputSockets", "int32_t transport_kind_ (inherited)")),
-            "channel": ("UDPChannelResource", ("TransportReceiverInterface* message_receiver_",
-                                                "eProsimaUDPSocket socket_", "std::string interface_",
-                                                "UDPTransportInterface* transport_")),
-            "backing": ("UDP mapping", ("mInputSockets[physical port] → 1..* UDPChannelResource",
-                                         "UDPChannelResource::socket_ → exactly 1 socket",
-                                         "all channel resources store the same callback")),
-            "cardinality": ("logical output channel: 1", "direct ChannelResource refs: 0", "Receiver → channels: 1..*", "channel → input socket: 1"),
-            "labels": ("delegates", "owns by port", "backs", "counts"),
-        },
-        {
-            "x": 500,
-            "sender": ("TCPSenderResource", ("Locator_t locator_", "std::weak_ptr<TCPChannelResource> channel_",
-                                             "send_lambda_ captures TCPTransportInterface&")),
-            "transport": ("TCPTransportInterface", ("channel_resources_: keyed by physical Locator",
-                                                      "receiver_resources_: keyed by logical port",
-                                                      "acceptors_: keyed by Locator")),
-            "channel": ("TCPChannelResource", ("TCPTransportInterface* parent_", "Locator locator_",
-                                                "std::vector<uint16_t> logical_output_ports_",
-                                                "std::atomic<eConnectionStatus> connection_status_")),
-            "backing": ("TCP mapping", ("TCPChannelResourceBasic::socket_",
-                                         "std::shared_ptr<asio::ip::tcp::socket>",
-                                         "receiver_resources_[logical port] → callback")),
-            "cardinality": ("Sender → connection: 0..1 weak", "Receiver → connections: 0..*", "connection → Receivers: 0..*", "connected channel → socket: 1"),
-            "labels": ("delegates", "retains", "send + receive", "counts"),
-        },
-        {
-            "x": 960,
-            "sender": ("SharedMemSenderResource", ("no concrete data members",
-                                                    "send_lambda_ captures SharedMemTransport&",
-                                                    "clean_up captures no object")),
-            "transport": ("SharedMemTransport", ("std::vector<SharedMemChannelResource*> input_channels_",
-                                                   "std::map<uint32_t, std::shared_ptr<SharedMemManager::Port>> opened_ports_",
-                                                   "std::shared_ptr<SharedMemManager::Segment> shared_mem_segment_")),
-            "channel": ("SharedMemChannelResource", ("TransportReceiverInterface* message_receiver_",
-                                                      "std::shared_ptr<SharedMemManager::Listener> listener_",
-                                                      "Locator locator_")),
-            "backing": ("Shared-memory mapping", ("input_channels_ → 0..* SharedMemChannelResource",
-                                                   "opened_ports_[port] → SharedMemManager::Port",
-                                                   "shared_mem_segment_ is transport-wide")),
-            "cardinality": ("logical output path: 1", "direct ChannelResource refs: 0", "Receiver maps to channel: 1", "channel → listener / port: 1"),
-            "labels": ("delegates", "owns", "backs", "counts"),
-        },
+    udp_receive_steps = (
+        (40, "UDPChannelResource listen thread", ("one thread for this socket channel",)),
+        (310, "Receive UDP datagram", ("socket_.receive_from()",
+                                        "fill channel message buffer")),
+        (580, "Build reception locators", ("input_locator captured at channel creation",
+                                             "sender endpoint → remote_locator")),
+        (850, "Use stored callback pointer", ("message_receiver_",
+                                                "points to ReceiverResource")),
+        (1120, "Invoke receive adapter", ("OnDataReceived(buffer, size,",
+                                            "input_locator, remote_locator)")),
     )
-
-    for column in columns:
-        x = column["x"]
-        d.box(x, 1212, 395, 100, *column["sender"], semantic="primary")
-        d.box(x, 1342, 395, 128, *column["transport"], semantic="primary")
-        d.box(x, 1500, 395, 114, *column["channel"], semantic="data")
-        d.box(x, 1644, 395, 100, *column["backing"], semantic="neutral")
-        d.box(x, 1774, 395, 128, "Cardinality", column["cardinality"], semantic="process")
-
-        center = x + 197.5
-        label_x = center + 12
-        first, second, third, fourth = column["labels"]
-        d.path(f"M{center},1317 L{center},1331", first, label_x, 1328,
-               dashed=True, label_anchor="start")
-        d.path(f"M{center},1475 L{center},1489", second, label_x, 1486,
-               marker_start="diamond-filled", label_anchor="start")
-        d.path(f"M{center},1619 L{center},1633", third, label_x, 1630,
-               marker_start="diamond-filled", label_anchor="start")
-        d.path(f"M{center},1749 L{center},1763", fourth, label_x, 1760,
-               dashed=True, label_anchor="start")
+    tcp_receive_steps = (
+        (40, "TCPChannelResource listen thread", ("accepted or locally initiated connection",)),
+        (310, "Read framed TCP message", ("read TCPHeader and body",
+                                           "logical port 0 handles RTCP control")),
+        (580, "Select logical registration", ("logical_port = TCPHeader.logical_port",
+                                                "receiver_resources_.find(logical_port)")),
+        (850, "Protect and load callback", ("ReceiverInUseCV::in_use++",
+                                             "pair.first points to ReceiverResource")),
+        (1120, "Invoke receive adapter", ("OnDataReceived(buffer, size,",
+                                            "channel->locator(), remote_locator)")),
+    )
+    shm_receive_steps = (
+        (40, "SharedMemChannelResource thread", ("listener for this SHM input port",)),
+        (310, "Receive shared buffer", ("listener_->pop()",
+                                         "obtain SharedMemManager::Buffer")),
+        (580, "Build reception locators", ("input_locator captured at creation",
+                                             "remote_locator.kind = LOCATOR_KIND_SHM")),
+        (850, "Use stored callback pointer", ("message_receiver_",
+                                                "points to ReceiverResource")),
+        (1120, "Invoke receive adapter", ("OnDataReceived(message->data(), size,",
+                                            "input_locator, remote_locator)")),
+    )
+    for y, steps in ((2570, udp_receive_steps), (2670, tcp_receive_steps), (2770, shm_receive_steps)):
+        for x, title, body in steps:
+            d.box(x, y, 235, 84, title, body, "transport")
+        for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+            d.path(f"M{start_x},{y + 42} L{end_x},{y + 42}")
 
     d.render(OUTPUT)
 
