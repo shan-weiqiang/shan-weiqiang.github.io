@@ -143,7 +143,7 @@ class Diagram:
 
 
 def render() -> None:
-    d = Diagram(2932, "Fast DDS transport, resource, channel, and backing relationships")
+    d = Diagram(3267, "Fast DDS transport, resource, channel, and backing relationships")
 
     d.group(20, 52, 1360, 135, "PARTICIPANT")
     d.group(20, 212, 1360, 170, "PARTICIPANT-OWNED NETWORK OBJECTS")
@@ -156,7 +156,8 @@ def render() -> None:
     d.group(10, 1582, 1380, 845, "RECEIVER SETUP FOR ONE LOCALLY CREATED ENDPOINT")
     d.group(25, 1612, 1350, 680, "PHASE 1 — CREATE OR REUSE RECEIVE REGISTRATIONS")
     d.group(25, 2307, 1350, 105, "PHASE 2 — ASSOCIATE ENDPOINT WITH MATCHING CONTROL BLOCKS")
-    d.group(20, 2442, 1360, 465, "INCOMING DATA AND ENDPOINT DISPATCH")
+    d.group(20, 2442, 1360, 800, "INCOMING DATA AND ENDPOINT DISPATCH")
+    d.group(30, 2874, 1340, 350, "MESSAGERECEIVER SUBMESSAGE PARSING AND LOCAL ENDPOINT DISPATCH")
 
     d.box(350, 82, 700, 80, "RTPSParticipantImpl",
           ("m_network_Factory: NetworkFactory",
@@ -474,6 +475,45 @@ def render() -> None:
             d.box(x, y, 235, 84, title, body, "transport")
         for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
             d.path(f"M{start_x},{y + 42} L{end_x},{y + 42}")
+
+    submessage_parse_steps = (
+        (40, "MessageReceiver::processCDRMsg()", ("one RTPS message buffer",)),
+        (310, "Validate RTPS message header", ("checkRTPSHeader()",
+                                                  "initialize source and destination context")),
+        (580, "Iterate RTPS submessages", ("while bytes remain",
+                                             "readSubmessageHeader()")),
+        (850, "Select submessage handler", ("switch (submessageId)",
+                                              "call proc_Submsg_*()")),
+        (1120, "Choose endpoint direction", ("reader-directed traffic or",
+                                               "writer-directed reliability feedback")),
+    )
+    reader_dispatch_steps = (
+        (40, "Reader-directed submessages", ("DATA, DATA_FRAG, HEARTBEAT, GAP",)),
+        (310, "Parse destination reader EntityId", ("readerID from the submessage",)),
+        (580, "Select associated readers", ("known ID: associated_readers_.find(readerID)",
+                                              "UNKNOWN: visit every reader vector")),
+        (850, "Build reader input", ("DATA/FRAG: transient CacheChange_t",
+                                      "serializedPayload points into receive buffer")),
+        (1120, "Invoke each selected BaseReader", ("process_data_msg() / process_data_frag_msg()",
+                                                    "process_heartbeat_msg() / process_gap_msg()")),
+    )
+    writer_dispatch_steps = (
+        (40, "Writer-directed feedback", ("ACKNACK or NACK_FRAG",)),
+        (310, "Parse destination writer GUID", ("destination prefix + writer EntityId",)),
+        (580, "Scan associated_writers_", ("std::vector<BaseWriter*>",
+                                            "offer feedback in vector order")),
+        (850, "Invoke each writer handler", ("process_acknack() or process_nack_frag()",
+                                               "handler checks the destination GUID")),
+        (1120, "Stop when a writer accepts it", ("first handler returning true ends scan",
+                                                   "otherwise destination writer is unknown")),
+    )
+    for y, height, steps in ((2904, 78, submessage_parse_steps),
+                             (3004, 88, reader_dispatch_steps),
+                             (3114, 88, writer_dispatch_steps)):
+        for x, title, body in steps:
+            d.box(x, y, 235, height, title, body, "data")
+        for start_x, end_x in ((275, 299), (545, 569), (815, 839), (1085, 1109)):
+            d.path(f"M{start_x},{y + height / 2:g} L{end_x},{y + height / 2:g}")
 
     d.render(OUTPUT)
 

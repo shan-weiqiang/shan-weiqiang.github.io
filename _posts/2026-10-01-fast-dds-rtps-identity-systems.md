@@ -34,19 +34,25 @@ The GUID-to-handle `reinterpret_cast` is a Fast DDS implementation shortcut. DDS
 
 A GUID contains a 12-byte prefix and a 4-byte entity ID. Entities within one participant share its prefix. Entity IDs distinguish them within that participant.
 
-```mermaid
-flowchart LR
-    P["Bytes 0–11: GUID prefix<br/>12 bytes"] --- E["Bytes 12–15: Entity ID<br/>4 bytes"]
+```text
+GUID (16 bytes)
+
+┌──────────────────────────────────────┬────────────────────────────┐
+│ Bytes 0–11: GUID prefix (12 bytes)   │ Bytes 12–15: Entity ID     │
+│                                      │ (4 bytes)                  │
+└──────────────────────────────────────┴────────────────────────────┘
 ```
 
 Fast DDS normally generates the prefix as follows:
 
-```mermaid
-flowchart LR
-    V["0–1: Vendor<br/>2 bytes"] --- H["2–3: Host hash<br/>2 bytes"]
-    H --- P["4–5: PID low bits<br/>2 bytes"]
-    P --- R["6–7: Random value<br/>2 bytes"]
-    R --- I["8–11: Participant ID + reuse counter<br/>4-byte generation-qualified ID"]
+```text
+GUID prefix (12 bytes)
+
+┌──────────────────┬──────────────────┬──────────────────┬──────────────────┬────────────────────────────────────────────┐
+│ Bytes 0–1        │ Bytes 2–3        │ Bytes 4–5        │ Bytes 6–7        │ Bytes 8–11                                 │
+│ Vendor (2 bytes) │ Host hash        │ PID low bits     │ Random value     │ Participant ID + reuse counter             │
+│                  │ (2 bytes)        │ (2 bytes)        │ (2 bytes)        │ (4-byte generation-qualified ID)           │
+└──────────────────┴──────────────────┴──────────────────┴──────────────────┴────────────────────────────────────────────┘
 ```
 
 | Prefix bytes | Fast DDS value                                                                                                 |
@@ -82,15 +88,39 @@ The preliminary GUID initializes `guid_` and `handle_`, supports local DDS ident
 
 The two paths reuse the same allocated participant ID. The counter is consumed during actual RTPS prefix generation, not preliminary GUID generation. A pre-enable GUID or handle can therefore differ from its post-enable value.
 
-```mermaid
-flowchart TD
-    A["DDS construction:<br/>reserve configured ID or smallest free ID<br/>pre-calculate GUID"] --> B["DDS enable:<br/>RTPSDomainImpl::create_participant()"]
-    B --> C["Combine participant ID with reuse counter<br/>advance counter for next creation"]
-    C --> D["guid_prefix_create:<br/>copy process prefix into bytes 0–7<br/>write prefix value into bytes 8–11"]
-    D --> E["Select communication prefix<br/>combine with entity ID 00 00 01 c1"]
-    E --> F["DDS adopts RTPS GUID<br/>and updates entity handle"]
-    F --> G["Remove participant:<br/>clear reserved and used<br/>retain counter"]
-    G --> A
+```text
+[1] DDS construction
+    Reserve the configured participant ID or the smallest free ID.
+    Pre-calculate the preliminary GUID.
+                              │
+                              ▼
+[2] DDS enable
+    Call RTPSDomainImpl::create_participant().
+                              │
+                              ▼
+[3] Generate a qualified participant-prefix value
+    Combine the participant ID with its reuse counter.
+    Advance the counter for the next creation.
+                              │
+                              ▼
+[4] guid_prefix_create()
+    Copy the process prefix into bytes 0–7.
+    Write the qualified participant-prefix value into bytes 8–11.
+                              │
+                              ▼
+[5] Build the participant GUID
+    Select the communication prefix.
+    Append participant entity ID 00 00 01 c1.
+                              │
+                              ▼
+[6] DDS adopts the RTPS GUID
+    Update the DDS participant GUID and entity handle.
+                              │
+                              ▼
+[7] Remove the participant
+    Clear its reserved and used ID entries, but retain the reuse counter.
+                              │
+                              └──── ID can be selected again ────► [1]
 ```
 
 The diagram shows the normal path with small participant IDs, whether configured explicitly or allocated automatically. For IDs below 65,536, the prefix-generation value contains the reuse counter in bits `31–16` and the participant ID in bits `15–0`.
@@ -204,9 +234,13 @@ For example, two containers can use PID `1` but different random values. Their p
 
 `EntityId_t` identifies an entity within its participant. It has a three-byte entity key and a one-byte entity kind.
 
-```mermaid
-flowchart LR
-    K["Bytes 0–2: Entity key<br/>3 bytes"] --- T["Byte 3: Entity kind<br/>1 byte"]
+```text
+Entity ID (4 bytes)
+
+┌────────────────────────────────┬────────────────────────────┐
+│ Bytes 0–2: Entity key          │ Byte 3: Entity kind        │
+│ (3 bytes)                      │ (1 byte)                   │
+└────────────────────────────────┴────────────────────────────┘
 ```
 
 The kind distinguishes categories such as participants, keyed/unkeyed readers and writers, and built-in/user entities. Built-in IDs are predefined. User endpoints receive IDs unique within their participant.
