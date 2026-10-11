@@ -5,13 +5,14 @@ date: 2026-10-11 09:00:00 +0800
 tags: [cpp, type-erasure, rtti, polymorphism]
 ---
 
+* toc
+{:toc}
+
 ## Type normalization and the erased boundary
 
-**Pointer normalization to `void*` is a basic form of type erasure.** It hides the original static pointee type at the interface. It does not change the underlying object's type.
+Here, **type normalization** means converting pointers to different object types into a common `void*` representation. This basic form of type erasure hides the static pointee type from the consumer without changing the object itself. Other erased representations include a virtual interface or a wrapper with bound callbacks.
 
-In this discussion, "type normalization" specifically means converting pointers to different object types into a common opaque pointer representation.
-
-Normalizing object pointers to `void*` is one form of type erasure: it hides the concrete pointee type from the consumer. Type erasure can also use other representations, such as a virtual interface or a wrapper with bound callbacks.
+The `void*` conversion alone only hides the type. To use an erased instance, the design must bind it to compatible operations: functions that accept the erased representation and know how to act on the underlying object.
 
 ## Binding erased instances to operations
 
@@ -120,19 +121,122 @@ At the abstraction boundary, this is a manual counterpart to `dynamic_cast`: che
 
 ## Application-defined identifiers and factories
 
-An application-defined string can identify an underlying implementation without requiring the consumer to name its concrete C++ type. However, recognizing an ID such as `"image"` does not let the consumer cast an erased pointer to that type or call its members. The string supplies an identity, not typed access.
+An application-defined string such as `"image"` can name an implementation without naming its C++ type. The name can select a factory; the resulting object must still carry or expose compatible operations.
 
-To make that identity useful for operating on an erased instance, the design must bind the instance to compatible operations. In a hand-written `void*`-based design, the provider can supply matching callbacks or an operation table, or register operations under the agreed string ID. The consumer uses the ID to select the operations; the selected implementation knows the concrete type and performs the appropriate cast.
+### Virtual interface and factory registry
 
-A virtual interface provides another way to establish this binding. A common design registers a **string name and a factory function** as a pair. The consumer chooses a name, and the corresponding factory creates a concrete object and returns it through the common interface:
+A registry can map an identifier to a factory that returns the common virtual interface. Registration knows the concrete class; the consumer only uses the identifier and interface:
 
-```text
-"image" -> image factory -> object exposed through the virtual interface
-"text"  -> text factory  -> object exposed through the virtual interface
+```cpp
+#include <memory>
+#include <string>
+#include <unordered_map>
+
+struct Renderer {
+    virtual ~Renderer() = default;
+    virtual void render() const = 0;
+};
+
+using RendererFactory = std::unique_ptr<Renderer> (*)();
+using RendererRegistry = std::unordered_map<std::string, RendererFactory>;
+
+struct ImageRenderer final : Renderer {
+    void render() const override { /* render an image */ }
+};
+
+// Provider code: knows ImageRenderer.
+void register_image(RendererRegistry& registry) {
+    registry.emplace("image", +[]() -> std::unique_ptr<Renderer> {
+        return std::make_unique<ImageRenderer>();
+    });
+}
+
+// Consumer code: needs only Renderer, RendererRegistry, and "image".
+void use_renderer(const RendererRegistry& registry) {
+    auto renderer = registry.at("image")();
+    renderer->render();
+}
 ```
 
-Each factory knows the concrete type it constructs. The consumer only knows the registered name, the factory's common creation contract, and the virtual interface. Once the object is created, the interface exposes the supported operations and virtual dispatch selects their compatible implementations. The consumer does not need to check the string before every operation.
+The factory selects construction. Once it returns the object, virtual dispatch binds `render()` to that object's implementation; the consumer does not inspect the identifier before every call. The registry name is an application contract, while the class definition remains provider-side.
 
-This is a registry-based application of the factory design pattern: runtime names select construction, while the returned interface binds instances to their operations. The same idea applies to a factory that returns an erased wrapper containing an opaque pointer and matching callbacks.
+### Hand-written type erasure and factory registry
 
-**A string ID can select an implementation without exposing its C++ type, but useful behavior still requires an instance–operation binding.** The consumer depends on the agreed names and operation contract; concrete-type knowledge stays in the factories and operation implementations.
+A hand-written wrapper can carry an opaque `void*`, an identifier, and the operations bound to that instance. The operation table below includes creation, destruction, and rendering. `std::unique_ptr` invokes the matching deleter, so the wrapper owns its erased object:
+
+```cpp
+#include <memory>
+#include <string>
+#include <unordered_map>
+
+struct Erased {
+    using Deleter = void (*)(void*) noexcept;
+
+    struct Operations {
+        void* (*create)();
+        Deleter destroy;
+        void (*render)(const void*);
+    };
+
+    std::string id;
+    Operations operations;
+    std::unique_ptr<void, Deleter> object;
+};
+
+struct Image {
+    void render() const { /* render an image */ }
+};
+
+// Provider code: creates the object and binds operations for Image.
+Erased make_image() {
+    const Erased::Operations operations{
+        []() -> void* { return std::make_unique<Image>().release(); },
+        [](void* ptr) noexcept {
+            std::unique_ptr<Image> owned{static_cast<Image*>(ptr)};
+        },
+        [](const void* ptr) { static_cast<const Image*>(ptr)->render(); }
+    };
+    return {"image", operations,
+            {operations.create(), operations.destroy}};
+}
+
+using ErasedFactory = Erased (*)();
+using ErasedRegistry = std::unordered_map<std::string, ErasedFactory>;
+
+void register_image(ErasedRegistry& registry) {
+    registry.emplace("image", &make_image);
+}
+
+// Consumer code: needs no Image declaration or cast.
+void use_erased(const ErasedRegistry& registry) {
+    auto value = registry.at("image")();
+    value.operations.render(value.object.get());
+}
+```
+
+The wrapper's `object`, `id`, deleter, creator, and `render` operation form one contract. The provider must keep the pointer and operations compatible. The registry maps an identifier to a factory for constructing that package; the consumer invokes the bound operation without recovering the C++ type. A different design could register operation tables by identifier instead of storing a table in every wrapper.
+
+### What the identifier does not provide
+
+An identifier alone provides neither a valid cast nor an operation. A consumer that knows a concrete type can branch on a retained ID and cast an opaque pointer, but the ID does not check that cast:
+
+```cpp
+if (value.id == "image") {
+    auto& image = *static_cast<Image*>(value.object.get());
+    image.render();
+}
+```
+
+This branch must include `Image` and trust that the pointer, ID, and lifetime agree. With a polymorphic base pointer, `dynamic_cast<ImageRenderer*>` can instead check a supported class relationship. Comparing `typeid(*renderer)` with `typeid(ImageRenderer)` identifies a type but does not convert the pointer. Both approaches name the concrete type in the consumer.
+
+The factory examples take the other path: `"image"` selects construction, and the returned virtual interface or erased wrapper supplies compatible operations. **The ID selects a provider; the interface or bound callbacks make the instance usable.** The consumer still depends on the identifier's agreed meaning and the operation contract, but need not depend on the concrete C++ class.
+
+## Creation, use, and optional concrete-type inspection
+
+The same three stages apply to a virtual interface and a hand-written erased wrapper:
+
+1. **Create by identifier.** An ID such as `"image"` selects one of several factory function pointers with the same signature. This is runtime selection among values, not a separate type-erasure boundary. The selected factory returns a base-interface object or erased wrapper that hides the concrete type. The ID names a registered implementation or category, not necessarily an exact C++ type.
+2. **Use the common API.** The consumer invokes operations through the virtual interface or the hand-written operation table. Neither path needs a concrete class name. The object and its operations were bound together during creation.
+3. **Inspect the concrete type only when needed.** A consumer that needs a concrete-only operation must cross the erased boundary. With a polymorphic base, it can use `dynamic_cast<Concrete*>` for a checked class conversion, or `typeid` to inspect dynamic type identity before a separate conversion. With an opaque `void*`, it cannot apply `dynamic_cast` directly; it needs retained type information or a trustworthy ID–pointer contract before casting back to a concrete pointer. In either design, naming `Concrete` in the consumer introduces a concrete-type dependency.
+
+The factory ID is sufficient to select construction, and the common API is sufficient for ordinary use. Neither requires the consumer to recover the concrete C++ type. Concrete inspection is an optional, more tightly coupled path; an ID or `typeid` result alone does not provide typed access.
