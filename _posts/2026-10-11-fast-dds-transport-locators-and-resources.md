@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Fast DDS Transport Locators, Resources, and Receive Threads"
+title: "Fast DDS Transport Architecture"
 date: 2026-10-11 09:00:00 +0800
 tags: [dds, rtps, fast-dds, networking, shared-memory]
 ---

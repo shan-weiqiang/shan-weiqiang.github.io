@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Undefined-Symbol Policies When Linking Executables and Shared Libraries"
+title:  "Undefined Symbols in GNU Linking"
 date:   2026-08-23 10:00:00 +0800
 tags: [cpp, linking, shared-libraries, polymorphism]
 ---

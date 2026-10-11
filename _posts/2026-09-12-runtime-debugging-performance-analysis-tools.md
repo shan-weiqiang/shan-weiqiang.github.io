@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Runtime Debugging and Performance Analysis Tools"
+title: "Debugging and Profiling Tools"
 date: 2026-09-12 11:00:00 +0800
 tags: [cpp, debugging, sanitizers, valgrind, linux, performance]
 ---

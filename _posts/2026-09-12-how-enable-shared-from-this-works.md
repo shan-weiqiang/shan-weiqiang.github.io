@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "How std::enable_shared_from_this Works"
+title:  "Inside std::enable_shared_from_this"
 date:   2026-09-12 10:00:00 +0800
 tags: [cpp, smart-pointers, memory-management, crtp]
 ---

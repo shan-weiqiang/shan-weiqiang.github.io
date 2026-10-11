@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "PImpl, Virtual Interfaces, and Function Tables"
+title: "PImpl and Runtime Dispatch"
 date: 2026-10-11 09:00:00 +0800
 tags: [cpp, pimpl, polymorphism, linking, abi]
 ---

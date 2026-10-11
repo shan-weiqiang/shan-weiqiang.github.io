@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Decoupling C++ Implementations with Interfaces and Runtime Binding"
+title:  "Interfaces and Runtime Binding"
 date:   2026-09-12 09:00:00 +0800
 tags: [cpp, type-erasure, runtime-binding, linking, pimpl]
 ---

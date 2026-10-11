@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Fast DDS / RTPS Identity Systems"
+title:  "Fast DDS RTPS Identities"
 date:   2026-10-01 00:00:00 +0800
 tags: [dds, rtps, middleware, fast-dds]
 ---

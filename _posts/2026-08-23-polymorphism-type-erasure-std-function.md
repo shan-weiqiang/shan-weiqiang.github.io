@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Polymorphism, Type Erasure, and std::function"
+title:  "Polymorphism and std::function"
 date:   2026-08-23 11:00:00 +0800
 tags: [cpp, polymorphism, type-erasure, templates]
 ---

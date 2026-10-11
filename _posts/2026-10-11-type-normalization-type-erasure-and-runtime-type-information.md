@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Type Normalization, Type Erasure, and Runtime Type Information"
+title: "Type Normalization, Erasure, and RTTI"
 date: 2026-10-11 09:00:00 +0800
 tags: [cpp, type-erasure, rtti, polymorphism]
 ---
