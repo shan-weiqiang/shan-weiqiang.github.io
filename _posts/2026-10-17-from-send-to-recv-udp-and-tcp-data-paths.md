@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "The UDP and TCP Data Paths"
-date: 2026-10-17 07:00:00 +0800
+date: 2026-10-17 09:00:01 +0800
 tags: [networking, linux, udp, tcp, ipv4]
 ---
 

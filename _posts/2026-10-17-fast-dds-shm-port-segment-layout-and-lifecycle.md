@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Fast DDS: SHM port segment layout and lifecycle"
-date: 2026-10-17 07:01:00 +0800
+date: 2026-10-17 09:30:00 +0800
 tags: [dds, fast-dds, shared-memory, networking]
 ---
 
