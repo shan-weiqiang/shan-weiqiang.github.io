@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="634" viewBox="0 0 800 634" role="img" aria-labelledby="title"><title id="title">Life of a UDP Datagram</title><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 L2,4 z" fill="#64748b"/></marker></defs><style>text {font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif; fill:#1e293b; font-size:12px; text-anchor:middle} .title {font-size:16px;font-weight:600} .note {font-size:11px;fill:#64748b}</style><rect width="100%" height="100%" fill="white"/>
+<text x="400.0" y="34" class="title">Life of a UDP Datagram</text>
+<text x="205" y="66" class="title">Sender</text>
+<text x="595" y="66" class="title">Receiver</text>
+<rect x="25" y="90" width="360" height="54" rx="7" fill="#dbeafe" stroke="#3b82f6"/>
+<text x="205.0" y="112.2" class="">1. Application: sendto()</text>
+<text x="205.0" y="130.2" class="">One message = one UDP payload</text>
+<rect x="415" y="90" width="360" height="54" rx="7" fill="#dbeafe" stroke="#3b82f6"/>
+<text x="595.0" y="112.2" class="">8. Application: recvfrom()</text>
+<text x="595.0" y="130.2" class="">One datagram per receive</text>
+<path d="M205,149 L205,163" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M595,169 L595,155" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="174" width="360" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="205.0" y="196.2" class="">2. UDP socket send memory</text>
+<text x="205.0" y="214.2" class="">Add 8 B UDP header</text>
+<rect x="415" y="174" width="360" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="595.0" y="196.2" class="">7. UDP socket receive queue</text>
+<text x="595.0" y="214.2" class="">Validate / demultiplex; no UDP ACK</text>
+<path d="M205,233 L205,247" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M595,253 L595,239" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="258" width="360" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="205.0" y="280.2" class="">3. IPv4</text>
+<text x="205.0" y="298.2" class="">Add IP header; fragment if allowed</text>
+<rect x="415" y="258" width="360" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="595.0" y="280.2" class="">6. IPv4</text>
+<text x="595.0" y="298.2" class="">Reassemble fragments if needed</text>
+<path d="M205,317 L205,331" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M595,337 L595,323" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="342" width="360" height="54" rx="7" fill="#fef3c7" stroke="#f59e0b"/>
+<text x="205.0" y="364.2" class="">4. qdisc / TX ring / NIC</text>
+<text x="205.0" y="382.2" class="">Enclose each IP packet in a frame</text>
+<rect x="415" y="342" width="360" height="54" rx="7" fill="#fef3c7" stroke="#f59e0b"/>
+<text x="595.0" y="364.2" class="">5. NIC RX ring / driver</text>
+<text x="595.0" y="382.2" class="">Receive frame; pass IP packet up</text>
+<path d="M205,401 C205,478 595,478 595,407" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<text x="400" y="490" class="note">Ethernet links / switch queues: frames can be dropped</text>
+<rect x="25" y="515" width="750" height="54" rx="7" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="400.0" y="537.2" class="">No UDP retransmission, receive window, or guaranteed delivery.</text>
+<text x="400.0" y="555.2" class="">Socket queues, IP reassembly memory, and NIC / switch queues are separate.</text>
+<text x="400" y="609" class="note">Ordinary Linux IPv4 / Ethernet path; offloads and other configurations can change details.</text>
+</svg>

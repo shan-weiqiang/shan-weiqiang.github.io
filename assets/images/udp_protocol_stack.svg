@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="432" viewBox="0 0 760 432" role="img" aria-labelledby="title"><title id="title">One UDP datagram through the protocol stack</title><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 L2,4 z" fill="#64748b"/></marker></defs><style>text {font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif; fill:#1e293b; font-size:12px; text-anchor:middle} .title {font-size:16px;font-weight:600} .note {font-size:11px;fill:#64748b}</style><rect width="100%" height="100%" fill="white"/>
+<text x="380.0" y="34" class="title">One UDP datagram through the protocol stack</text>
+<rect x="25" y="60" width="710" height="36" rx="7" fill="#dbeafe" stroke="#3b82f6"/>
+<text x="380.0" y="82.2" class="">Application payload: 4,000 B</text>
+<path d="M380,101 L380,115" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="126" width="710" height="36" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="380.0" y="148.2" class="">UDP header: 8 B + payload: 4,000 B = UDP datagram: 4,008 B</text>
+<path d="M380,167 L380,181" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="192" width="710" height="36" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="380.0" y="214.2" class="">IPv4 header: 20 B + UDP datagram: 4,008 B = IP packet: 4,028 B</text>
+<path d="M380,233 L380,247" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="258" width="710" height="36" rx="7" fill="#fef3c7" stroke="#f59e0b"/>
+<text x="380.0" y="280.2" class="">If fragmentation is allowed: split IP payload to fit MTU 1,500 B</text>
+<path d="M380,299 L380,313" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<path d="M300,299 C300,309 135,304 135,313" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/><path d="M460,299 C460,309 625,304 625,313" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="324" width="220" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="135.0" y="346.2" class="">Fragment 1: 1,500 B</text>
+<text x="135.0" y="364.2" class="">offset 0; MF = 1</text>
+<rect x="270" y="324" width="220" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="380.0" y="346.2" class="">Fragment 2: 1,500 B</text>
+<text x="380.0" y="364.2" class="">offset 185; MF = 1</text>
+<rect x="515" y="324" width="220" height="54" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="625.0" y="346.2" class="">Fragment 3: 1,068 B</text>
+<text x="625.0" y="364.2" class="">offset 370; MF = 0</text>
+<text x="380" y="407" class="note">Each fragment has an IP header; only fragment 1 starts with the UDP header.</text>
+</svg>

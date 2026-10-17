@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="325" viewBox="0 0 760 325" role="img" aria-labelledby="title"><title id="title">UDP kernel buffering: sender</title><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="2" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L8,4 L0,8 L2,4 z" fill="#64748b"/></marker></defs><style>text {font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', system-ui, sans-serif; fill:#1e293b; font-size:12px; text-anchor:middle} .title {font-size:16px;font-weight:600} .note {font-size:11px;fill:#64748b}</style><rect width="100%" height="100%" fill="white"/>
+<text x="380.0" y="34" class="title">UDP kernel buffering: sender</text>
+<rect x="25" y="60" width="710" height="36" rx="7" fill="#dbeafe" stroke="#3b82f6"/>
+<text x="380.0" y="82.2" class="">Application: one ordinary sendto() submits one datagram</text>
+<path d="M380,101 L380,115" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="126" width="710" height="54" rx="7" fill="#fef3c7" stroke="#f59e0b"/>
+<text x="380.0" y="148.2" class="">UDP socket send memory (SO_SNDBUF)</text>
+<text x="380.0" y="166.2" class="">Temporary accounting; no ACK-based retransmission buffer</text>
+<path d="M380,185 L380,199" fill="none" stroke="#64748b" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="25" y="210" width="710" height="36" rx="7" fill="#d1fae5" stroke="#22c55e"/>
+<text x="380.0" y="232.2" class="">UDP + IPv4 processing → qdisc / driver TX ring → NIC</text>
+<rect x="25" y="271" width="710" height="36" rx="7" fill="#f8fafc" stroke="#94a3b8"/>
+<text x="380.0" y="293.2" class="">Successful send means local acceptance; peer delivery is still unknown.</text>
+</svg>
