@@ -2,7 +2,7 @@
 layout: post
 title: "Fast DDS Transport Architecture"
 date: 2026-10-11 09:00:00 +0800
-tags: [dds, rtps, fast-dds, networking, shared-memory]
+tags: [dds, rtps, fast-dds, networking, shared-memory, middleware]
 ---
 
 The authoritative DDSI-RTPS standard is published by the Object Management Group and is available as the [OMG DDSI-RTPS 2.2 specification](https://www.omg.org/spec/DDSI-RTPS/2.2/PDF). It defines the RTPS protocol, its wire-level messages, endpoint behavior, and abstractions such as locators.

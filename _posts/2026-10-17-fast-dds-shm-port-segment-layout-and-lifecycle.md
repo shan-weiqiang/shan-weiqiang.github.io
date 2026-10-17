@@ -2,7 +2,7 @@
 layout: post
 title: "Fast DDS: SHM port segment layout and lifecycle"
 date: 2026-10-17 09:30:00 +0800
-tags: [dds, fast-dds, shared-memory, networking]
+tags: [dds, fast-dds, shared-memory, networking, middleware]
 ---
 
 This note covers SHM **port segments**, not payload data segments. It assumes one unicast, ReadExclusive receiver per port and any number of writers. "Reader" means the SHM receive-channel owner and its port listener, not necessarily a DDS DataReader. The sequences below describe source-code paths, not guaranteed recovery outcomes.

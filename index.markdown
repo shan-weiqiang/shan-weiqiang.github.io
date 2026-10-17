@@ -25,7 +25,7 @@ wide_layout: true
   </section>
 
   <aside class="tag-sidebar" aria-labelledby="tag-sidebar-heading">
-    <h2 id="tag-sidebar-heading">Tags</h2>
+    <h2 id="tag-sidebar-heading">Tags ({{ site.posts | size }} unique posts)</h2>
     {%- capture tag_sort_keys -%}
       {%- for tag in site.tags -%}
         {%- assign tag_post_count = tag[1] | size -%}
