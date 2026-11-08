@@ -1,0 +1,54 @@
+sequenceDiagram
+    autonumber
+    participant SA as Sender application
+    participant SS as Sender stack / qdisc
+    participant SD as Sender driver
+    participant SN as Sender NIC
+    participant RN as Receiver NIC
+    participant RD as Receiver driver / NAPI
+    participant RS as Receiver stack / socket
+    participant RA as Receiver application
+
+    Note over RN,RD: Prepare receive capacity before frames arrive
+    RD->>RD: Allocate or reuse RX buffers and DMA-map them
+    RD->>RN: Publish RX descriptors and notify NIC
+    Note over RN,RD: RX descriptors contain buffer DMA addresses and capacities
+
+    Note over SA,SS: If the socket send-memory budget is exhausted, blocking send() waits for space
+    SA->>SS: send(): CPU-copy payload into kernel buffers
+    SS->>SS: Create skbs and prepare headers and protocol data
+    opt Segmentation or IPv4 fragmentation required
+        SS->>SS: Prepare output skbs for Ethernet transmission
+    end
+    SS->>SS: Queue and schedule skbs in qdisc
+    Note over SS,SD: Qdisc does not wait for queue space or block the application when full
+    Note over SS,SD: Its drop policy may discard an skb and release its references instead
+    loop For each outgoing skb representing one Ethernet frame
+        Note over SS,SD: tcpdump TX tap on physical interface: after qdisc dequeue, before driver call<br/>Earlier qdisc drops are absent<br/>Capture does not prove wire transmission
+        SS->>SD: Hand outgoing skb to driver
+        SD->>SD: DMA-map the buffers referenced by skb
+        SD->>SN: Publish TX descriptors and notify NIC
+        Note over SD,SN: Descriptors contain DMA addresses, lengths and frame boundaries
+        SN->>SN: Read TX descriptors and DMA-read host data buffers
+        SN->>RN: Transmit Ethernet frame over the link
+        RN->>RN: Read RX descriptors and DMA-write into host RX buffers
+    end
+
+    par Reclaim sender resources
+        SN-->>SD: Report TX completion
+        SD->>SD: Reclaim descriptors, remove DMA mappings and release driver skb references
+    and Deliver received data
+        RN-->>RD: Report RX lengths, boundaries and completion
+        RD->>RD: Process completions and build or complete skbs for received data
+        RD->>RS: Pass received skbs upward
+        RD->>RN: Replenish RX descriptors with available buffers
+        Note over RN,RD: Do not overwrite buffers still referenced by the stack
+        Note over RD,RS: tcpdump RX tap on physical interface: after driver/NAPI delivery<br/>After software backlog when used, before IP reassembly and TCP/UDP processing<br/>Earlier RX drops are absent<br/>Capture does not prove socket delivery
+        RS->>RS: Ethernet decapsulation and IP processing
+        opt IPv4 fragments received
+            RS->>RS: Reassemble complete IP datagram
+        end
+        RS->>RS: TCP/UDP processing and destination socket queueing
+        RA->>RS: recv(): supply a user buffer
+        RS-->>RA: CPU-copy available payload into user buffer
+    end
